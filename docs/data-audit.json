@@ -1,0 +1,41 @@
+{
+  "competition": "cifar-10-res-net-architecture-challenge-dl",
+  "inventory_complete": true,
+  "files": 52003,
+  "training_images": 50000,
+  "test_images": 2000,
+  "class_counts": {
+    "0": 5000,
+    "1": 5000,
+    "2": 5000,
+    "3": 5000,
+    "4": 5000,
+    "5": 5000,
+    "6": 5000,
+    "7": 5000,
+    "8": 5000,
+    "9": 5000
+  },
+  "csv_columns": {
+    "train_labels.csv": [
+      "id",
+      "filename",
+      "label"
+    ],
+    "test.csv": [
+      "id",
+      "filename"
+    ],
+    "sample_submission.csv": [
+      "id",
+      "label"
+    ]
+  },
+  "csv_sha256": {
+    "train_labels.csv": "b596f4cbb12107ecac987e3a61123af40408a6bb83719a1dbb5cc3ce70968e93",
+    "test.csv": "d0db3026e3a7bc397d6f59b7ff6825960cc32a5e2aef57df63c9140b2ad31e5d",
+    "sample_submission.csv": "83aa7ddd58d46026c3b3f870f507c33b178ebfbdf24e0a69d9f7a9d6d8cfff59"
+  },
+  "csv_inventory_consistent": true,
+  "image_bytes_fully_downloaded_or_verified": false
+}

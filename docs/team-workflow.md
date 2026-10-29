@@ -93,6 +93,6 @@ main 是共享、可验证的集成版本。未通过审查的变更留在分支
 - 工作约定、agent 指令、PR 模板、开发任务模板、训练实验模板和 CPU CI 文件已在功能分支准备。
 - CPU CI 的安装与训练命令已在全新 Python 3.12 虚拟环境中通过；远程 GitHub Actions 的实际结果尚未验证。
 - GitHub Projects 看板、成员权限、main ruleset、真实 CODEOWNERS、后台 agent、auto-merge、版本发布和训练交付自动化尚未启用。
-- 比赛 API 返回的 5 个说明页面已读取并整理到 `competition.md`；课程附件、训练数据来源、完整文件清单及具体截止时间仍待核实，当前没有比赛训练结果。
+- 比赛 API 返回的 5 个说明页面已读取并整理到 `competition.md`；用户已补充课程 PDF，数据清单/CSV 已完整审计，明确日期但时区仍待确认；已有 GPU 工程试跑，正式研究遵循 research/charter.md。
 
 服务端配置通过 GitHub 仓库界面或恢复访问后的 API 启用，不会因本文件存在而自动生效。main 的建议保护规则见 `collaboration.md`；云端 API 访问问题见 `api-access.md`。
