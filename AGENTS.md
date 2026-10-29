@@ -5,8 +5,8 @@
 - Repository: `Solvement/26-Deep-Learning-Project-1-Kaggle`.
 - Competition: https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/overview
 - Development and CI use CPU. Real training may use Kaggle Notebook GPU, Google Colab, or a local GPU, subject to verified competition rules, availability, performance, and cost. Keep training platform-independent.
-- The competition requirements have not yet been retrieved. Read `docs/competition.md`; never invent architecture constraints, deadlines, dataset layouts, or submission columns.
-- Two to three humans will maintain this project. Their GitHub usernames are not yet configured. Do not invent CODEOWNERS entries or count an agent review as a human approval.
+- Competition page requirements were verified through Kaggle CLI. Read `docs/competition.md`: residual CNN, at most 5,000,000 trainable parameters, from-scratch training, permitted CIFAR-10 data only, no external pretrained weights/data. Deadlines, course attachments, authorized training-data source, and complete file inventory remain unresolved.
+- The user is preparing to train individually first; teammates may join later, with a competition maximum of three members. Reviewer identities are not configured. Do not invent CODEOWNERS entries or count an agent review as a human approval. Check official team membership and any deadline/approval requirements before privately sharing competition work with new members.
 
 ## Team operating model
 
