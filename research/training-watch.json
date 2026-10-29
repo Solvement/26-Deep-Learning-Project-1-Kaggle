@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-10-29T18:04:23.974540-04:00",
+  "ref": "kevin1220/cifar-resnet-w32-full-39f172",
+  "status": "RUNNING",
+  "latest_epoch": 24,
+  "latest_train_accuracy": 0.8695,
+  "latest_development_accuracy": 0.819,
+  "best_observed_development_accuracy": 0.819,
+  "recent_train_losses": [
+    0.8480888210296631,
+    0.8450407558441162,
+    0.8367091009140014,
+    0.8303225345611572,
+    0.8248208966255188
+  ],
+  "median_recent_epoch_seconds": 59.98189939600002,
+  "estimated_remaining_minutes": 99.96983232666669,
+  "wall_minutes_since_submission": 27.240870161851248,
+  "configured_maximum_seconds": 7200,
+  "timeout_risk_at_current_speed": true,
+  "decision": {
+    "decision": "continue",
+    "reason": "No sustained failure criterion; single high-LR validation drops are insufficient."
+  },
+  "early_stop_capabilities": {
+    "nonfinite_loss_fails_in_training": true,
+    "server_runtime_cap_seconds": 7200,
+    "automatic_validation_based_remote_cancel_verified": false
+  },
+  "leaderboard_snapshot": {
+    "top_public_scores": [
+      0.892,
+      0.888,
+      0.884
+    ],
+    "official_model_score": null
+  }
+}

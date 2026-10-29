@@ -39,7 +39,7 @@ python scripts/smoke_environment.py --output-dir /tmp/kaggle-dl-smoke
 5. 先用少量数据验证前向/反向、推理与提交格式，再启动长训练。长训练需要具体任务授权。
 6. 保存配置、代码 SHA、依赖版本、数据版本、验证指标、运行日志和模型校验和；检查 Notebook 和输出的可见性是否符合比赛规则。
 
-当前还没有比赛训练代码、Kaggle Notebook 或 GPU 训练结果，不应把 CPU 环境烟雾检查当作比赛进展。
+现已有训练/推理代码、可独立导入的 Notebook 和完成的 GPU 工程试跑；实际记录见 research/charter.md 及 docs/training.md。CPU smoke 仍仅用于工程验证。
 
 ## 平台选择与性能比较
 

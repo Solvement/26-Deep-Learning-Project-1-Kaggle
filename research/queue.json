@@ -1,0 +1,26 @@
+{
+  "campaign": "formal-round1",
+  "competition": "cifar-10-res-net-architecture-challenge-dl",
+  "base_config": "configs/baseline.json",
+  "screening_epochs": 10,
+  "budget": {
+    "max_new_runs": 2,
+    "per_run_seconds": 1200,
+    "total_reserved_seconds": 3600,
+    "prior_reserved_seconds": 1200
+  },
+  "candidates": [
+    {
+      "id": "baseline-w32",
+      "overrides": {},
+      "hypothesis": "A from-scratch CIFAR-sized residual CNN establishes the fixed 40k/5k/5k reference and measured cost.",
+      "sources": ["https://arxiv.org/abs/1512.03385", "https://arxiv.org/abs/1608.03983"]
+    },
+    {
+      "id": "width-w48",
+      "overrides": {"base_width": 48},
+      "hypothesis": "Increasing width at fixed depth and training recipe may improve development accuracy within the 5M parameter cap; measure the compute tradeoff.",
+      "sources": ["https://arxiv.org/abs/1605.07146"]
+    }
+  ]
+}
