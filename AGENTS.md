@@ -31,7 +31,7 @@
 - Run `python -m pip check` and `python scripts/smoke_environment.py --output-dir /tmp/kaggle-dl-smoke` after changes to the environment smoke workflow.
 - This smoke check validates dependencies and CPU training only. It is not a competition baseline or evidence of competition compliance. Add focused tests when actual data and model code is introduced.
 - Keep datasets, checkpoints, credentials, and submission files out of Git. Curated executed notebooks with non-sensitive plots and explicitly labeled smoke/validation results are permitted and required by the course; never commit data, model bytes or credentials in them. Use ignored paths and private artifacts consistent with competition rules.
-- Do not print environment or credential values. Reuse existing authentication, checking names/presence and the required operation before requesting more credentials.
+- Do not print environment or credential values. Reuse existing authentication, checking names/presence and the required operation before requesting more credentials. The current vault variable is `Kaggle_API_Token`; the cloud activation script maps it to CLI-standard `KAGGLE_API_TOKEN`. Inspect runtime variable names/readiness as well as proxy secret names before diagnosing a missing credential.
 
 ## PR review and merging
 

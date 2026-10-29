@@ -22,7 +22,7 @@ Issue 定义任务与验收 → 功能分支开发 → PR → 自动 CI 与另�
 - CIFAR 适配残差 CNN，默认 **1,084,586 可训练参数**，运行时强制 500 万上限，无预训练权重加载路径。
 - 官方 CSV/图像读取、固定 40k/5k/5k 划分、训练与精确续训、实验溯源、预测与提交验证。
 - 有预算的私有 Kaggle 研究执行器：方法假设 → 固定条件 → 短程比较 → 收集结果 → 下一轮判断；最终确认集在搜索期间不使用。
-- 官方小样本 CPU Notebook 与 Tesla T4 工程试跑已完成。正式宽度 32 基线完成 10 epoch，开发验证最佳 80.88%、最近三轮平均 76.12%；确认集未使用，尚无官方测试成绩。宽度 48 任务已提交，最新状态待恢复认证后查询。结果见 [实验记录](research/experiment-results.json)。
+- 官方小样本 CPU Notebook 与 Tesla T4 工程试跑已完成。正式宽度 32 基线完成 10 epoch，开发验证最佳 80.88%、最近三轮平均 76.12%；确认集未使用，尚无官方测试成绩。宽度 48 的 10-epoch 最佳开发准确率为 78.52%，最近三轮平均 75.07%；本轮未优于宽度 32。已提交宽度 32 从第 10 轮续训至 120 轮的私有任务。结果见 [实验记录](research/experiment-results.json)。
 - Python 功能测试与 GitHub Actions；训练/研究用法见 [训练说明](docs/training.md)，交付约束见 [课程要求](docs/course-requirements.md)。
 
 研究协议见 [research/charter.md](research/charter.md)，首轮假设与预算见 [research/queue.json](research/queue.json)。课程要求最终报告不超过 8 页，并在首页提供公开仓库链接；当前仓库保持私有，公开交付按比赛规则另行处理。

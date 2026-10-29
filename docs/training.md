@@ -96,3 +96,7 @@ python -m cifar_project.confirm --checkpoint outputs/selected/best.pt \
 ```
 
 整个研究周期共享同一个确认凭据目录。确认集不是后续调参来源；实际隐藏测试准确率仍只来自经确认的官方结果。终版若在训练+开发数据上重训，须先固定训练时长与方案，不再用确认集逐 epoch 选择检查点；该终版重训模式将在选型后单独实现和验证。
+
+## 云实例凭据命名
+
+当前安全运行变量名为 `Kaggle_API_Token`，而 Kaggle CLI 读取 `KAGGLE_API_TOKEN`。Linux 区分大小写；`/workspace/.setup/kaggle-dl/activate.sh` 已在标准变量缺失时从现有安全绑定映射到标准名，不写入凭据值。检查认证时应结合 runtime_variables 的实际名称与状态，不能仅看到标准变量缺失就要求用户重填。映射后的 CLI 已成功查询并取回宽度 48 结果，且提交了完整续训任务。
