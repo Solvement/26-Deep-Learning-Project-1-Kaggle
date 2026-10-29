@@ -1,0 +1,27 @@
+# Local environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Credentials and personal configuration
+.env
+.env.*
+!.env.example
+.kaggle/
+kaggle.json
+access_token
+
+# Competition data and generated artifacts
+/data/
+/artifacts/
+/outputs/
+/checkpoints/
+/runs/
+/submissions/
+*.pt
+*.pth
+*.ckpt
