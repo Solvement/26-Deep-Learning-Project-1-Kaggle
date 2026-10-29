@@ -1,0 +1,37 @@
+name: 训练或实验任务
+description: 记录实验假设、固定输入、资源预算和可复现结果。
+title: "[实验] "
+body:
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: 假设、基线与验收标准
+      description: 改变哪个变量？与什么基线比较？预先确定评价指标和方法；不要只用比赛公开榜调参。
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: 代码、配置与数据
+      description: 代码提交 SHA、配置或待实现项、随机种子、数据版本/校验和、划分与预处理；标明未知项。
+    validations:
+      required: true
+  - type: textarea
+    id: execution
+    attributes:
+      label: 负责人、平台与资源预算
+      description: 在 Assignees 中指定一位负责人；记录 Kaggle/Colab/本地 GPU、硬件需求、时长/费用上限、停止条件和授权状态。
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 规则与交付
+      description: 相关比赛/数据许可要求，审查人，以及预期保留的日志、模型和结果位置。不要填写凭据。
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: 实际结果（运行后补充）
+      description: 运行环境、命令、实际指标/消耗、产物链接及校验和、异常、与基线比较和结论。区分预期结果与实际结果。

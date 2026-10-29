@@ -6,7 +6,14 @@
 - Competition: https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/overview
 - Development and CI use CPU. Real training may use Kaggle Notebook GPU, Google Colab, or a local GPU, subject to verified competition rules, availability, performance, and cost. Keep training platform-independent.
 - The competition requirements have not yet been retrieved. Read `docs/competition.md`; never invent architecture constraints, deadlines, dataset layouts, or submission columns.
-- Two humans will maintain this project. Their GitHub usernames are not yet configured. Do not invent CODEOWNERS entries or count an agent review as a human approval.
+- Two to three humans will maintain this project. Their GitHub usernames are not yet configured. Do not invent CODEOWNERS entries or count an agent review as a human approval.
+
+## Team operating model
+
+- Read `docs/team-workflow.md` for task ownership, acceptance, review, experiment records, delivery, and escalation.
+- Link substantive changes to an Issue with one owner and observable acceptance criteria. Use the development or experiment Issue template.
+- Record actual outcomes separately from plans. Pure experiment runs may update an Issue and artifact index without an empty code PR.
+- Scope unattended remediation to at most two verified repair attempts before reporting a blocker; this does not activate a background agent or authorize extra spending.
 
 ## Work isolation and conflicts
 

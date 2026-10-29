@@ -1,6 +1,6 @@
 ## Problem and resulting behavior
 
-<!-- What does this change solve? Link the task or issue when available. -->
+<!-- Link the Issue, explain the problem, and show how the acceptance criteria are met. -->
 
 ## Validation
 
