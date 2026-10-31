@@ -349,7 +349,7 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 [se_model.py](se_model.py)只实现新单模型，[se-plan.md](se-plan.md)在其GPU实验前固定160轮SAM对照与门槛。
 9个带bias门、隐藏4/8/16，共4,332,654总/可训练参数。先完整初始化原WRN再附新门，
 同seed共享state keys/初始张量逐项一致，shortcut不门控；8项模型/数学/序列化CPU检查通过，
-当前集成286项检查通过。该组合没有trainer、nativeGPU预检或准确率结果。
+加入WRN300独立证明后，当前全套310项检查通过。该组合没有trainer、nativeGPU预检或准确率结果。
 未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
 通过完整配对后才冻结并新scratch seed2027。优先完成现有SAM/ResizeMix复测。
 
@@ -358,3 +358,18 @@ WRN34-300现已同本地v3完整重测：weighted96.54%/79.716%，相对本地�
 主epoch298raw/weighted和精确seed2027配置已于20:07:28UTC冻结，尚未正式复测或生成隐藏预测。
 官方assignment缺席和后续usage0核实后，原回执备份保留并完成清理核验；当前云端接续ResizeMix独立seed。
 现有cloud-repeat attestor仅支持ResizeMix160，不能直接将WRN300云重复冒充其支持的schema。
+
+## WRN300专用云重复证明
+
+[shadow_repeat_attestation.py](shadow_repeat_attestation.py)使用显式新schema，只允许已固定hash的
+WRN34-3/300、FP16、Mixup/Cutout、全新seed2027；不扩旧ResizeMix160入口。深验原始白名单ZIP/
+chunks、精确raw/effective配置、真实300轮/更新与溢出、SGD/EMA/RNG/GradScaler、模型级预检、
+完整T4 baseline/candidate、本地同v3完整benchmark与原receipt时间链、官方回收证明。
+原通用ZIP/cleanup helper以固定SHA复用且不修改；原cloud.receipt不重写成local训练。
+19项新helper及5项路由检查通过，全套310项CPU检查通过。真实旧WRN300配置/末态和预检结构
+只读核验通过，旧主实验作为repeat被拒绝。原ready WRN160真实--prepare仍通过，无上传或intent。
+
+新mode为`run_diagnostic.py --mode cloud-shadow-repeat-predict`；uploader显式区分两种云证明schema，
+普通predict-v2拒绝云receipt。新WRN300seed2027只prepare、未分配/训练，尚无真实新证明或隐藏预测。
+当前唯一云job仍是ResizeMix独立seed2027，20:19:29UTC已45/160轮、14,081成功+4跳步，
+源码/配置/实际指标有限性核实，预计20:47UTC训练结束（不等于benchmark/清理完成）。

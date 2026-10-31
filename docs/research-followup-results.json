@@ -1,6 +1,6 @@
 {
   "schema": "audited_followup_research_aggregate_v1",
-  "recorded_at": "2026-10-31T20:08:42.545904+00:00",
+  "recorded_at": "2026-10-31T20:21:02.074630+00:00",
   "issue": 7,
   "interpretation": "Exploratory reused development and fixed synthetic stress proxies. Not hidden accuracy or independent confirmation. No new research submission scored at this snapshot.",
   "baseline": {
@@ -776,7 +776,7 @@
     "interpretation": "Synthetic engineering throughput; training estimates exclude validation, EMA, checkpoint I/O and full pipeline overhead; no accuracy evidence."
   },
   "sam_status": "160 epochs and full v3 benchmark complete; all policies passed. Both conditional paired percentile intervals are positive on reused/postselected development. Primary frozen before repeat; independent seed2027 not started. No hidden predictions.",
-  "resizemix_status": "Primary full local-v3 benchmark and paired evidence passed and were frozen. Local FP16 seed2027 stopped at9/160 for measured runtime infeasibility; checkpoints and original receipts preserved. This is not a model-performance rejection. Fresh full T4 repeat queued, then local same-context benchmark and deep cloud-repeat attestation. No actual full repeat, attestation, prediction or submission yet.",
+  "resizemix_status": "Primary localv3 benchmark+paired frozen. LocalFP16 repeat capacity-stopped9/160 preserved. Fresh T4 scratchseed2027 repeat launched once20:06:11UTC; real45/160 at20:19:29UTC,14081successful+4skip,finite/source/config matched. Fullrepeat benchmark/cleanup/localv3 attestation/prediction remain pending.",
   "full50k_refit": {
     "status": "plan_prepared_not_started",
     "plan_sha256": "ab3ce5c59a8e49e06aa1449eb813596bee3d9f180cc9808ea9350eaba13a1ecb",
@@ -804,8 +804,8 @@
     "CPU_tests": 182,
     "CI": "success",
     "CI_url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41226413783",
-    "latest_local_integration_CPU_tests": 286,
-    "integration_note": "286 integrated CPU tests pass. Complete fixed SWA result failed both fixed weighted gates; no paired/repeat/prediction. SE model only has CPU evidence. WRN300 T4 point gate complete; local benchmark running, no new research upload.",
+    "latest_local_integration_CPU_tests": 310,
+    "integration_note": "All310integrated CPU tests pass; 19new shadow-attestation tests plus5typed-routing tests. ActualWRN300 primary config/last/history/scaler/SGD/RNG/preflight structures checked read-only; oldprimary rejected as its ownrepeat. ReadyWRN160 realofflineprepare still valid without upload or intent. No actualshadow2027attestation exists.",
     "latest_verified_committed_CI": {
       "commit": "88ef3db6b806f1f014e2647110478cb304537d28",
       "CPU_tests": 278,
@@ -2863,5 +2863,35 @@
     "automatic_promotion": false,
     "interpretation": "Exploratory reused/postselected development; image-cluster percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees."
   },
-  "WRN34_300_primary_freeze_sha256": "b6314d7f8b05f3f1978c682115d9cb4185646a32771db2826f95b675161045a3"
+  "WRN34_300_primary_freeze_sha256": "b6314d7f8b05f3f1978c682115d9cb4185646a32771db2826f95b675161045a3",
+  "WRN34_300_shadow_attestation": {
+    "schema": "research_shadow_cloud_repeat_attestation_v1",
+    "helper_source_sha256": "e5e7c3d0399db7ada0303b639e42dd595293d483a0f73d9c370aaa55a3d0ae6c",
+    "generic_RZ_helper_unchanged_sha256": "72ced331fd135d91f3f2099eee2f2b88d4d59cc46c2500fefbf090a3b9e3bb3f",
+    "support": "Only pinned frozenWRN34-3/300, nativeFP16 MixupCutout, freshseed2027; preservecloud andlaterlocalbench receipts",
+    "helper_CPU_tests": 19,
+    "typed_routing_CPU_tests": 5,
+    "actual_primary_structure_audit": "passed read-only; explicitly refused as repeat",
+    "repeat_prepared": true,
+    "repeat_launched": false,
+    "actual_attestation": false,
+    "actual_hidden_prediction": false,
+    "diagnostic_mode": "cloud-shadow-repeat-predict"
+  },
+  "resizemix_repeat_progress": {
+    "checked_at": "2026-10-31T20:19:29+00:00",
+    "epochs_completed": 45,
+    "planned_epochs": 160,
+    "successful_updates": 14081,
+    "skipped_updates": 4,
+    "actual_training_seconds": 652.56,
+    "training_seed": 2027,
+    "native_precision": "fp16",
+    "device": "Tesla T4",
+    "torch": "2.11.0+cu130",
+    "configuration_and_sources_verified": true,
+    "all_recorded_metrics_finite": true,
+    "estimated_training_finish_UTC": "2026-10-31T20:47:17+00:00",
+    "estimate_not_final_benchmark": true
+  }
 }

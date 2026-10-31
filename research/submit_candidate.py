@@ -110,11 +110,17 @@ def validate_v2_repeat_receipt(manifest_path, root=ROOT):
     checkpoint, benchmark, receipt_path = [Path(repeat[key]).resolve() for key in
                                          ("checkpoint_path", "benchmark_path", "receipt_path")]
     receipt = read_json(receipt_path)
-    if receipt.get("schema") == "research_cloud_repeat_attestation_v1":
-        from research.repeat_attestation import validate_attestation
+    schema = receipt.get("schema")
+    if schema in ("research_cloud_repeat_attestation_v1", "research_shadow_cloud_repeat_attestation_v1"):
+        if schema == "research_cloud_repeat_attestation_v1":
+            from research.repeat_attestation import validate_attestation
+            source = "research/repeat_attestation.py"
+        else:
+            from research.shadow_repeat_attestation import validate_attestation
+            source = "research/shadow_repeat_attestation.py"
         frozen_path = Path(document["frozen_manifest_path"]).resolve()
         attestation = validate_attestation(receipt_path, manifest_path=frozen_path)
-        if (attestation.get("schema") != "research_cloud_repeat_attestation_v1" or
+        if (attestation.get("schema") != schema or
                 Path(attestation["attestation_path"]).resolve() != receipt_path or
                 Path(attestation["checkpoint_path"]).resolve() != checkpoint or
                 Path(attestation["benchmark_path"]).resolve() != benchmark or
@@ -126,7 +132,7 @@ def validate_v2_repeat_receipt(manifest_path, root=ROOT):
                 document.get("frozen_manifest_sha256") != sha256(frozen_path)):
             raise ValueError("Cloud repeat attestation does not bind this actual delivery/repeat")
         return {"repeat_receipt_schema": attestation["schema"], "repeat_receipt_sha256": sha256(receipt_path),
-                "repeat_validator_source_sha256": sha256(root/"research/repeat_attestation.py")}
+                "repeat_validator_source_sha256": sha256(root/source)}
     return validate_native_repeat_receipt(checkpoint, benchmark, receipt_path, root)
 
 

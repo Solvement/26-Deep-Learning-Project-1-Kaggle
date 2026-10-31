@@ -177,3 +177,13 @@ WRN300完整本地nativeBF16 v3重测为96.54%/79.716%，与本地可信基线�
 主epoch298raw/weighted和精确seed2027配置于20:07:28UTC冻结，无重复/预测/提交。
 原云runtime官方缺席、后续active0/rate0已核实；原始cleanup未收敛回执以原字节备份。
 随后只分配一次新T4给ResizeMix seed2027，重新scratch，不复用本地9轮部分权重。
+
+
+## 2026-10-31：新shadow300重复证明与当前真实进度
+
+已新增独立WRN300/FP16/MixupCutout/seed2027证明schema，原ResizeMix160 verifier及冻结v1/v2文件不改。
+19helper+5路由检查、全套310CPU测试通过；旧真实WRN300 config/完整last+SGD/RNG/scaler/预检结构
+只读核验通过，旧primary因真实时间链无法冒充新repeat被拒绝。原WRN160 ready交付真实prepare
+仍通过，uploaded/intent均false。新shadow2027仅prepare，尚无allocation/真实repeat/attestation/预测。
+ResizeMix独立T4seed2027于20:19:29UTC实证45/160轮、14,081成功+4跳步、652.56秒，
+40k/5k、实际FP16、配置及源码一致，指标有限。预计训练20:47UTC结束，完整benchmark和回收仍待。

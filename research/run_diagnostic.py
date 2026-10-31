@@ -22,20 +22,26 @@ from runtime import write_json
 from research.submit_candidate import validate_native_repeat_receipt
 
 MODES = ("sam-speed", "shadow-benchmark", "sam-benchmark", "resizemix-benchmark",
-         "paired", "paired-v2", "predict", "predict-v2", "refit-predict", "cloud-repeat-predict")
+         "paired", "paired-v2", "predict", "predict-v2", "refit-predict", "cloud-repeat-predict",
+         "cloud-shadow-repeat-predict")
 POLICIES = ("plain", "flip", "center80_shift20")
 
 
 def build_command(args, folder, baseline):
     """Validate required files before acquiring a GPU lease or creating output."""
     inputs = []
-    if args.mode == "cloud-repeat-predict":
+    if args.mode in ("cloud-repeat-predict", "cloud-shadow-repeat-predict"):
         if not args.manifest or not getattr(args, "attestation", None):
-            raise ValueError("cloud-repeat-predict requires --manifest and --attestation")
-        from research.repeat_attestation import validate_attestation
+            raise ValueError(f"{args.mode} requires --manifest and --attestation")
+        if args.mode == "cloud-repeat-predict":
+            from research.repeat_attestation import validate_attestation
+            schema, entry = "research_cloud_repeat_attestation_v1", "research/repeat_attestation.py"
+        else:
+            from research.shadow_repeat_attestation import validate_attestation
+            schema, entry = "research_shadow_cloud_repeat_attestation_v1", "research/shadow_repeat_attestation.py"
         manifest, attestation_path = args.manifest.resolve(), args.attestation.resolve()
         attestation = validate_attestation(attestation_path, manifest_path=manifest)
-        if (attestation.get("schema") != "research_cloud_repeat_attestation_v1" or
+        if (attestation.get("schema") != schema or
                 Path(attestation["attestation_path"]).resolve() != attestation_path or
                 Path(attestation["frozen_manifest_path"]).resolve() != manifest or
                 attestation.get("attestation_sha256") != sha256(attestation_path) or
@@ -46,7 +52,7 @@ def build_command(args, folder, baseline):
         inputs += [Path(path) for path in attestation["evidence_sha256"]]
         inputs += [ROOT/name for name in attestation.get("source_sha256", {})]
         output = folder/"delivery.json"
-        command = [sys.executable, "research/repeat_attestation.py", "--predict", "--manifest", str(manifest),
+        command = [sys.executable, entry, "--predict", "--manifest", str(manifest),
                    "--attestation", str(attestation_path), "--output-dir", str(folder), "--device", "cuda"]
     elif args.mode == "refit-predict":
         if args.plan is None:
@@ -176,7 +182,8 @@ def main():
         if remaining < 1:
             raise TimeoutError("Diagnostic setup exhausted the remaining runtime")
         supervised_command(command, folder/"diagnostic.log", remaining, receipt_path, receipt)
-        if args.mode == "cloud-repeat-predict" and any(sha256(path) != digest for path, digest in receipt["input_sha256"].items()):
+        if args.mode in ("cloud-repeat-predict", "cloud-shadow-repeat-predict") and any(
+                sha256(path) != digest for path, digest in receipt["input_sha256"].items()):
             raise RuntimeError("Cloud repeat attestation or its original evidence changed during prediction")
         result = json.loads(output.read_text())
         if result.get("status") != "complete":
