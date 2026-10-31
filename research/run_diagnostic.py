@@ -20,14 +20,33 @@ import psutil
 from research.run_local import acquire_lease, now, sha256, supervised_command, used_seconds
 from runtime import write_json
 
-MODES = ("sam-speed", "shadow-benchmark", "sam-benchmark", "paired")
+MODES = ("sam-speed", "shadow-benchmark", "sam-benchmark", "paired", "predict")
 POLICIES = ("plain", "flip", "center80_shift20")
 
 
 def build_command(args, folder, baseline):
     """Validate required files before acquiring a GPU lease or creating output."""
     inputs = []
-    if args.mode == "sam-speed":
+    if args.mode == "predict":
+        if not all((args.manifest, args.repeat_checkpoint, args.repeat_benchmark, args.repeat_receipt)):
+            raise ValueError("predict requires --manifest --repeat-checkpoint --repeat-benchmark --repeat-receipt")
+        manifest, repeat, benchmark, receipt = [path.resolve() for path in
+            (args.manifest, args.repeat_checkpoint, args.repeat_benchmark, args.repeat_receipt)]
+        inputs += [manifest, repeat, benchmark, receipt]
+        frozen = json.loads(manifest.read_text())
+        inputs += [Path(path) for path in frozen.get("evidence_sha256", {})]
+        inputs += [repeat.parent/name for name in ("config.json", "metrics.json", "history.json", "provenance.json", "environment.json")]
+        if json.loads(benchmark.read_text()).get("research_training_integrity"):
+            inputs.append(benchmark.with_name(benchmark.stem+".core.json"))
+        if frozen.get("data_dir"):
+            data = Path(frozen["data_dir"])
+            inputs += [data/name for name in ("sample_submission.csv", "test.csv", "official_test.npz", "official_test_source_manifest.json")]
+            inputs += [data/name for name in json.loads((data/"training_manifest.json").read_text())["files_sha256"]]
+        output = folder/"delivery.json"
+        command = [sys.executable, "research/delivery.py", "--predict", "--manifest", str(manifest),
+                   "--repeat-checkpoint", str(repeat), "--repeat-benchmark", str(benchmark), "--repeat-receipt", str(receipt),
+                   "--output-dir", str(folder), "--device", "cuda"]
+    elif args.mode == "sam-speed":
         if args.config is None:
             raise ValueError("sam-speed requires --config")
         config = args.config.resolve()
@@ -72,6 +91,8 @@ def main():
     parser.add_argument("--config", type=Path)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--candidate-benchmark", type=Path)
+    for name in ("manifest", "repeat-checkpoint", "repeat-benchmark", "repeat-receipt"):
+        parser.add_argument("--"+name, type=Path)
     parser.add_argument("--policy", choices=POLICIES)
     parser.add_argument("--seconds", type=int, default=180)
     args = parser.parse_args()

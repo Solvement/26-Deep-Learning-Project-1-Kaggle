@@ -20,9 +20,10 @@ class DiagnosticSupervisorTests(unittest.TestCase):
         (root/"research/campaign.json").write_text(json.dumps({
             "stops_at": "2099-01-01T00:00:00+00:00", "local_gpu_seconds_per_utc_day": daily,
             "local_job_timeout_seconds": 10800, "baseline_benchmark": "baseline.json"}))
-        for name in ("train_sam.py", "benchmark_shadow.py", "benchmark_sam.py", "paired_compare.py"):
+        for name in ("train_sam.py", "benchmark_shadow.py", "benchmark_sam.py", "paired_compare.py", "delivery.py"):
             (root/"research"/name).write_text("mock child entrypoint")
-        for name in ("config.json", "baseline.json", "candidate.json"):
+        for name in ("config.json", "baseline.json", "candidate.json", "frozen.json", "receipt.json",
+                     "metrics.json", "history.json", "provenance.json", "environment.json"):
             (root/name).write_text("{}")
         (root/"best.pt").write_bytes(b"checkpoint-presence-only")
         return ["run_diagnostic.py", "--run", "check", "--mode", "sam-speed", "--config", str(root/"config.json")]
@@ -32,9 +33,10 @@ class DiagnosticSupervisorTests(unittest.TestCase):
             root = Path(tmp)
             self.setup_root(root)
             args = SimpleNamespace(mode="sam-speed", config=root/"config.json", checkpoint=root/"best.pt",
-                                   candidate_benchmark=root/"candidate.json", policy="flip")
+                                   candidate_benchmark=root/"candidate.json", policy="flip", manifest=root/"frozen.json",
+                                   repeat_checkpoint=root/"best.pt", repeat_benchmark=root/"candidate.json", repeat_receipt=root/"receipt.json")
             entries = {"sam-speed": "research/train_sam.py", "shadow-benchmark": "research/benchmark_shadow.py",
-                       "sam-benchmark": "research/benchmark_sam.py", "paired": "research/paired_compare.py"}
+                       "sam-benchmark": "research/benchmark_sam.py", "paired": "research/paired_compare.py", "predict": "research/delivery.py"}
             with patch.object(diagnostic, "ROOT", root):
                 for mode, entry in entries.items():
                     args.mode = mode
@@ -49,6 +51,13 @@ class DiagnosticSupervisorTests(unittest.TestCase):
                     elif mode == "paired":
                         self.assertEqual(command[command.index("--baseline-checkpoint")+1], str(root/"results/regularized/best.pt"))
                         self.assertEqual(output.name, "paired.json")
+                    elif mode == "predict":
+                        self.assertIn("--predict", command)
+                        self.assertEqual(command[command.index("--manifest")+1], str(root/"frozen.json"))
+                        self.assertEqual(command[command.index("--output-dir")+1], str(root/"new"))
+                        self.assertEqual(output.name, "delivery.json")
+                        self.assertTrue({root/"frozen.json", root/"best.pt", root/"candidate.json", root/"receipt.json",
+                                         root/"config.json", root/"metrics.json", root/"history.json", root/"provenance.json", root/"environment.json"} <= set(inputs))
 
     def test_missing_required_mode_inputs_rejected_before_a_lease(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -58,6 +67,21 @@ class DiagnosticSupervisorTests(unittest.TestCase):
                 for mode in diagnostic.MODES:
                     with patch("sys.argv", ["run_diagnostic.py", "--run", "missing", "--mode", mode]):
                         with self.assertRaises(ValueError):
+                            diagnostic.main()
+            lease.assert_not_called()
+
+    def test_predict_requires_every_explicit_repeat_input_before_a_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            arguments = [("--manifest", str(root/"frozen.json")), ("--repeat-checkpoint", str(root/"best.pt")),
+                         ("--repeat-benchmark", str(root/"candidate.json")), ("--repeat-receipt", str(root/"receipt.json"))]
+            with patch.object(diagnostic, "ROOT", root), patch.object(diagnostic, "acquire_lease") as lease:
+                for omitted in range(len(arguments)):
+                    argv = ["run_diagnostic.py", "--run", "missing", "--mode", "predict"]
+                    argv += [value for index, pair in enumerate(arguments) if index != omitted for value in pair]
+                    with patch("sys.argv", argv):
+                        with self.assertRaisesRegex(ValueError, "predict requires"):
                             diagnostic.main()
             lease.assert_not_called()
 
