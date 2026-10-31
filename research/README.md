@@ -356,7 +356,10 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 [se_model.py](se_model.py)只实现新单模型，[se-plan.md](se-plan.md)在其GPU实验前固定160轮SAM对照与门槛。
 9个带bias门、隐藏4/8/16，共4,332,654总/可训练参数。先完整初始化原WRN再附新门，
 同seed共享state keys/初始张量逐项一致，shortcut不门控；8项模型/数学/序列化CPU检查通过，
-独立trainer、完整双参照benchmark与监督器已实现，21项新CPU检查和独立审查通过；尚无nativeGPU预检或准确率结果。
+独立trainer、完整双参照benchmark与监督器已实现，21项新CPU检查和独立审查通过。
+原生BF16合成预检现已完成23/23真实更新，全部9门的梯度和参数变化逐步通过；中位61.626ms，
+固定guard需4929.32秒，超过当前UTC日剩余约1363秒，尚未正式训练或测准确率。
+证据见[se-engineering-results.json](../docs/se-engineering-results.json)。
 未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
 通过完整配对后才冻结并新scratch seed2027。优先完成现有SAM/ResizeMix复测。
 
