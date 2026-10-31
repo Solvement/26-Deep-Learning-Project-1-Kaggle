@@ -26,7 +26,8 @@
   都计入任务耗时。Colab 由独立监督器及单独云端 lease 约束，不计入本地 GPU 时间。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
-  复测和真实预测均完成。SAM 的160轮、完整benchmark和配对已完成，待正式seed复测；SWA、SE尚未实现。
+  复测和真实预测均完成。SAM 的160轮、完整benchmark和配对已完成，待正式seed复测；
+  SWA独立实现与276项全套CPU检查已完成，等待原生GPU预检；SE尚未实现。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -184,7 +185,7 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
 2. **Weight decay。** [MixUp 作者训练代码](https://github.com/facebookresearch/mixup-cifar10/blob/main/train.py#L35)
    默认使用 `weight_decay=1e-4`；当前候选只把原 recipe 的 `5e-4` 改成 `1e-4`。
    这是待测假设，不是本项目已证明的最佳值。参考算法/参数，独立实现并遵守引用与代码许可要求。
-3. **SWA，尚未实现。** 固定40轮tail及严格新seed完整复测的备用协议见[swa-plan.md](swa-plan.md)。[原论文](https://arxiv.org/abs/1803.05407)和[作者示例](https://github.com/timgaripov/swa#examples)
+3. **SWA，独立实现/CPU检查完成，尚无真实GPU结果。** 固定40轮tail及严格新seed完整复测的协议见[swa-plan.md](swa-plan.md)。[原论文](https://arxiv.org/abs/1803.05407)和[作者示例](https://github.com/timgaripov/swa#examples)
    支持对 SGD 轨迹权重做平均，最终保留单个模型。作者 CIFAR/WRN 示例从 epoch 161 开始 SWA，
    SWA LR 为 0.05，论文附录WRN设置为0.01。当前备用计划固定40轮、0.01，不临时搜索长度/LR；
    仍须独立40k benchmark、配对和冻结后的正式seed复测，平均后的BN只用40k优化训练图像重估。
@@ -278,6 +279,20 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 该余量参考此前同T4 ResizeMix真实epoch耗时/合成SGD估计约1.147。WRN34新实测中位46.056ms，
 预检纯SGD估计72.1分钟、保守流水线113.1分钟，符合当前实际剩余窗口；不是完整训练实际耗时。
 原ResizeMix预检的2倍预算规则不改，三小时独立截止保护保持。合成预检不产生比赛准确率。
+
+### SWA独立路径与固定选择语义
+
+[train_swa.py](train_swa.py)恢复已审计的本方scratch第160轮raw/EMA/SGD/RNG轨迹，固定追加40轮、
+LR0.01，逐epoch做40次FP32参数平均。输出显式`swa`及`raw_tail_control`，不使用旧best-epoch字段；
+平均后仅40k训练图像重估BN，SWA与raw对照使用同一crop/flip及随机种子。
+[benchmark_swa.py](benchmark_swa.py)使用原v3评分/像素/gate和独立完整来源审计，固定weighted策略
+同时通过原regularized和固定WRN34父参照的门槛才可晋级；对照不进入隐藏预测。
+
+[run_swa.py](run_swa.py)共享本地lease/预算/watchdog；先做20步实际原生BF16预检，再按实测余量启动。
+主模型只接续精确哈希的本方seed2026末轮检查点；正式seed2027在同一监督任务内重新scratch160+tail40。
+两份完整benchmark、BN和I/O均受任务上限。276项全套CPU检查与独立审查通过；尚未GPU预检或训练。
+若在epoch200之后的最终BN/eval阶段中断，当前入口拒绝直接resume，保留原last状态并先核验再处理。
+现有v1/v2交付入口不支持SWA，不以改名或旧weight variant替代方法审计。
 
 ## 提交与证据
 

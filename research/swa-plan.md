@@ -1,4 +1,7 @@
-# 备用实验：固定40轮SWA tail（尚未实现或运行）
+# 固定40轮SWA tail：预登记协议
+
+登记于2026-10-31，首个SWA GPU预检/训练之前。实际进展与结果见[README.md](README.md)及运行回执；
+该协议作为监督任务的哈希输入，在运行中保持不变。
 
 当前优先完成ResizeMix的真实配对/复测与已合格WRN34交付。SWA是后续低增量成本假设，
 不因原`robust_full`的多因素失败或某个stress case而挑选学习率。
@@ -25,7 +28,14 @@
 
 固定40轮tail的增量估计约8–9分钟，另加BN、完整benchmark和来源审计；这是从已测父模型
 末40轮耗时外推，尚非本方法GPU测速。若主模型达到原工程gate且原图聚类配对区间支持提升，
-先冻结配方、主权重和推理policy，再用第二seed **重新从零完成160轮前缀+40轮tail**。
+本方法预先继承已合格父候选的 **center80_shift20** 作为唯一可晋级policy，完整报告另外两种policy。
+除原regularized基线的统一gate外，同一policy还须相对固定WRN34-3主seed2026参照
+（clean96.32%/stress78.592%）通过相同阈值gate：clean至少+0.10且stress不低于-0.20个百分点，
+或stress至少+0.50且clean不低于-0.20个百分点。该增量门槛在首个SWA GPU预检/训练前固定，
+避免只保留父配方的既有优势就将新增训练视为方法收益。两个seed使用同一固定参照。
+原v3 `promotion`保留统一基线语义；另记`promotion_vs_parent`，`candidate_eligible`只允许
+SWA固定policy同时通过两gate，raw-tail-control始终是对照。随后
+冻结配方、主权重和推理policy，再用第二seed **重新从零完成160轮前缀+40轮tail**。
 不将此前已看过的seed2027前缀加一段tail的开始时间，当成整个正式重复实验的开始时间。
 旧前缀如另做tail只能标为探索，不能代替这一正式复测或进入主隐藏预测。
 
