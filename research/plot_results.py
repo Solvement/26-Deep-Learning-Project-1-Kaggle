@@ -19,7 +19,8 @@ def main():
     args = parser.parse_args()
     data = json.loads(args.input.read_text(encoding="utf-8"))
     rows = [
-        ("WRN34-3", data["wrn34_3_paired"], "#2868a8", "o"),
+        ("WRN34-3 / 160ep", data["wrn34_3_paired"], "#2868a8", "o"),
+        ("WRN34-3 / 300ep FP16", data["WRN34_300_local_paired"], "#8057a6", "D"),
         ("SAM / WRN22-4", data["SAM_paired"], "#bc641e", "s"),
         ("ResizeMix / WRN22-4", data["resizemix_local_paired"], "#287d62", "^"),
     ]

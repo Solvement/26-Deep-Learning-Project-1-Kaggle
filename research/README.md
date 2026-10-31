@@ -27,7 +27,7 @@
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
   复测和真实预测均完成。SAM 的160轮、完整benchmark和配对已完成，待正式seed复测；
-  SWA独立实现与276项全套CPU检查已完成，首个原生GPU预检通过真实更新、但未满足剩余预算；批量同步优化及278项CPU检查已通过，等待新源码GPU测速。SE尚未实现。
+  SWA独立实现与278项全套CPU检查/CI已完成，新源码原生GPU预检通过，固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立模型和CPU检查已实现，尚无trainer/GPU结果。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -271,7 +271,7 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 
 [wrn34_3_300.json](configs/wrn34_3_300.json)保持模型与原增强、WD，仅延长配置中的训练轮数。
 云端使用独立shadow原生FP16入口，与同一运行时可信WRN22基线比较；原WRN34-160是本地BF16，
-因此不能把跨环境差异归因于训练轮数。已实际分配T4、通过13/13次真实更新，开始40k训练；完整结果仍待回执。
+因此不能把跨环境差异归因于训练轮数。已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；weighted clean96.52%/stress79.708%，同T4基线96.28%/77.656%，三policy点gate通过。产物已下载。官方assignment已终止，但ordinary usage延迟未归零，暂保留lease。随后须同本地v3重测、配对、主冻结和全新独立seed，尚无隐藏预测或新增提交。
 
 普通Mixup/Cutout的shadow路径新增真实模型级FP16预检：3步预热、10步计时、13次真实更新，
 核验所有参数/损失有限、参数<=5M及训练/增强源码SHA。预先固定预算公式为
@@ -291,6 +291,12 @@ LR0.01，逐epoch做40次FP32参数平均。输出显式`swa`及`raw_tail_contro
 [run_swa.py](run_swa.py)共享本地lease/预算/watchdog；先做20步实际原生BF16预检，再按实测余量启动。
 主模型只接续精确哈希的本方seed2026末轮检查点；正式seed2027在同一监督任务内重新scratch160+tail40。
 两份完整benchmark、BN和I/O均受任务上限。276项全套CPU检查与独立审查通过。首次GPU预检23/23真实原生BF16有限更新，中位108.814ms；固定1.5倍流水线余量和300秒最终化要求2343.52秒，超过当日剩余2154.72秒，未启动正式训练。参数平均有294次逐tensor同步，按device聚合的无穷范数有限性检测现已实现，12项数学检查及278项集成CPU检查通过；不降低预算倍率或更改预检平均频率，新源码必须重新测速。
+新源码预检同样23/23真实更新/平均，中位42.691ms、P90 46.592ms。原guard要求1101.74秒，
+小于实际剩余2148.45秒；已于19:52:33UTC启动唯一40轮tail+两份完整benchmark监督任务。
+现已完整结束626.45秒；weighted SWA为clean95.72%/stress80.18%，相对父模型clean降低0.60个百分点，
+未过原基线及父参照clean非劣门槛。相同轨迹/BN的raw-tail对照为94.48%/72.456%。
+平均缓解了该轨迹的退化，但不满足晋级；没有配对/重复/隐藏预测，不改LR或挑别的policy挽救本候选。
+相对父模型同时改变tail与BN，剩余clean退化原因尚未分离。所有绑定源码/协议和负结果保持可核验。
 若在epoch200之后的最终BN/eval阶段中断，当前入口拒绝直接resume，保留原last状态并先核验再处理。
 现有v1/v2交付入口不支持SWA，不以改名或旧weight variant替代方法审计。
 
@@ -337,3 +343,18 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 
 每个任务记录实际设备/精度、配置、数据分割、起止时间、预算、训练历史、benchmark、gate 及失败原因。
 到停止时间保存现有证据并结束本轮，不以尚未分配的 Colab GPU、尚未运行的算法或未评分的提交宣布完成。
+
+## 下一独立架构：SE-WRN22-4/r16 + 固定SAM
+
+[se_model.py](se_model.py)只实现新单模型，[se-plan.md](se-plan.md)在其GPU实验前固定160轮SAM对照与门槛。
+9个带bias门、隐藏4/8/16，共4,332,654总/可训练参数。先完整初始化原WRN再附新门，
+同seed共享state keys/初始张量逐项一致，shortcut不门控；8项模型/数学/序列化CPU检查通过，
+当前集成286项检查通过。该组合没有trainer、nativeGPU预检或准确率结果。
+未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
+通过完整配对后才冻结并新scratch seed2027。优先完成现有SAM/ResizeMix复测。
+
+WRN34-300现已同本地v3完整重测：weighted96.54%/79.716%，相对本地基线+0.26/+2.088pp；
+10,000次原图聚类bootstrap clean条件95%区间[-0.18,+0.72]pp跨0、stress[+1.6719,+2.488]pp为正。
+主epoch298raw/weighted和精确seed2027配置已于20:07:28UTC冻结，尚未正式复测或生成隐藏预测。
+官方assignment缺席和后续usage0核实后，原回执备份保留并完成清理核验；当前云端接续ResizeMix独立seed。
+现有cloud-repeat attestor仅支持ResizeMix160，不能直接将WRN300云重复冒充其支持的schema。

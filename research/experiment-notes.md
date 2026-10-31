@@ -142,3 +142,38 @@ stress80.092%，同次可信基线flip为96.28%/77.652%。三个policy都通过�
 数学等价优化现已完成：非空FP32参数按device用∞范数聚合，每次平均单GPU只作3次host有限性判断；
 空tensor保持vacuously finite，NaN/±Inf、极大有限数和非连续参数边界均通过。凸组合算式、
 source/gradient/buffer及失败原子性保持不变。全套278项CPU检查通过；尚无新GPU加速测量。
+
+新source f3d05f96 helper的受监督原生BF16预检23/23真实更新/平均完成，中位42.691ms、
+P90 46.592ms；原guard要求1101.74秒<实际剩余2148.45秒。278项CPU检查及88ef3db CI通过。
+已于19:52:33UTC启动唯一固定40tail及BN/双完整benchmark任务；尚无最终准确率/配对/复测。
+两次测速均为合成更新，仅用于工程准入，不外推为完整训练或比赛收益。
+
+
+## 2026-10-31：WRN34-300完整T4结果
+
+300轮训练及完整5000dev×6case×3policy完成，93,864成功更新+36次溢出跳步=93,900尝试。
+固定best规则选择epoch298 raw；weighted clean96.52%、stress79.708%，同T4基线flip96.28%/77.656%，
+差值+0.24/+2.052个百分点；三policy均通过原点gate。实际训练5259.36秒。
+本地BF16同v3重测、配对、主冻结/独立seed尚待，不能混T4结果晋级或归因仅轮数。
+产物已取回，官方runtime终止可核实；即时usage仍滞后，保留原cleanup_unverified回执与lease直到归零。
+
+独立SE模型及预登记协议已实现（尚无trainer/GPU结果），9个r16门增加33,684参数，总数4,332,654。
+同seed共享初始权重与原WRN逐项相同，门只放conv2输出后/shortcut相加前。全套286项CPU检查通过。
+其未来weighted晋级须同时满足旧基线和固定SAM主模型增量门槛；不因看到已有noise/blur结果临时改rho/门位置。
+
+
+## 2026-10-31：SWA固定40tail负结果
+
+160轮自有前缀+40固定tail、40次FP32平均、仅40k BN及SWA/raw-tail两份完整5000dev v3评测
+全部结束，共626.45秒。唯一weighted候选clean95.72%/stress80.18%，相对原基线-0.56/+2.552pp，
+相对固定WRN34父模型-0.60/+1.588pp；clean非劣失败，三policy全部不能晋级。
+同轨迹/相同训练视图BN的raw-tail control为94.48%/72.456%；SWA有1.24/+7.724pp点改善，
+仍未恢复父模型clean。对照支持平均缓解该轨迹退化，但不能分离LR/tail与BN的共同影响。
+没有配对/独立重复/隐藏预测/提交，不在看到结果后改LR/轮数或把raw对照/另一policy替为主候选。
+后续资源优先同环境重测新WRN300及已冻结SAM/ResizeMix正式重复。
+
+WRN300完整本地nativeBF16 v3重测为96.54%/79.716%，与本地可信基线比较+0.26/+2.088pp。
+原图聚类配对95%条件区间clean[-0.18,+0.72]pp、stress[+1.6719,+2.488]pp；clean仍跨0。
+主epoch298raw/weighted和精确seed2027配置于20:07:28UTC冻结，无重复/预测/提交。
+原云runtime官方缺席、后续active0/rate0已核实；原始cleanup未收敛回执以原字节备份。
+随后只分配一次新T4给ResizeMix seed2027，重新scratch，不复用本地9轮部分权重。
