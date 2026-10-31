@@ -1,0 +1,30 @@
+{
+  "schema": "audited_research_report_preview_v1",
+  "recorded_at": "2026-10-31T21:17:07.553585+00:00",
+  "source_summary": "docs/research-followup-results.json",
+  "source_summary_sha256": "0257a24d227c436a89eea185db941e3df857c96a79497fdd9f21dd3333a39d8c",
+  "public_notebook": "notebooks/Project1_Research_Executed.ipynb",
+  "PDF_pages": 8,
+  "executed_code_cells": 8,
+  "PNG_outputs": 4,
+  "sha256": {
+    "ky2738_Project1_Report.pdf": "444b7b617f9f9d2630f94a89a82f2ee1ed4358de4dc653a960aca4e030f8ae44",
+    "Project1_Results_Executed.ipynb": "ac754b71910c712edc755b02cc8f12c219210608248c2ac25deb823c3f6f6921",
+    "research_conditional_deltas.png": "ac0455758a398a07d2fdd906246aff4ae03ec298fb6eced371a86ead337572ea",
+    "research_followup_evidence.json": "b8c18083bc7384f645d7d0e90ba5b230937ff174eac02f5ad8c9e5661cc93936"
+  },
+  "original_frozen_outputs_unchanged": true,
+  "original_six_code_cell_outputs_equal": true,
+  "actual_scored_research_receipts": 0,
+  "best_original_public": 0.874,
+  "original_primary_public": 0.871,
+  "best_new_public": null,
+  "visual_review": "All eight PDF pages and the notebook plot PNG were rendered and visually inspected; all cell outputs and embedded plots were reviewed. No clipping, overlap, credential, private absolute path or prediction row was found.",
+  "HTML_layout_status": "Unverified: built-in browser kernel assets unavailable; automatic approval rejected command-line Edge with blocked by policy. No bypass attempted.",
+  "HTML_export_note": "Four plots have no HTML alternative text.",
+  "limits": [
+    "Conditional paired intervals reuse development and selected checkpoints.",
+    "Synthetic stress is not hidden test accuracy.",
+    "This is a dated preview; hard-stop delivery will use actual latest aggregate and scored receipts."
+  ]
+}

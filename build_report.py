@@ -26,6 +26,14 @@ REFERENCES = [
 ]
 RUN_ORDER = ("baseline", "architecture", "regularized", "final_full")
 RUN_NAMES = set(RUN_ORDER)
+FOLLOWUP_REFERENCES = [
+    ("Izmailov et al. (2018). Averaging Weights Leads to Wider Optima and Better Generalization.", "https://arxiv.org/abs/1803.05407"),
+    ("Foret et al. (2021). Sharpness-Aware Minimization for Efficiently Improving Generalization.", "https://arxiv.org/abs/2010.01412"),
+    ("Yun et al. (2019). CutMix: Regularization Strategy to Train Strong Classifiers with Localizable Features.", "https://arxiv.org/abs/1905.04899"),
+    ("Qin et al. (2020). ResizeMix: Mixing Data with Preserved Object Information and True Labels.", "https://arxiv.org/abs/2012.11101"),
+    ("Shanmugam et al. (2021). Better Aggregation in Test-Time Augmentation.", "https://arxiv.org/abs/2011.11156"),
+    ("Hu, Shen and Sun (2018). Squeeze-and-Excitation Networks. Engineering-only candidate reference.", "https://arxiv.org/abs/1709.01507"),
+]
 
 
 def read_json(path: Path, default=None):
@@ -121,6 +129,73 @@ def collect_evidence(results_dir: Path):
             "exploratory": exploratory,
             "repository": REPOSITORY,
             "team": "Saber", "author": "Kevin Yang", "netid": "ky2738"}
+
+
+def followup_output_dir(requested: Path | None, enabled: bool):
+    """Require an unused explicit destination for the optional research edition."""
+    output_dir = requested if requested is not None else ROOT / "outputs"
+    if enabled:
+        if requested is None:
+            raise ValueError("Research reports require an explicit new --output-dir")
+        target = output_dir.resolve()
+        frozen = (ROOT / "outputs" / "primary_delivery_20261031").resolve()
+        if target == frozen or frozen in target.parents:
+            raise ValueError("The frozen primary delivery directory cannot contain research outputs")
+        if target.exists():
+            raise ValueError("Research --output-dir must not already exist")
+    return output_dir
+
+
+def attach_followup(evidence, summary_path: Path, receipts_dir: Path):
+    """Attach the helper's public projection without replacing primary evidence."""
+    from scripts.research_report_evidence import load_followup
+    evidence["followup"] = load_followup(summary_path, receipts_dir)
+    return evidence
+
+
+def followup_snapshot(followup):
+    """Serialize only the evidence helper's public projection, never raw records."""
+    payload = json.dumps(followup, sort_keys=True, indent=2, ensure_ascii=True, allow_nan=False) + "\n"
+    return payload, hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def write_followup_snapshot(path: Path, followup):
+    payload, digest = followup_snapshot(followup)
+    path.write_bytes(payload.encode("utf-8"))
+    return digest
+
+
+def report_references(evidence):
+    return REFERENCES + FOLLOWUP_REFERENCES if "followup" in evidence else REFERENCES
+
+
+def delta_interval(value):
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        return "Not available"
+    lower, upper = (number(part) for part in value)
+    return f"[{100*lower:+.2f}, {100*upper:+.2f}] pp" if lower is not None and upper is not None else "Not available"
+
+
+def repeat_label(row):
+    labels = {"complete_passed": "Complete; passed", "complete_failed": "Complete; failed",
+              "in_progress": "In progress", "not_verified": "Not verified", "not_promoted": "Not promoted"}
+    label = labels.get(row.get("repeat_status"), "Not verified")
+    completed, planned = row.get("repeat_epochs_completed"), row.get("repeat_planned_epochs")
+    if row.get("repeat_status") == "in_progress" and completed is not None and planned is not None:
+        label += f" ({completed}/{planned} epochs)"
+    if row.get("repeat_clean_accuracy") is not None:
+        label += f"; clean {accuracy(row['repeat_clean_accuracy'])}, stress {accuracy(row.get('repeat_stress_accuracy'))}"
+    return label
+
+
+def confirmation_scope(evidence):
+    confirmation = evidence.get("confirmation", {})
+    run = confirmation.get("run", evidence.get("selection", {}).get("run"))
+    measured = number(confirmation.get("accuracy"))
+    if run == "regularized" and measured is not None:
+        return (f"The original {accuracy(measured)} confirmation belongs only to regularized "
+                "trained on 40,000 images.")
+    return "The original confirmation result is unavailable or its recipe has not been verified."
 
 
 def completed_benchmarks(evidence):
@@ -248,6 +323,64 @@ def measured_interpretation(evidence):
     return findings
 
 
+def followup_plot_size(followup):
+    return 10.0, max(3.4, .60 * len(followup["rows"]) + .7)
+
+
+def make_followup_plot(followup, output_dir: Path):
+    """Plot public aggregate deltas; absent paired intervals remain absent."""
+    import textwrap
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    rows = followup["rows"]
+    with plt.rc_context({"font.size": 13, "axes.titlesize": 15, "axes.labelsize": 13,
+                         "xtick.labelsize": 13, "ytick.labelsize": 13}):
+        fig, axes = plt.subplots(1, 2, figsize=followup_plot_size(followup), sharey=True,
+                                 layout="constrained")
+        labels = []
+        for row in rows:
+            label = textwrap.fill(str(row["label"]), width=24)
+            if row.get("gate_passed") is False:
+                label += "\n[gate failed]"
+            labels.append(label)
+        for axis, metric, title in zip(axes, ("clean", "stress"), ("Clean accuracy", "Synthetic stress mean")):
+            for y, row in enumerate(rows):
+                delta = number(row.get(metric + "_delta"))
+                if delta is None:
+                    continue
+                failed = row.get("gate_passed") is False
+                color = "#ae443c" if failed else "#167e75"
+                interval = row.get(metric + "_ci95")
+                if interval is not None:
+                    lower, upper = interval
+                    axis.hlines(y, 100*lower, 100*upper, color=color, linewidth=2.1)
+                    axis.vlines([100*lower, 100*upper], y-.07, y+.07, color=color, linewidth=1.2)
+                axis.plot(100*delta, y, marker="x" if failed else "o", markersize=7,
+                          markeredgewidth=1.7, color=color, linestyle="none")
+            axis.axvline(0, color="#6b7680", linewidth=.9, linestyle="--")
+            axis.set(title=title, xlabel="Difference vs flip baseline (pp)")
+            axis.set_yticks(range(len(rows)), labels)
+            axis.set_ylim(max(len(rows), 1)-.5, -.5)
+            axis.grid(axis="x", alpha=.18)
+            axis.grid(axis="y", visible=False)
+            axis.margins(x=.12)
+            if not rows:
+                axis.text(.5, .5, "No completed research benchmark", transform=axis.transAxes,
+                          ha="center", va="center")
+        fig.legend(handles=[Line2D([0], [0], color="#167e75", marker="o", linewidth=2,
+                                  label="Paired 95% interval when available"),
+                            Line2D([0], [0], color="#ae443c", marker="x", linestyle="none",
+                                  label="Gate failed; point only without paired CI")],
+                   loc="outside lower center", ncol=1, frameon=False, fontsize=13)
+        target = output_dir / "research_conditional_deltas.png"
+        fig.savefig(target, dpi=200)
+        plt.close(fig)
+    return target
+
+
 def make_plots(evidence, output_dir: Path, selected=None):
     import matplotlib
     matplotlib.use("Agg")
@@ -343,6 +476,8 @@ def make_plots(evidence, output_dir: Path, selected=None):
         fig.savefig(target,dpi=180)
         plt.close(fig)
         result["confirmation"] = target
+    if "followup" in evidence:
+        result["followup"] = make_followup_plot(evidence["followup"], output_dir)
     return result
 
 
@@ -364,7 +499,7 @@ def create_pdf(evidence, selected, plots, output_dir):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, Flowable
 
     navy, teal, muted = colors.HexColor("#173346"), colors.HexColor("#167e75"), colors.HexColor("#596c7d")
     styles = getSampleStyleSheet()
@@ -390,6 +525,10 @@ def create_pdf(evidence, selected, plots, output_dir):
     styles.add(ParagraphStyle(name="TableProject", parent=styles["SmallProject"], spaceAfter=0))
 
     story = []
+    research_page_numbers = []
+    class ResearchBoundary(Flowable):
+        def draw(self):
+            research_page_numbers.append(self.canv.getPageNumber())
     def p(text, style="BodyText"):
         story.append(Paragraph(text, styles[style]))
     def h(text):
@@ -427,6 +566,8 @@ def create_pdf(evidence, selected, plots, output_dir):
         parameter_count = 4298970
     parameter_text = f"{int(parameter_count):,}" if number(parameter_count) is not None else "Pending"
     score = public_accuracy(evidence["submission"])
+    followup = evidence.get("followup")
+    references = report_references(evidence)
     benchmarks = completed_benchmarks(evidence)
     best_benchmark = max(benchmarks, key=public_accuracy) if benchmarks else None
     val = recipe_accuracy
@@ -436,7 +577,7 @@ def create_pdf(evidence, selected, plots, output_dir):
     p("Deep Learning Project 1 | Team Saber<br/>Kevin Yang (ky2738)", "SubtitleProject")
     p(f'<b>Public code:</b> <link href="{REPOSITORY}" color="#167e75">{REPOSITORY}</link>')
     story.append(Spacer(1, 10))
-    h("Overview")
+    h("Overview: frozen original study (2026-10-31 UTC)" if followup else "Overview")
     p("This project designs a convolutional residual classifier for the course's CIFAR-10 competition. "
       "The implementation uses a CIFAR-sized WideResNet, starts from random weights, and enforces the "
       "five-million-parameter limit at model construction. The final prediction pipeline uses one model, "
@@ -451,7 +592,7 @@ def create_pdf(evidence, selected, plots, output_dir):
            ["Model trainable parameters", parameter_text], ["Selected recipe development accuracy", accuracy(val)],
            ["One-time confirmation accuracy", accuracy(confirmation.get("accuracy"))],
            ["Primary full-data public test accuracy", accuracy(score)],
-           ["Highest completed official public benchmark",
+           ["Highest original official public benchmark" if followup else "Highest completed official public benchmark",
             f"{accuracy(public_accuracy(best_benchmark))} ({best_benchmark.get('run', 'unknown')})" if best_benchmark else "Pending"],
            ["Private leaderboard test accuracy", "Not released / unavailable"]], [2.75*inch, 3.65*inch])
     h("Measured findings")
@@ -479,7 +620,8 @@ def create_pdf(evidence, selected, plots, output_dir):
             p(f"Confirmation: {successes:,}/{total:,} correct; descriptive Wilson 95% binomial "
               f"interval {accuracy(low)} to {accuracy(high)}; this is not training-seed uncertainty.", "SmallProject")
     if best_benchmark:
-        p(f"Highest observed public benchmark: <b>{escape(str(best_benchmark.get('run', 'unknown')))} "
+        scope = "original " if followup else ""
+        p(f"Highest observed {scope}public benchmark: <b>{escape(str(best_benchmark.get('run', 'unknown')))} "
           f"at {accuracy(public_accuracy(best_benchmark))}</b> among {len(benchmarks)} completed entries. "
           "The primary full-data result is separate; public ranking does not identify the private winner.", "SmallProject")
 
@@ -596,6 +738,90 @@ def create_pdf(evidence, selected, plots, output_dir):
             p("The lowest confirmation recalls were " + " and ".join(f"{name} ({accuracy(value)})" for value,name in weakest) +
               ". These are measured error patterns, not evidence that a later intervention would improve the hidden test score.", "SmallProject")
 
+    if followup:
+        story.append(PageBreak())
+        story.append(ResearchBoundary())
+        p("Follow-on research: development evidence", "Heading1")
+        p("This follow-on study is exploratory: it reuses the official 5,000-image development set and "
+          "five fixed synthetic stress transformations. These proxies are not CIFAR-C or hidden-test accuracy. "
+          f"<b>{escape(confirmation_scope(evidence))}</b> "
+          "Follow-on research does not reuse that confirmation. A full-50k refit has no independent development score.", "SmallProject")
+        baseline = followup["baseline"]
+        p(f"Fixed v3 baseline ({escape(str(baseline['policy']))}): clean {accuracy(baseline['clean_accuracy'])}, "
+          f"NLL {number(baseline['clean_nll']):.4f}, stress {accuracy(baseline['stress_accuracy'])}. "
+          "Stress is the mean accuracy over five transformations of each original image. "
+          "The original study's recorded development results are preserved.", "SmallProject")
+        p("Point gate: clean gain >= +0.10 percentage points with stress change >= -0.20, or "
+          "stress gain >= +0.50 percentage points with clean change >= -0.20. SWA must also pass "
+          "this same gate against its fixed WRN34-3 parent at the same policy. Paired evidence and "
+          "a complete independent repeat are required before candidate delivery.", "SmallProject")
+        research_rows = [["Recipe / parameters", "Epoch / weights / policy", "Clean / NLL / stress", "Gate", "Independent repeat / delivery"]]
+        for row in followup["rows"]:
+            params = f"{int(row['parameters']):,}" if number(row.get("parameters")) is not None else "Pending"
+            loss = number(row.get("clean_nll"))
+            measured = f"{accuracy(row.get('clean_accuracy'))} / {loss:.4f} / {accuracy(row.get('stress_accuracy'))}" if loss is not None else "Not complete"
+            research_rows.append([
+                f"{row['label']} ({params}); {row.get('epochs', 'Pending')} epochs; {row.get('precision', 'Pending')}",
+                f"e{row.get('checkpoint_epoch', 'Pending')} {variant_label(row.get('checkpoint_variant'))}; {row['policy']}",
+                measured, "Passed" if row.get("gate_passed") is True else "Failed" if row.get("gate_passed") is False else "Pending",
+                repeat_label(row) + "; delivery: " + str(row["delivery_status"]).replace("_", " ")])
+        if len(research_rows) == 1:
+            research_rows.append(["No completed research benchmark", "Pending", "Pending", "Pending", "Pending"])
+        table(research_rows, [1.65*inch,1.35*inch,1.2*inch,.55*inch,2.45*inch], compact=True)
+        h("Conditional paired differences versus the v3 baseline")
+        plot_width, plot_height = followup_plot_size(followup)
+        story.append(Image(str(plots["followup"]), width=7.2*inch, height=7.2*inch*plot_height/plot_width))
+        p("Figure 4. Conditional accuracy differences on reused/postselected development. Candidate policies are "
+          "listed above; center80_shift20 weights center/flip logits 80% and shifted/flip logits 20%, versus "
+          "the flip-average baseline. Available paired 95% intervals use 5,000 original-image clusters and "
+          "10,000 bootstrap replicates, keeping all five stress views together. Failed gates are marked; "
+          "SWA without paired evidence has a point only. Exact intervals remain in the public snapshot and notebook. "
+          "These are not independent confirmation, seed-variance intervals or hidden-test guarantees.", "CaptionProject")
+
+        story.append(PageBreak())
+        p("Follow-on research: methods and official outcomes", "Heading1")
+        p("WRN depth/width alternatives retain the same residual-CNN parameter limit [2]. "
+          "The separately recorded methods include SWA weight averaging [7], SAM optimization [8], "
+          "CutMix [9] and ResizeMix [10]. Inference averaging is evaluated as its own policy [11]. "
+          "Engineering-only candidates, including SE [12] where listed, are kept separate from measured outcomes. "
+          "The tables report actual completed benchmarks; engineering preflights, unfinished training, "
+          "failed gates and incomplete repeats do not become completed experiments or scored submissions.", "SmallProject")
+        p("Full-50k refits use a frozen qualified recipe and fresh scratch initialization. Their overlapping "
+          "training/development images cannot yield an independent development score. Research models "
+          "do not inherit the original confirmation result. Algorithm, architecture, precision and schedule "
+          "changes are descriptive comparisons unless a matched control supports a narrower conclusion.", "SmallProject")
+        table([["Official public evidence", "Accuracy"],
+               ["Original primary full-data entry", accuracy(followup["original_primary_public"])],
+               ["Best original entry", accuracy(followup["original_best_public"])],
+               ["Best newly scored research entry", accuracy(followup["best_new_public"])],
+               ["Best observed across original and research", accuracy(followup["best_observed_public"])]],
+              [4.65*inch,1.75*inch], compact=True)
+        receipts = followup["official_submissions"]
+        receipt_rows = [["Research entry", "Official reference", "Public / private"]]
+        for receipt in receipts[:8]:
+            private_text = accuracy(receipt['private_score']) if receipt.get('private_score') is not None else "Unavailable"
+            receipt_rows.append([receipt["run"], receipt["submission_ref"],
+                                 f"{accuracy(receipt['public_score'])} / {private_text}"])
+        if not receipts:
+            receipt_rows.append(["No newly scored research submission", "None", "Pending / unavailable"])
+        table(receipt_rows, [3.1*inch,1.4*inch,1.9*inch], compact=True)
+        if len(receipts) > 8:
+            p(f"The table shows the first 8 of {len(receipts)} scored research receipts in reference order; "
+              "the executed notebook and public snapshot retain every scored receipt. The best values use all receipts.", "SmallProject")
+        p(f"Unscored receipt records: {followup['unscored_receipts_count']}. A completed development benchmark, "
+          "verified CSV, upload intent or pending scoring is not a scored Kaggle entry. Private accuracy stays "
+          "unavailable unless a corresponding official receipt supplies it.", "SmallProject")
+        for limitation in followup["limitations"][:4]:
+            p(escape(limitation), "SmallProject")
+        if followup["engineering"]:
+            p("Engineering status: " + escape(" ".join(followup["engineering"][:3])), "SmallProject")
+        _, snapshot_sha = followup_snapshot(followup)
+        p(f"Reporting snapshot: {escape(str(followup['recorded_at']))}. "
+          f"Public research source: <link href=\"{escape(followup['repository'])}\" color=\"#167e75\">research branch</link>. "
+          f"Source-summary SHA-256: {followup['source_summary_sha256']}. "
+          f"Public snapshot SHA-256: {snapshot_sha}. The snapshot contains aggregate evidence and receipt scalars only.", "SmallProject")
+        story.append(ResearchBoundary())
+
     story.append(PageBreak())
     p("Reproduction, delivery and references", "Heading1")
     h("Reproduction record")
@@ -623,9 +849,9 @@ def create_pdf(evidence, selected, plots, output_dir):
       "9 November 2026 at 23:59 for the report without a timezone; confirm that report timezone in "
       "the course announcements. Any added teammate must complete the formal course/Kaggle procedure.")
     h("References")
-    for index, (title, url) in enumerate(REFERENCES, 1):
+    for index, (title, url) in enumerate(references, 1):
         p(f'[{index}] {escape(title)} <link href="{url}" color="#167e75">{url}</link>', "SmallProject")
-    p(f'[{len(REFERENCES)+1}] Course Project 1 assignment, pp. 1-3; <link href="{COMPETITION}/rules" color="#167e75">Kaggle competition rules</link> (retrieved 30 October 2026).', "SmallProject")
+    p(f'[{len(references)+1}] Course Project 1 assignment, pp. 1-3; <link href="{COMPETITION}/rules" color="#167e75">Kaggle competition rules</link> (retrieved 30 October 2026).', "SmallProject")
 
     target = output_dir / "ky2738_Project1_Report.pdf"
     doc = SimpleDocTemplate(str(target), pagesize=letter, rightMargin=.55*inch,
@@ -639,6 +865,8 @@ def create_pdf(evidence, selected, plots, output_dir):
         canvas.drawString(.55*inch, .27*inch, "Saber | Kevin Yang (ky2738) | Deep Learning Project 1")
         canvas.drawRightString(7.95*inch, .27*inch, f"{document.page}")
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    if research_page_numbers and research_page_numbers[-1] - research_page_numbers[0] + 1 > 2:
+        raise RuntimeError("Follow-on research exceeds its two-page allocation")
     from pypdf import PdfReader
     pages = len(PdfReader(str(target)).pages)
     if pages > 8:
@@ -651,6 +879,7 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
     nb = nbformat.v4.new_notebook()
     nb.metadata["kernelspec"] = {"display_name": "Python 3", "language": "python", "name": "python3"}
     nb.metadata["language_info"] = {"name": "python", "version": sys.version.split()[0]}
+    references = report_references(evidence)
     chosen_name = selected["name"] if selected else None
     def portable_path(path):
         path = Path(path).resolve()
@@ -753,8 +982,82 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
             "Follow the repository README to prepare official competition data, train the chosen configuration, "
             "validate predictions, and generate this report. Data, weights and prediction files stay private and "
             "are excluded from Git. The course staff can inspect the saved manifests, checksums and logs.\n\n"
-            "## References\n" + "\n".join(f"{i}. [{title}]({url})" for i,(title,url) in enumerate(REFERENCES,1))),
+            "## References\n" + "\n".join(f"{i}. [{title}]({url})" for i,(title,url) in enumerate(references,1))),
     ]
+    if "followup" in evidence:
+        followup = evidence["followup"]
+        snapshot, snapshot_sha = followup_snapshot(followup)
+        nb.metadata["research_reporting_snapshot"] = {
+            "source_summary_sha256": followup["source_summary_sha256"], "snapshot_sha256": snapshot_sha}
+        nb.cells[-1:-1] = [
+            nbformat.v4.new_markdown_cell("## Follow-on research: public reporting snapshot\n\n"
+                "The original six executed code cells above remain the primary study. These two additional "
+                "cells read an embedded, allowlisted public aggregate snapshot; they do not load data, "
+                "checkpoints, individual predictions or private runtime records. The same projection is saved "
+                "as `research_followup_evidence.json` beside this notebook. The original six cells still require "
+                "their original private training artifacts to rerun.\n\n"
+                "All follow-on development results reuse the original development partition. The original "
+                f"study remains frozen. {confirmation_scope(evidence)} That confirmation was not reused. "
+                "A full-50k refit has no independent development score. Conditional paired intervals describe "
+                "postselected fitted checkpoints, not independent confirmation or hidden-test accuracy.\n\n"
+                "SWA [7], SAM [8], CutMix [9], ResizeMix [10] and test-time aggregation [11] are reported "
+                "only to the extent supported by the measured snapshot. Engineering-only SE candidates [12] "
+                "remain separate from measured model outcomes."),
+            nbformat.v4.new_code_cell(
+                "import hashlib\n"
+                f"_followup_snapshot = {snapshot!r}\n"
+                f"_expected_snapshot_sha256 = {snapshot_sha!r}\n"
+                "assert hashlib.sha256(_followup_snapshot.encode('utf-8')).hexdigest() == _expected_snapshot_sha256\n"
+                "followup = json.loads(_followup_snapshot)\n"
+                "print('EXPLORATORY PUBLIC SNAPSHOT:', followup['recorded_at'])\n"
+                "print('Source-summary SHA-256:', followup['source_summary_sha256'])\n"
+                "print('Public snapshot SHA-256:', _expected_snapshot_sha256)\n"
+                "print('Research source:', followup['repository'])\n"
+                "print('Fixed v3 development baseline:', json.dumps(followup['baseline'], indent=2))\n"
+                "for row in followup['rows']:\n"
+                "    print('RESEARCH AGGREGATE:', json.dumps(row, indent=2))\n"
+                "ci_rows = [r for r in followup['rows'] if r['clean_ci95'] is not None and r['stress_ci95'] is not None]\n"
+                "if ci_rows:\n"
+                "    import matplotlib.pyplot as plt\n"
+                "    import io\n"
+                "    from IPython.display import Image, display\n"
+                "    plt.switch_backend('Agg')\n"
+                "    fig, axes = plt.subplots(1, 2, figsize=(10, max(2.5, .48*len(ci_rows))), sharey=True)\n"
+                "    for axis, metric, title in zip(axes, ('clean', 'stress'), ('Clean', 'Synthetic stress mean')):\n"
+                "        for y, row in enumerate(ci_rows):\n"
+                "            lo, hi = row[metric+'_ci95']\n"
+                "            axis.hlines(y, 100*lo, 100*hi, color='#167e75', linewidth=2)\n"
+                "            axis.plot(100*row[metric+'_delta'], y, 'o', color='#173346')\n"
+                "        axis.axvline(0, color='grey', linewidth=.8)\n"
+                "        axis.set(title=title, xlabel='Difference vs v3 baseline (percentage points)')\n"
+                "        axis.set_yticks(range(len(ci_rows)), [r['label'] for r in ci_rows])\n"
+                "    fig.suptitle('Conditional paired 95% intervals: reused/postselected development')\n"
+                "    fig.tight_layout()\n"
+                "    figure_buffer = io.BytesIO()\n"
+                "    fig.savefig(figure_buffer, format='png', dpi=160, bbox_inches='tight')\n"
+                "    display(Image(data=figure_buffer.getvalue()))\n"
+                "    plt.close(fig)\n"
+                "for statement in followup['limitations']:\n    print('LIMITATION:', statement)\n"
+                "for statement in followup['engineering']:\n    print('ENGINEERING STATUS:', statement)\n"
+                f"print({(confirmation_scope(evidence) + ' Not reused for research.')!r})"),
+            nbformat.v4.new_markdown_cell("## Follow-on official scoring\n\n"
+                "Only validated completed official receipts appear below. Benchmark completion, a CSV, "
+                "an upload intent and pending scoring do not establish a public score. Original primary, "
+                "original best, newly scored research best and best observed across both are distinct. "
+                "Public selection does not establish the private winner."),
+            nbformat.v4.new_code_cell(
+                "print('Original primary public score:', accuracy(followup['original_primary_public']))\n"
+                "print('Best original public score:', accuracy(followup['original_best_public']))\n"
+                "print('Best newly scored research public score:', accuracy(followup['best_new_public']))\n"
+                "print('Best observed public score (original + research):', accuracy(followup['best_observed_public']))\n"
+                "print('Unscored receipt records:', followup['unscored_receipts_count'])\n"
+                "print('Newly scored research receipts:', len(followup['official_submissions']))\n"
+                "for receipt in followup['official_submissions']:\n"
+                "    print('OFFICIAL RESEARCH RECEIPT:', json.dumps(receipt, indent=2))\n"
+                "if not followup['official_submissions']:\n"
+                "    print('No newly scored research submission in this reporting snapshot.')\n"
+                "print('Missing private scores remain unknown; no original confirmation result is assigned to these entries.')"),
+        ]
     if execute:
         from nbclient import NotebookClient
         NotebookClient(nb, timeout=180, kernel_name="python3",
@@ -767,13 +1070,23 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-dir", type=Path, default=ROOT / "results")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs")
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--research-summary", type=Path,
+                        help="Audited public follow-on research aggregates; primary study stays separate")
+    parser.add_argument("--research-receipts", type=Path,
+                        default=ROOT / "results" / "research" / "submission_receipts",
+                        help="Actual scored research receipts, used only with --research-summary")
     parser.add_argument("--final-run", help="Run associated with the selected Kaggle submission")
     parser.add_argument("--no-execute", action="store_true", help="Create a notebook draft without execution")
     args = parser.parse_args()
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    args.output_dir = followup_output_dir(args.output_dir, args.research_summary is not None)
     evidence = collect_evidence(args.results_dir)
     evidence["results_dir"] = str(args.results_dir.resolve())
+    if args.research_summary is not None:
+        attach_followup(evidence, args.research_summary, args.research_receipts)
+    args.output_dir.mkdir(parents=True, exist_ok=args.research_summary is None)
+    if "followup" in evidence:
+        snapshot_sha = write_followup_snapshot(args.output_dir / "research_followup_evidence.json", evidence["followup"])
     selected = choose_run(evidence, args.final_run)
     plots = make_plots(evidence, args.output_dir, selected)
     pdf, pages = create_pdf(evidence, selected, plots, args.output_dir)
@@ -784,6 +1097,15 @@ def main():
                  "public_test_accuracy": public_accuracy(evidence["submission"]),
                  "private_test_accuracy": None,
                  "sha256": {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in [pdf,notebook]}}
+    if "followup" in evidence:
+        followup = evidence["followup"]
+        artifacts["followup"] = {key: followup[key] for key in (
+            "recorded_at", "source_summary_sha256", "original_primary_public", "original_best_public",
+            "best_new_public", "best_observed_public", "unscored_receipts_count")}
+        artifacts["followup"].update(snapshot_sha256=snapshot_sha,
+                                      scored_receipts_count=len(followup["official_submissions"]))
+        artifacts["sha256"]["research_followup_evidence.json"] = snapshot_sha
+        artifacts["sha256"][plots["followup"].name] = hashlib.sha256(plots["followup"].read_bytes()).hexdigest()
     (args.output_dir / "report_manifest.json").write_text(json.dumps(artifacts, indent=2), encoding="utf-8")
     print(json.dumps(artifacts, indent=2))
 

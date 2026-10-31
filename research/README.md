@@ -3,7 +3,7 @@
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。
-目前测过的 BN 校准和加权平移 TTA 均未通过晋级门槛。
+最初原基线的 BN 校准和加权平移 TTA 消融均未通过晋级门槛；后续候选与当前状态见下文。
 
 **材料护照：** `mode=quick` · `sources=verified primary papers/author code + measured local JSON` · `status=exploratory`。记录日期：2026-10-31。
 
@@ -53,7 +53,10 @@ WRN34-3 主 seed2026 的加权 policy 为 clean96.32%、stress78.592%；预先�
 额度已用尽，等待下一UTC日真实配额。当前实际最佳公开成绩仍为0.874，尚无新增研究评分。
 CutMix完成T4 benchmark，配对/复测尚待。ResizeMix补完本地同v3上下文重测与配对；首次配置预检
 缺省字段问题已修复且原SHA保留。随后本地正式重复稳态36.2秒/轮，无法在剩余额度内完成，
-在9/160轮受控停止、检查点/RNG/GradScaler保留，不能当作效果失败或完整复测。改排云端完整重复。
+在9/160轮受控停止、检查点/RNG/GradScaler保留，不能当作效果失败或完整复测。
+后续全新T4独立seed2027已完成160轮并核实回收，本地同v3完整重测为96.56%/78.468%，
+预先固定的加权policy通过门槛。真实组合证明、主seed2026的2,000行预测和严格离线交付核验均完成，
+与WRN34-160一同等待真实UTC配额。重复的stress收益小于主实验，不能据此保证隐藏测试收益。
 
 SAM的固定加权policy为clean **96.74%** / stress **79.368%**，相对本地基线提高0.46和1.74个百分点。
 原图聚类配对95%区间分别为 **[+0.04,+0.90]**、**[+1.364,+2.108]**个百分点；全部五个stress case
@@ -62,7 +65,7 @@ SAM的固定加权policy为clean **96.74%** / stress **79.368%**，相对本地�
 
 ![本地v3原图聚类配对结果](../docs/figures/research-paired-v3.png)
 
-点为主seed2026相对原基线flip的差值，误差线为复用开发集上的条件95%区间；三者推理采用同一本地v3上下文。
+点为主seed2026相对原基线flip的差值，误差线为复用开发集上的条件95%区间；所列候选推理采用同一本地v3上下文。
 
 ## 已测结果：不因小幅波动而提交
 
@@ -247,7 +250,9 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 产物和运行时回收已核实。本地同v3上下文完整重测保持96.20%/80.092%，本地基线为96.28%/77.628%。
 配对stress区间[+2.024,+2.904]个百分点、clean区间[-0.54,+0.40]，主权重/policy已冻结。
 本地尝试使用相同源码/算法/FP16，但从T4/Torch2.11换到RTX5060/Torch2.12，仅完成9轮且已容量中止。
-后续改排同T4完整训练，仍须以实际环境回执确认；两份最终推理benchmark统一在本地v3上下文。
+后续全新同T4/FP16完整160轮已完成，50,059次成功更新、21次溢出跳步；两份最终推理benchmark
+统一在本地v3上下文，独立重复为96.56%/78.468%。固定加权policy通过，plain没有通过；
+不更换提前冻结的主2026权重或policy。
 
 [paired_compare_v2.py](paired_compare_v2.py)保留原图聚类bootstrap协议，同时严格核验ResizeMix的
 训练来源、scaler和更新次数，并绑定新verifier与旧共享helper的两个SHA。
@@ -255,12 +260,14 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 本地复测由[run_resizemix_local.py](run_resizemix_local.py)共享lease/预算/watchdog，
 显式FP16保持与主模型相同的训练precision，推理统一完整本地v3上下文；不支持隐式恢复。
 
-实际本地FP16重复未完成。云端完整重复结束并确认清理后，再用本地同v3环境重测。
+实际本地FP16重复未完成。云端独立重复、官方回收证明及后续本地同v3重测均已完成。
 [repeat_attestation.py](repeat_attestation.py)新增独立组合回执：深验原始云输入/产物ZIP、完整160轮
 40k/5k来源与更新、固定policy、原清理证明、本地完整benchmark和真实时间链；开始时间来自云job，
 结束时间来自本地benchmark，不改写原回执。仅支持ResizeMix。预测须用
 `run_diagnostic.py --mode cloud-repeat-predict`；上传器重新深验该证明，普通v2预测拒绝未知云回执。
-当前只有实现与CPU测试/真实既有结构检查，尚无实际云端seed2027组合回执或该模型隐藏预测。
+真实seed2027组合回执已构建并深度复核；主seed2026隐藏预测和严格`--prepare`通过。
+该云目录的实际delivery.run是`candidate`；研究队列另存可读配方名称，不改真实manifest。
+尚无上传intent或新评分回执。
 
 [run_diagnostic.py](run_diagnostic.py) 为测速、独立训练器重测与配对比较提供同一个
 本地 lease、预算和 watchdog，不用裸 GPU 命令绕过监督。SAM 实际测速入口为
@@ -271,7 +278,7 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 
 [wrn34_3_300.json](configs/wrn34_3_300.json)保持模型与原增强、WD，仅延长配置中的训练轮数。
 云端使用独立shadow原生FP16入口，与同一运行时可信WRN22基线比较；原WRN34-160是本地BF16，
-因此不能把跨环境差异归因于训练轮数。已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；weighted clean96.52%/stress79.708%，同T4基线96.28%/77.656%，三policy点gate通过。产物已下载。官方assignment已终止，但ordinary usage延迟未归零，暂保留lease。随后须同本地v3重测、配对、主冻结和全新独立seed，尚无隐藏预测或新增提交。
+因此不能把跨环境差异归因于训练轮数。已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；weighted clean96.52%/stress79.708%，同T4基线96.28%/77.656%，三policy点gate通过。产物已下载，官方assignment缺席和后续usage0均已核实，原回执备份保留。本地v3重测及配对完成，weighted96.54%/79.716%，主权重/策略已冻结；全新独立seed2027正在T4训练，尚无其完整重复benchmark或隐藏预测/新增提交。
 
 普通Mixup/Cutout的shadow路径新增真实模型级FP16预检：3步预热、10步计时、13次真实更新，
 核验所有参数/损失有限、参数<=5M及训练/增强源码SHA。预先固定预算公式为
@@ -355,9 +362,9 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 
 WRN34-300现已同本地v3完整重测：weighted96.54%/79.716%，相对本地基线+0.26/+2.088pp；
 10,000次原图聚类bootstrap clean条件95%区间[-0.18,+0.72]pp跨0、stress[+1.6719,+2.488]pp为正。
-主epoch298raw/weighted和精确seed2027配置已于20:07:28UTC冻结，尚未正式复测或生成隐藏预测。
-官方assignment缺席和后续usage0核实后，原回执备份保留并完成清理核验；当前云端接续ResizeMix独立seed。
-现有cloud-repeat attestor仅支持ResizeMix160，不能直接将WRN300云重复冒充其支持的schema。
+主epoch298raw/weighted和精确seed2027配置已于20:07:28UTC冻结，独立重复正在训练，尚无隐藏预测。
+官方assignment缺席和后续usage0核实后，原回执备份保留并完成清理核验；ResizeMix独立seed也已完整结束并核实回收。
+原repeat_attestation.py只支持ResizeMix160；WRN300使用下述独立shadow证明schema。
 
 ## WRN300专用云重复证明
 
@@ -370,6 +377,25 @@ chunks、精确raw/effective配置、真实300轮/更新与溢出、SGD/EMA/RNG/
 只读核验通过，旧主实验作为repeat被拒绝。原ready WRN160真实--prepare仍通过，无上传或intent。
 
 新mode为`run_diagnostic.py --mode cloud-shadow-repeat-predict`；uploader显式区分两种云证明schema，
-普通predict-v2拒绝云receipt。新WRN300seed2027只prepare、未分配/训练，尚无真实新证明或隐藏预测。
-当前唯一云job仍是ResizeMix独立seed2027，20:19:29UTC已45/160轮、14,081成功+4跳步，
-源码/配置/实际指标有限性核实，预计20:47UTC训练结束（不等于benchmark/清理完成）。
+普通predict-v2拒绝云receipt。新WRN300seed2027在前一任务确认回收后只分配一次，是当前唯一云job。
+21:12:55UTC独立官方GET核实45/300轮、14,081成功+4跳步，源码/配置和指标有限性匹配。
+模型级预检13次真实更新，中位47.447ms，固定预算保护通过；预检不代表完整训练或比赛成绩。
+尚无该重复的真实新证明或隐藏预测。
+
+## 报告与执行Notebook的探索扩展
+
+[research_report_evidence.py](../scripts/research_report_evidence.py)只读取公开聚合及实际新评分回执，
+由[build_report.py](../build_report.py)的可选`--research-summary`启用。原主研究、原五次提交、
+96.64%一次性confirmation与原PDF/Notebook备份保留；新探索用显式新输出目录。
+适配器核验完整v3/同上下文/像素与数据指纹、固定门槛、配对和重复，评分须绑定实际checkpoint、
+policy、训练范围及参数量；准备完成、CSV或intent均不算官方得分。
+探索PDF添加两页，执行Notebook保留原六cell输出并增加两cell公开聚合/真实回执。
+实际预览为八页、八执行cell、四张真实PNG；逐页/逐cell输出/图片与哈希均须审查，最终以最新manifest为准。
+原生浏览器工具故障且命令行Edge被自动策略拒绝，HTML整页布局尚未核验；已保存的图片、文本和PDF可直接检查。
+
+已审查的当前执行快照见[Project1_Research_Executed.ipynb](../notebooks/Project1_Research_Executed.ipynb)，
+页数、执行输出、来源和产物哈希见[research-report-preview.json](../docs/research-report-preview.json)。
+351项CPU检查通过；CI明确安装Notebook结构、真实PNG展示和PDF边界所需的CPU报告依赖，
+不在CI启动Notebook kernel。重建时指定未存在的新目录：
+`python build_report.py --research-summary docs/research-followup-results.json --output-dir outputs/my_research_preview`。
+这是有日期的探索快照，最终报告仍须在截止时按实际评分回执刷新。

@@ -1,6 +1,6 @@
 {
   "schema": "audited_followup_research_aggregate_v1",
-  "recorded_at": "2026-10-31T20:21:02.074630+00:00",
+  "recorded_at": "2026-10-31T21:17:07.553585+00:00",
   "issue": 7,
   "interpretation": "Exploratory reused development and fixed synthetic stress proxies. Not hidden accuracy or independent confirmation. No new research submission scored at this snapshot.",
   "baseline": {
@@ -24,6 +24,12 @@
       "clean_accuracy": 0.9628,
       "clean_loss": 0.1221306333810091,
       "stress_accuracy": 0.7762800000000001
+    },
+    "status": "complete",
+    "training_examples": 40000,
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
     }
   },
   "wrn34_3_primary": {
@@ -525,7 +531,22 @@
         "original_image_net_losses": 729
       }
     },
-    "interpretation": "Exploratory reused/postselected development; percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees."
+    "interpretation": "Exploratory reused/postselected development; percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees.",
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.bfloat16",
+      "torch_version": "2.12.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    }
   },
   "cutmix_T4_primary": {
     "schema": "official_development_stress_v3",
@@ -776,7 +797,7 @@
     "interpretation": "Synthetic engineering throughput; training estimates exclude validation, EMA, checkpoint I/O and full pipeline overhead; no accuracy evidence."
   },
   "sam_status": "160 epochs and full v3 benchmark complete; all policies passed. Both conditional paired percentile intervals are positive on reused/postselected development. Primary frozen before repeat; independent seed2027 not started. No hidden predictions.",
-  "resizemix_status": "Primary localv3 benchmark+paired frozen. LocalFP16 repeat capacity-stopped9/160 preserved. Fresh T4 scratchseed2027 repeat launched once20:06:11UTC; real45/160 at20:19:29UTC,14081successful+4skip,finite/source/config matched. Fullrepeat benchmark/cleanup/localv3 attestation/prediction remain pending.",
+  "resizemix_status": "Complete fresh seed2027 T4 repeat and subsequent same-local-v3 fixed weighted gate pass (96.56% clean/78.468% stress); original2026primary remains 96.20%/80.092%. Repeat variability is substantial for synthetic stress, no hidden-score guarantee. Actual immutable attestation/primary-only2000CSV/strict offline prepare complete; waiting actual UTC quota. Original partial local9/160 remains preserved as capacity cancellation.",
   "full50k_refit": {
     "status": "plan_prepared_not_started",
     "plan_sha256": "ab3ce5c59a8e49e06aa1449eb813596bee3d9f180cc9808ea9350eaba13a1ecb",
@@ -789,7 +810,7 @@
     "not_before_utc": "2026-11-01T00:00:00Z"
   },
   "research_submission": {
-    "status": "40k_primary_CSV_verified_waiting_actual_quota",
+    "status": "two_qualified_distinct_primary_CSVs_verified_waiting_actual_quota",
     "official_rows": 2000,
     "delivery_manifest_sha256": "803f03ab8d1cb5e0107ef0501e63f956358070202570d1f5f8758c2579fae27e",
     "new_submission_reference": null,
@@ -797,22 +818,36 @@
     "private_score": null,
     "last_verified_utc_day": "2026-10-31",
     "quota_used": 5,
-    "quota_remaining": 0
+    "quota_remaining": 0,
+    "qualified_prepared_candidates": [
+      {
+        "name": "WRN34-3/160",
+        "primary_seed": 2026,
+        "policy": "center80_shift20",
+        "delivery_manifest_sha256": "803f03ab8d1cb5e0107ef0501e63f956358070202570d1f5f8758c2579fae27e"
+      },
+      {
+        "name": "ResizeMix/WRN22-4",
+        "primary_seed": 2026,
+        "policy": "center80_shift20",
+        "delivery_manifest_sha256": "7376bed6c3789c4f78df6ec37ae3da738656826ec72a5a95fc37e88714522313"
+      }
+    ]
   },
   "validation": {
     "commit": "c6fe9210f6ecb2e84bdda657faa22a5861e8e194",
     "CPU_tests": 182,
     "CI": "success",
     "CI_url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41226413783",
-    "latest_local_integration_CPU_tests": 310,
-    "integration_note": "All310integrated CPU tests pass; 19new shadow-attestation tests plus5typed-routing tests. ActualWRN300 primary config/last/history/scaler/SGD/RNG/preflight structures checked read-only; oldprimary rejected as its ownrepeat. ReadyWRN160 realofflineprepare still valid without upload or intent. No actualshadow2027attestation exists.",
+    "latest_local_integration_CPU_tests": 351,
+    "integration_note": "All351 integrated CPU tests pass with the CI unittest command, including24 report-adapter and17 report-builder checks. Reporting tests use explicit progress-only fixtures and real headless PNG output. CPU CI dependencies now explicitly include nbformat/reportlab/pypdf/IPython; no kernel is run by CI. Source-bound training, proofs and uploaders are unchanged.",
     "latest_verified_committed_CI": {
-      "commit": "88ef3db6b806f1f014e2647110478cb304537d28",
-      "CPU_tests": 278,
+      "commit": "6aceb1f51aa627b6e8957593a50ae153cd4fb81c",
+      "CPU_tests": 310,
       "result": "SUCCESS",
-      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41236209153"
+      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41238529760"
     },
-    "cloud_attestation_note": "239 integrated CPU tests and independent review passed. Actual completed ResizeMix training/cleanup and native SAM receipt structure also checked read-only. No actual seed2027 cloud attestation exists yet."
+    "cloud_attestation_note": "Actual independent ResizeMix seed2027 complete160 cloud/cleanup/then same-local-v3 proof was deeply rederived and actual primary-only2000 prediction plus strict offline prepare passed; no upload or intent. ShadowWRN300 independent repeat is running, with no actual completed attestation or prediction yet."
   },
   "resizemix_T4_primary": {
     "schema": "official_development_stress_v3",
@@ -1384,7 +1419,22 @@
     "hidden_images_loaded": false,
     "external_data_loaded": false,
     "automatic_promotion": false,
-    "interpretation": "Exploratory reused/postselected development; image-cluster percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees."
+    "interpretation": "Exploratory reused/postselected development; image-cluster percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees.",
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.bfloat16",
+      "torch_version": "2.12.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    }
   },
   "resizemix_local_paired": {
     "schema": "exploratory_paired_image_bootstrap_v2",
@@ -1435,7 +1485,22 @@
     "hidden_images_loaded": false,
     "external_data_loaded": false,
     "automatic_promotion": false,
-    "interpretation": "Exploratory reused/postselected development; image-cluster percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees."
+    "interpretation": "Exploratory reused/postselected development; image-cluster percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees.",
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.bfloat16",
+      "torch_version": "2.12.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    }
   },
   "SAM_status": "160 epochs and full v3 benchmark complete; all policies passed. Both conditional paired percentile intervals are positive on reused/postselected development. Primary frozen before repeat; independent seed2027 not started. No hidden predictions.",
   "SAM_primary_freeze_sha256": "d505c367a78970ddb56dc036dcec97b1851f52230fd0bf1f49188692c6c0c943",
@@ -1742,7 +1807,7 @@
     "transfer_cleanup_reserve_seconds": 180,
     "runtime_budget_fit": true
   },
-  "WRN34_300_status": "T4 full300 benchmark plus complete local nativeBF16 v3 rebenchmark and10k imagecluster paired audit completed. Local weighted96.54%/79.716%; clean conditionalCI[-0.18,+0.72]pp crosses0, stress[+1.6719,+2.488]pp. Primary epoch298raw/weighted and exactseed2027 recipe frozen20:07:28UTC before repeat. Cloudcleanup absence+usage0 verified with rawreceipt backup. No formal repeat/hiddenprediction/submission yet; onlysame complete repeat can authorize primary prediction. Distinct FP16 recipe, not isolated epoch-count cause.",
+  "WRN34_300_status": "Primary full T4 and localv3 benchmark, pairing and primary freeze complete. Fresh exact seed2027 FP16 cloud repeat running, 45/300 verified at21:12:55UTC, no final repeat benchmark/attestation/prediction.",
   "resizemix_local_repeat_capacity": {
     "status": "incomplete_capacity_stop",
     "completed_epochs": 9,
@@ -2340,7 +2405,38 @@
     "parent_benchmark_sha256": "cf8cfa9fbb103db3ad705a5971b993d187e055dff6e6d0a0a3c1ac5964168690",
     "parent_checkpoint_sha256": "1787237fb5f4566043843f9008516e911b9a6d867bc6ac4720c52448871c7b9a",
     "baseline_sha256": "eced314d97fcb5ddef4cad25c6968ba299d0e8a2c79af6bdcbdbf305b79c632d",
-    "benchmark_sha256": "9c24fc38ab493813dbb8b78d74e867e15fcf6f427fed2d37304dce4c46d394c8"
+    "benchmark_sha256": "9c24fc38ab493813dbb8b78d74e867e15fcf6f427fed2d37304dce4c46d394c8",
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "config": {
+      "depth": 34,
+      "widen_factor": 3,
+      "dropout": 0.0,
+      "num_classes": 10,
+      "epochs": 200,
+      "batch_size": 128,
+      "lr": 0.1,
+      "min_lr": 0.0001,
+      "warmup_epochs": 5,
+      "momentum": 0.9,
+      "weight_decay": 0.0005,
+      "label_smoothing": 0.0,
+      "cutout": 16,
+      "mixup_alpha": 0.2,
+      "mixup_probability": 0.5,
+      "ema_decay": 0.995,
+      "seed": 2026,
+      "split_seed": 2026,
+      "train_all": false,
+      "final_variant": "ema",
+      "fixed_flip_tta": false,
+      "swa_prefix_epochs": 160,
+      "swa_tail_epochs": 40,
+      "swa_lr": 0.01,
+      "swa_bn_seed": 2026
+    }
   },
   "SWA_same_tail_raw_control": {
     "schema": "official_development_stress_v3",
@@ -2795,6 +2891,30 @@
     "data_signature": {
       "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
       "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "benchmark_sha256": "e3c586afc302d1422c80eb3831562f6b67f684d53c7b2b5390c9d4623001570b",
+    "config": {
+      "depth": 34,
+      "widen_factor": 3,
+      "dropout": 0.0,
+      "num_classes": 10,
+      "epochs": 300,
+      "batch_size": 128,
+      "lr": 0.1,
+      "min_lr": 0.0001,
+      "warmup_epochs": 5,
+      "momentum": 0.9,
+      "weight_decay": 0.0005,
+      "label_smoothing": 0.0,
+      "cutout": 16,
+      "mixup_alpha": 0.2,
+      "mixup_probability": 0.5,
+      "ema_decay": 0.995,
+      "seed": 2026,
+      "split_seed": 2026,
+      "train_all": false,
+      "final_variant": "ema",
+      "fixed_flip_tta": false
     }
   },
   "WRN34_300_local_paired": {
@@ -2873,25 +2993,293 @@
     "typed_routing_CPU_tests": 5,
     "actual_primary_structure_audit": "passed read-only; explicitly refused as repeat",
     "repeat_prepared": true,
-    "repeat_launched": false,
+    "repeat_launched": true,
     "actual_attestation": false,
     "actual_hidden_prediction": false,
     "diagnostic_mode": "cloud-shadow-repeat-predict"
   },
   "resizemix_repeat_progress": {
-    "checked_at": "2026-10-31T20:19:29+00:00",
-    "epochs_completed": 45,
+    "status": "complete",
+    "epochs_completed": 160,
     "planned_epochs": 160,
+    "successful_updates": 50059,
+    "skipped_updates": 21,
+    "actual_training_seconds": 2302.153695462,
+    "training_seed": 2027,
+    "native_precision": "fp16",
+    "device": "Tesla T4",
+    "runtime_stop_verified": true,
+    "local_rebenchmark_complete": true,
+    "local_fixed_policy_passed": true,
+    "attestation_sha256": "b1a2255e1febadbe70aa3931a3f90a686455153339fde36da8b5b9c3443d12fa",
+    "primary_predictions_ready": true,
+    "submission_uploaded": false
+  },
+  "resizemix_local_repeat": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "examples": 5000,
+    "training_examples": 40000,
+    "parameter_count": 4298970,
+    "checkpoint_sha256": "028d0f736e980a2208a3c7b0c0a3210b13c533a0e9cc650c64467ce6264d0a89",
+    "checkpoint_epoch": 158,
+    "checkpoint_variant": "model",
+    "config": {
+      "depth": 22,
+      "widen_factor": 4,
+      "dropout": 0.0,
+      "num_classes": 10,
+      "epochs": 160,
+      "batch_size": 128,
+      "lr": 0.1,
+      "min_lr": 0.0001,
+      "warmup_epochs": 5,
+      "momentum": 0.9,
+      "weight_decay": 0.0005,
+      "label_smoothing": 0.0,
+      "cutout": 0,
+      "mixup_alpha": 0.0,
+      "mixup_probability": 0.0,
+      "ema_decay": 0.995,
+      "seed": 2027,
+      "split_seed": 2026,
+      "train_all": false,
+      "final_variant": "ema",
+      "fixed_flip_tta": false,
+      "resizemix_probability": 0.5,
+      "resizemix_tau_min": 0.1,
+      "resizemix_tau_max": 0.8
+    },
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.bfloat16",
+      "torch_version": "2.12.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    },
+    "bn_recalibrated": false,
+    "promotion": {
+      "plain": {
+        "passed": false,
+        "clean_delta": -0.0023999999999999577,
+        "stress_delta": 0.0011199999999998989,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "flip": {
+        "passed": true,
+        "clean_delta": 0.0020000000000000018,
+        "stress_delta": 0.007159999999999833,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "center80_shift20": {
+        "passed": true,
+        "clean_delta": 0.0028000000000000247,
+        "stress_delta": 0.008399999999999963,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      }
+    },
+    "baseline_sha256": "eced314d97fcb5ddef4cad25c6968ba299d0e8a2c79af6bdcbdbf305b79c632d",
+    "elapsed_seconds": 26.852739199999633,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded": false,
+    "external_data_loaded": false,
+    "policies": {
+      "plain": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9604,
+            "loss": 0.13902799150943757,
+            "examples": 5000,
+            "seconds": 1.7242646000013337,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.6932,
+            "loss": 1.134524564743042,
+            "examples": 5000,
+            "seconds": 0.40745980000065174,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4478,
+            "loss": 2.021833420562744,
+            "examples": 5000,
+            "seconds": 0.3390393000008771,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9546,
+            "loss": 0.16083755428493024,
+            "examples": 5000,
+            "seconds": 0.3525859000001219,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.959,
+            "loss": 0.14494895244836808,
+            "examples": 5000,
+            "seconds": 0.3421999999991385,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8324,
+            "loss": 0.5611067864656448,
+            "examples": 5000,
+            "seconds": 0.3401982000032149,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9604,
+        "clean_loss": 0.13902799150943757,
+        "stress_accuracy": 0.7774
+      },
+      "flip": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9648,
+            "loss": 0.12404473611712456,
+            "examples": 5000,
+            "seconds": 0.6708995000008144,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.701,
+            "loss": 1.0806793899536133,
+            "examples": 5000,
+            "seconds": 0.7143966000003275,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4566,
+            "loss": 1.9640147605895997,
+            "examples": 5000,
+            "seconds": 0.6494257000013022,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9586,
+            "loss": 0.1463179983854294,
+            "examples": 5000,
+            "seconds": 0.6548495999995794,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.9628,
+            "loss": 0.13019790837317705,
+            "examples": 5000,
+            "seconds": 0.6463667999996687,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8382,
+            "loss": 0.5211157780170441,
+            "examples": 5000,
+            "seconds": 0.6612520000016957,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9648,
+        "clean_loss": 0.12404473611712456,
+        "stress_accuracy": 0.7834399999999999
+      },
+      "center80_shift20": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9656,
+            "loss": 0.12222579528689384,
+            "examples": 5000,
+            "seconds": 3.1497369000026083,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.704,
+            "loss": 1.0699836651802064,
+            "examples": 5000,
+            "seconds": 3.2426598999991256,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4568,
+            "loss": 1.9565885498046875,
+            "examples": 5000,
+            "seconds": 3.1657955999980913,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.959,
+            "loss": 0.1443204850062728,
+            "examples": 5000,
+            "seconds": 3.117102200001682,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.9638,
+            "loss": 0.12834500677138566,
+            "examples": 5000,
+            "seconds": 3.053668000000471,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8398,
+            "loss": 0.5144438448429107,
+            "examples": 5000,
+            "seconds": 3.0907870000010007,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9656,
+        "clean_loss": 0.12222579528689384,
+        "stress_accuracy": 0.78468
+      }
+    },
+    "benchmark_sha256": "22b02748f5db07d1749f2d69bb10e73b8480bb3e1cdbf70c9787f28f2273e331",
+    "supervisor": {
+      "status": "complete",
+      "started_at": "2026-10-31T20:56:15.965133+00:00",
+      "finished_at": "2026-10-31T20:56:48.023276+00:00",
+      "elapsed_seconds": 32.05853410000054,
+      "backend": "local"
+    },
+    "training_precision": "fp16",
+    "training_backend": "Colab Tesla T4"
+  },
+  "WRN34_300_repeat_progress": {
+    "checked_at": "2026-10-31T21:12:55+00:00",
+    "epochs_completed": 45,
+    "planned_epochs": 300,
     "successful_updates": 14081,
     "skipped_updates": 4,
-    "actual_training_seconds": 652.56,
+    "actual_training_seconds": 839.682863606,
     "training_seed": 2027,
     "native_precision": "fp16",
     "device": "Tesla T4",
     "torch": "2.11.0+cu130",
     "configuration_and_sources_verified": true,
     "all_recorded_metrics_finite": true,
-    "estimated_training_finish_UTC": "2026-10-31T20:47:17+00:00",
+    "estimated_training_finish_UTC": "2026-10-31T22:32:14+00:00",
     "estimate_not_final_benchmark": true
   }
 }

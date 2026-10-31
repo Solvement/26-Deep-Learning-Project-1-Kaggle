@@ -35,7 +35,7 @@ exploratory T4 run completed its full 300-epoch budget.
 ## Code and public evidence
 
 - [x] Publish the reproducible source/configuration/tests on the public
-  `feat/cifar10-resnet-submission` branch and PR 6; main is not merged.
+  `feat/cifar10-resnet-submission` branch and PR 6; PR 6 was subsequently merged to main as e582b7b. Follow-on research is isolated in draft PR 8.
 - [x] Share the source in the verified [competition discussion](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/discussion/754332).
 - [x] Use scripts/submit_verified.py for local completed-run/CSV/checkpoint checks,
   quota-aware upload intent/reference handling and duplicate protection.
@@ -67,8 +67,8 @@ exploratory T4 run completed its full 300-epoch budget.
 
 - [ ] Independently confirm the course Google Form registration uses team Saber.
 - [ ] Upload the final PDF to Brightspace for each registered member.
-- [ ] Obtain human maintainer PR review and explicit merge authorization before
-  merging; an agent review does not count as human approval.
+- [ ] Obtain human maintainer review and separate merge authorization for follow-on PR 8;
+  PR 6 already received explicit merge authorization. An agent review does not count as human approval.
 - [ ] Only if adding the future teammate: complete the official course/Kaggle
   membership procedures and retain the written three-person team limit.
 - [ ] Confirm the report deadline's timezone in the course announcements.
