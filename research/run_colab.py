@@ -10,6 +10,7 @@ import argparse
 from datetime import datetime, timezone
 import getpass
 import hashlib
+import inspect
 import json
 import math
 import os
@@ -239,12 +240,35 @@ print("SABER_GUARD_JSON=" + json.dumps({{"status":"armed", "deadline_unix":_dead
 '''
 
 
+def enforce_shadow_preflight_budget(method, remaining_seconds):
+    """Fixed before measurement: 1.5x SGD-only time +300s, reserve another180s."""
+    if (type(method.get("parameters")) is not int or not 0 < method["parameters"] <= 5000000 or
+        method.get("warmup_steps") != 3 or method.get("timed_steps") != 10 or
+        method.get("real_parameter_updates") != 13 or method.get("finite_parameters_verified") is not True or
+        method.get("finite_losses_verified") is not True):
+        raise RuntimeError("Shadow method preflight did not prove finite real model updates")
+    median, batch_size, epochs = method.get("median_step_seconds"), method.get("batch_size"), method.get("epochs")
+    if (type(median) not in (int, float) or not math.isfinite(median) or median <= 0 or
+        type(batch_size) is not int or batch_size <= 0 or type(epochs) is not int or epochs <= 0 or
+        not math.isfinite(remaining_seconds) or remaining_seconds <= 180):
+        raise RuntimeError("Shadow method preflight timing or remaining runtime is invalid")
+    estimated = median*math.ceil(40000/batch_size)*epochs
+    conservative = 1.5*estimated+300
+    method.update(estimated_training_only_seconds=estimated, conservative_pipeline_seconds=conservative,
+                  runtime_safety_multiplier=1.5, pipeline_overhead_allowance_seconds=300,
+                  transfer_cleanup_reserve_seconds=180, runtime_budget_fit=conservative < remaining_seconds-180)
+    if not method["runtime_budget_fit"]:
+        method["status"] = "runtime_budget_exceeded"
+        raise RuntimeError("Shadow measured speed does not fit the remaining supervised runtime")
+
+
 def remote_program(manifest, session, deadline):
     # Every interpolated value is a validated ID or a Python literal; no shell.
     trainer = manifest.get("trainer", "shadow")
     train_entry, validation_entry = trainer_routes(trainer)
-    return '''import hashlib,json,os,subprocess,sys,time,zipfile
+    return '''import hashlib,json,math,os,subprocess,sys,time,zipfile
 from pathlib import Path
+''' + inspect.getsource(enforce_shadow_preflight_budget) + '''
 M = ''' + repr(manifest) + '''
 D = ''' + repr(deadline) + '''
 TRAIN = ''' + repr(train_entry) + '''
@@ -301,6 +325,60 @@ try:
     (R/'native_amp_smoke.json').write_text(json.dumps(smoke,indent=2))
     receipt['native_amp_smoke']=smoke
     del p,opt,scaler
+    if M.get('trainer','shadow')=='shadow' and not (M['config'].get('cutmix_alpha',0)>0 and M['config'].get('cutmix_probability',0)>0):
+        from train import DEFAULT_CONFIG, augment
+        from research.train_shadow import validate_config
+        from runtime import seed_all
+        from model import build_model, count_parameters
+        import random, statistics
+        import numpy as np
+        seed_all(2026)
+        cfg={**DEFAULT_CONFIG,**M['config']}; validate_config(cfg)
+        model_cfg={k:cfg[k] for k in ('depth','widen_factor','dropout','num_classes')}
+        pre_model=build_model(model_cfg)
+        parameters=count_parameters(pre_model); assert 0<parameters<=5000000
+        pre_model=pre_model.to(device='cuda',memory_format=torch.channels_last).train()
+        pre_opt=torch.optim.SGD(pre_model.parameters(),lr=cfg['lr'],momentum=cfg['momentum'],weight_decay=cfg['weight_decay'],nesterov=True)
+        pre_scaler=torch.amp.GradScaler('cuda',init_scale=256.)
+        pre_images=torch.randint(0,256,(cfg['batch_size'],32,32,3),device='cuda',dtype=torch.uint8)
+        pre_labels=torch.arange(cfg['batch_size'],device='cuda')%10
+        durations=[]; mixed_calls=0; changed_steps=0; probe=next(pre_model.parameters())
+        torch.cuda.reset_peak_memory_stats()
+        for index in range(13):
+            torch.cuda.synchronize(); began=time.perf_counter(); before=probe.detach().clone()
+            x=augment(pre_images,cfg['cutout']); y=pre_labels
+            mixed=cfg['mixup_alpha']>0 and random.random()<cfg['mixup_probability']
+            retained=float(np.random.beta(cfg['mixup_alpha'],cfg['mixup_alpha'])) if mixed else 1.
+            permutation=torch.randperm(len(y),device='cuda') if mixed else None
+            if mixed: x=x*retained+x[permutation]*(1-retained)
+            mixed_calls+=int(mixed); pre_opt.zero_grad(set_to_none=True)
+            with torch.autocast('cuda',dtype=torch.float16):
+                logits=pre_model(x)
+                loss=torch.nn.functional.cross_entropy(logits,y,label_smoothing=cfg['label_smoothing'])*retained
+                if mixed: loss+=torch.nn.functional.cross_entropy(logits,y[permutation],label_smoothing=cfg['label_smoothing'])*(1-retained)
+            assert optimizer_step(loss,pre_opt,pre_scaler)
+            assert torch.isfinite(probe).all() and not torch.equal(probe.detach(),before)
+            changed_steps+=1; torch.cuda.synchronize()
+            if index>=3: durations.append(time.perf_counter()-began)
+        assert all(torch.isfinite(p).all() for p in pre_model.parameters())
+        assert not (cfg['mixup_alpha']>0 and cfg['mixup_probability']>0) or mixed_calls>0
+        method={'status':'complete','method':'shadow_mixup_cutout','synthetic_only':True,'engineering_only':True,
+            'training_data_loaded':False,'hidden_images_loaded':False,'native_fp16_verified':True,
+            'finite_parameters_verified':True,'finite_losses_verified':True,'real_parameter_updates':changed_steps,
+            'actual_mixed_batches':mixed_calls,'mixup_alpha':cfg['mixup_alpha'],'mixup_probability':cfg['mixup_probability'],
+            'cutout':cfg['cutout'],'batch_size':cfg['batch_size'],'epochs':cfg['epochs'],'model_config':model_cfg,'parameters':parameters,
+            'warmup_steps':3,'timed_steps':10,'seed':2026,'median_step_seconds':statistics.median(durations),
+            'p90_step_seconds':statistics.quantiles(durations,n=10,method='inclusive')[8],
+            'images_per_second':cfg['batch_size']/statistics.median(durations),'peak_gpu_memory_bytes':torch.cuda.max_memory_allocated(),
+            'grad_scaler_initial_scale':256.,'grad_scaler_final_scale':pre_scaler.get_scale(),
+            'trainer_source_sha256':M['files_sha256'][TRAIN],'augmentation_source_sha256':M['files_sha256']['train.py']}
+        try:
+            enforce_shadow_preflight_budget(method,D-time.time())
+        finally:
+            (R/'method_preflight.json').write_text(json.dumps(method,indent=2))
+            receipt['method_preflight']=method
+        del pre_model,pre_opt,pre_scaler,pre_images,pre_labels,probe,before,x,y,permutation,loss,logits
+        torch.cuda.empty_cache()
     if M.get('trainer','shadow')=='resizemix':
         from research.train_resizemix import prepare_batch, optimizer_step
         from train import DEFAULT_CONFIG

@@ -44,7 +44,7 @@
 ## Releases and Kaggle submissions
 
 - Do not submit to Kaggle, publish a dataset/notebook, enable GPU training jobs, alter repository security settings, or spend cloud resources without task authorization.
-- No automatic Kaggle submission is configured. Confirm the rules and build/validate a real competition pipeline before adding delivery automation.
+- The current five-day campaign has explicit authorization for autonomous benchmark-qualified Kaggle submissions through the validated research helper. Preserve its source/data/quota/duplicate/unknown-result checks and hard stop; do not infer authorization for unrelated future campaigns.
 - Record the commit, configuration, seed, environment, dataset version, validation score, and artifact checksum for each real experiment.
 - The user explicitly authorized local training, use of available free resources, code pushes, public repository visibility, and validated Kaggle submission. Do not request those permissions again. Paid resources and merging main are not authorized by that statement.
 - Formal local campaign: fixed official 40k train / 5k development / 5k one-time confirmation split (seed 2026), three matched 160-epoch recipes, selection by development only, one confirmation, then frozen-recipe full-50k training. `run_campaign.py` enforces artifact checks and a three-hour wall-time cap. Do not retune after confirmation or expose hidden labels.

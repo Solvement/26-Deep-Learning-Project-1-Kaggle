@@ -173,10 +173,10 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
 2. **Weight decay。** [MixUp 作者训练代码](https://github.com/facebookresearch/mixup-cifar10/blob/main/train.py#L35)
    默认使用 `weight_decay=1e-4`；当前候选只把原 recipe 的 `5e-4` 改成 `1e-4`。
    这是待测假设，不是本项目已证明的最佳值。参考算法/参数，独立实现并遵守引用与代码许可要求。
-3. **SWA，尚未实现。** [原论文](https://arxiv.org/abs/1803.05407)和[作者示例](https://github.com/timgaripov/swa#examples)
+3. **SWA，尚未实现。** 固定40轮tail及严格新seed完整复测的备用协议见[swa-plan.md](swa-plan.md)。[原论文](https://arxiv.org/abs/1803.05407)和[作者示例](https://github.com/timgaripov/swa#examples)
    支持对 SGD 轨迹权重做平均，最终保留单个模型。作者 CIFAR/WRN 示例从 epoch 161 开始 SWA，
-   SWA LR 为 0.05。这里拟议的 40–80 epoch tail、LR 0.01/0.05 都必须单独做 40k benchmark，
-   再冻结 full refit；平均后的 BN 只用允许的优化训练图像重新估计。
+   SWA LR 为 0.05，论文附录WRN设置为0.01。当前备用计划固定40轮、0.01，不临时搜索长度/LR；
+   仍须独立40k benchmark、配对和冻结后的正式seed复测，平均后的BN只用40k优化训练图像重估。
 4. **SAM，已实现、未取得训练结果。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
    的 CIFAR-10 WRN-28-10 参考配置使用 LR 0.1、WD 0.0005、rho 0.05。
    迁移到预算内 WRN-22-4 是新假设；原大模型成绩不移用。每次更新需要两次反向传播，
@@ -208,7 +208,7 @@ Cutout16/Mixup0.2，仅加入非自适应 SAM rho0.05。两次前后向复用同
 SAM 的 CPU检查包含解析二次函数更新、扰动范数、失败恢复、BN只更新一次，
 以及实际小模型中断恢复后 model/EMA/SGD/RNG 一致。优化后真实原生 BF16 合成预检完成：
 23/23次更新，中位64.183ms，较旧实现107.145ms降低约40%；不含验证和I/O，不能当作完整训练耗时。
-160轮正式训练已启动，完整 benchmark 仍待完成。新增v2路径集成后全套214项 CPU检查通过；
+160轮正式训练已启动，完整 benchmark 仍待完成。新增长程预检后全套217项 CPU检查通过；
 对应源码版本的CI结果见PR8，CPU fixture不等于真实候选配对或提交成功。
 本地监督器新增 `--trainer sam --precision bf16`，保存训练器/精度并禁止交叉恢复。
 云端与本地时间预算分开计数；活动 Colab 任务不会被误计为本地 GPU 时间。
@@ -244,6 +244,18 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 本地 lease、预算和 watchdog，不用裸 GPU 命令绕过监督。SAM 实际测速入口为
 `python research/run_diagnostic.py --run wrn22_sam_native_preflight --mode sam-speed --config research/configs/wrn22_sam.json`。
 只有当前训练结束并释放 lease 后才能运行；输出为新目录中的不可覆盖工程证据。
+
+### 新增长程对照：WRN34-3 / 300轮 / T4 FP16
+
+[wrn34_3_300.json](configs/wrn34_3_300.json)保持模型与原增强、WD，仅延长配置中的训练轮数。
+云端使用独立shadow原生FP16入口，与同一运行时可信WRN22基线比较；原WRN34-160是本地BF16，
+因此不能把跨环境差异归因于训练轮数。该云端计划尚未分配或训练，回执才是实际状态。
+
+普通Mixup/Cutout的shadow路径新增真实模型级FP16预检：3步预热、10步计时、13次真实更新，
+核验所有参数/损失有限、参数<=5M及训练/增强源码SHA。预先固定预算公式为
+`1.5 × 测得SGD-only估计 + 300秒`，另外预留180秒传输/清理；完整训练前拒绝不适合的任务。
+该余量参考此前同T4 ResizeMix真实epoch耗时/合成SGD估计约1.147；不是当前WRN34吞吐实测。
+原ResizeMix预检的2倍预算规则不改，三小时独立截止保护保持。合成预检不产生比赛准确率。
 
 ## 提交与证据
 

@@ -1,7 +1,9 @@
 """Colab preparation and cleanup boundaries; no network or real allocation."""
 from pathlib import Path
+import ast
 import hashlib
 import json
+import math
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
@@ -11,6 +13,11 @@ from research import run_colab as runner
 
 
 class ColabRunnerTests(unittest.TestCase):
+    def shadow_method(self, median=.05):
+        return {"status": "complete", "parameters": 4166298, "batch_size": 128, "epochs": 300,
+                "warmup_steps": 3, "timed_steps": 10, "real_parameter_updates": 13,
+                "finite_parameters_verified": True, "finite_losses_verified": True, "median_step_seconds": median}
+
     def test_trainer_routes_are_allowlisted_and_legacy_default_remains_shadow(self):
         for trainer, entries in {"shadow": ("research/train_shadow.py", "research/benchmark_shadow.py"),
                                  "resizemix": ("research/train_resizemix.py", "research/benchmark_resizemix.py")}.items():
@@ -216,6 +223,61 @@ class ColabRunnerTests(unittest.TestCase):
         self.assertIn("'runtime_budget_fit':safe_estimate<D-time.time()-180", program)
         self.assertLess(program.index("(R/'method_preflight.json')"), program.index("run(['research/benchmark.py'"))
         self.assertIn("method_preflight.json", runner.OUTPUTS)
+
+    def test_ordinary_shadow_preflight_uses_exact_augmentation_and_source_before_formal_run(self):
+        manifest = {"run": "wrn300", "trainer": "shadow", "config": {"cutout": 16, "mixup_alpha": .2, "mixup_probability": .5},
+                    "chunks": [], "files_sha256": {}, "bundle_sha256": "x"}
+        program = runner.remote_program(manifest, "owned", 1900000000)
+        compile(program, "shadow_remote.py", "exec")
+        self.assertIn("if M.get('trainer','shadow')=='shadow' and not (M['config'].get('cutmix_alpha',0)>0", program)
+        self.assertIn("cfg={**DEFAULT_CONFIG,**M['config']}; validate_config(cfg)", program)
+        self.assertIn("x=augment(pre_images,cfg['cutout'])", program)
+        self.assertIn("random.random()<cfg['mixup_probability']", program)
+        self.assertIn("np.random.beta(cfg['mixup_alpha'],cfg['mixup_alpha'])", program)
+        self.assertIn("'trainer_source_sha256':M['files_sha256'][TRAIN]", program)
+        self.assertIn("'augmentation_source_sha256':M['files_sha256']['train.py']", program)
+        self.assertIn("assert all(torch.isfinite(p).all() for p in pre_model.parameters())", program)
+        self.assertLess(program.index("enforce_shadow_preflight_budget(method,D-time.time())"), program.index("run(['research/benchmark.py'"))
+        self.assertEqual(manifest["config"], {"cutout": 16, "mixup_alpha": .2, "mixup_probability": .5})
+
+    def test_shadow_runtime_guard_is_fixed_before_measurement_and_rejects_bad_updates(self):
+        method = self.shadow_method()
+        runner.enforce_shadow_preflight_budget(method, 10800)
+        self.assertEqual(method["estimated_training_only_seconds"], .05*313*300)
+        self.assertEqual(method["conservative_pipeline_seconds"], 1.5*(.05*313*300)+300)
+        self.assertEqual(method["runtime_safety_multiplier"], 1.5)
+        self.assertEqual(method["transfer_cleanup_reserve_seconds"], 180)
+        self.assertTrue(method["runtime_budget_fit"])
+        for key, value in (("real_parameter_updates", 12), ("parameters", 5000001),
+                           ("finite_parameters_verified", False), ("finite_losses_verified", False)):
+            report = self.shadow_method()
+            report[key] = value
+            with self.assertRaisesRegex(RuntimeError, "finite real model updates"):
+                runner.enforce_shadow_preflight_budget(report, 10800)
+
+    def test_generated_shadow_budget_abort_writes_proof_and_never_reaches_training(self):
+        program = runner.remote_program({"run": "slow", "trainer": "shadow", "config": {}}, "owned", 1900000000)
+        tree = ast.parse(program)
+        guard_function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "enforce_shadow_preflight_budget")
+        guard_try = next(node for node in ast.walk(tree) if isinstance(node, ast.Try) and any(
+            isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call) and
+            isinstance(statement.value.func, ast.Name) and statement.value.func.id == "enforce_shadow_preflight_budget"
+            for statement in node.body))
+        training_call = ast.Expr(value=ast.Call(func=ast.Name(id="formal_training", ctx=ast.Load()), args=[], keywords=[]))
+        bounded_phase = ast.fix_missing_locations(ast.Module(body=[guard_function, guard_try, training_call], type_ignores=[]))
+        with tempfile.TemporaryDirectory() as tmp:
+            formal_training = MagicMock()
+            receipt = {}
+            namespace = {"math": math, "method": self.shadow_method(.1), "D": 10800,
+                         "time": MagicMock(time=MagicMock(return_value=0)), "R": Path(tmp), "json": json,
+                         "receipt": receipt, "formal_training": formal_training}
+            with self.assertRaisesRegex(RuntimeError, "does not fit"):
+                exec(compile(bounded_phase, "actual_generated_budget_phase.py", "exec"), namespace)
+            formal_training.assert_not_called()
+            proof = json.loads((Path(tmp)/"method_preflight.json").read_text())
+            self.assertFalse(proof["runtime_budget_fit"])
+            self.assertEqual(proof["status"], "runtime_budget_exceeded")
+            self.assertEqual(receipt["method_preflight"], proof)
 
     def test_cli_command_has_no_broad_auth_or_shell(self):
         cli = runner.ColabCLI(Path("unused"), python="/home/example/.local/share/uv/tools/google-colab-cli/bin/python")
