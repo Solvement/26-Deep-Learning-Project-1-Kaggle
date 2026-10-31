@@ -1,5 +1,6 @@
 """Independent repeat supervision: mocked CPU children, no real GPU allocation."""
 import copy
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -121,6 +122,41 @@ class ResizeMixLocalSupervisorTests(unittest.TestCase):
         self.assertTrue(result["benchmark_passed"])
         self.assertIn("benchmark_sha256", result)
         self.assertFalse((self.folder.parent/"local_lease.json").exists())
+
+    def test_real_public_raw_template_merges_defaults_but_preserves_planned_bytes_and_hash(self):
+        public_path = Path(__file__).resolve().parents[1]/"research/configs/wrn22_resizemix_seed2027.json"
+        raw_bytes = public_path.read_bytes()
+        raw = json.loads(raw_bytes)
+        self.assertNotIn("final_variant", raw)
+        self.assertNotIn("fixed_flip_tta", raw)
+        self.config = {**DEFAULT_CONFIG, **raw}
+        self.config_path.write_bytes(raw_bytes)
+        with patch.object(runner, "ROOT", self.root), \
+             patch.object(runner.torch.cuda, "is_available", return_value=True), \
+             patch.object(runner.torch, "load") as private_weight_load, \
+             patch.object(runner, "supervised_command", side_effect=self.completed_child) as children:
+            result = runner.run("resize_repeat", self.config_path, "fp16")
+        self.assertEqual([call.args[0][1] for call in children.call_args_list],
+                         ["research/train_resizemix.py", "research/benchmark_resizemix.py"])
+        self.assertEqual((self.folder/"input_config.json").read_bytes(), raw_bytes)
+        self.assertEqual(self.config_path.read_bytes(), raw_bytes)
+        self.assertEqual(result["config_sha256"], hashlib.sha256(raw_bytes).hexdigest())
+        self.assertEqual(result["status"], "complete")
+        evidence = json.loads((self.folder/"benchmark.json").read_text())
+        self.assertEqual(evidence["config"], self.config)
+        self.assertEqual(evidence["config"]["final_variant"], DEFAULT_CONFIG["final_variant"])
+        self.assertEqual(evidence["config"]["fixed_flip_tta"], DEFAULT_CONFIG["fixed_flip_tta"])
+        private_weight_load.assert_not_called()
+
+    def test_normalization_does_not_discard_unknown_raw_keys_before_validation(self):
+        self.config_path.write_text(json.dumps({**self.config, "unrecognized_recipe_option": True}))
+        with patch.object(runner, "ROOT", self.root), patch.object(runner, "acquire_lease") as lease, \
+             patch.object(runner, "supervised_command") as child:
+            with self.assertRaisesRegex(ValueError, "exactly the base training keys"):
+                runner.run("resize_repeat", self.config_path, "fp16")
+        lease.assert_not_called()
+        child.assert_not_called()
+        self.assertFalse(self.folder.exists())
 
     def test_minimum_budget_refuses_child_and_releases_owned_lease(self):
         self.policy["local_gpu_seconds_per_utc_day"] = 2399

@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from runtime import write_json
+from train import DEFAULT_CONFIG
 import psutil
 import torch
 from research.run_local import acquire_lease, now, sha256, supervised_command, used_seconds
@@ -47,7 +48,8 @@ def run(run_id, config_path, precision, minimum_seconds=2400):
         raise ValueError("Minimum runtime must be from 60 through 10800 seconds")
     config_path = Path(config_path).resolve()
     raw_config = config_path.read_bytes()
-    config = json.loads(raw_config.decode("utf-8"))
+    # Match train_resizemix.main while preserving the predeclared raw bytes/SHA.
+    config = {**DEFAULT_CONFIG, **json.loads(raw_config.decode("utf-8"))}
     validate_config(config)
     if config["seed"] == 2026:
         raise ValueError("This entrypoint only repeats a frozen primary using a different seed")
