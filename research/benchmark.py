@@ -10,6 +10,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 import time
@@ -34,7 +35,7 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics=None, current_source=None):
+def validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics=None, current_source=None, history=None):
     config = checkpoint["config"]
     if config.get("train_all") is not False:
         raise ValueError("Held-out benchmark rejects full-data checkpoints")
@@ -51,6 +52,22 @@ def validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics=None,
     recorded = checkpoint.get("provenance", {}).get("source_sha256", {})
     if not current_source or any(recorded.get(key) != value for key, value in current_source.items()):
         raise ValueError("Checkpoint training source differs from frozen current core")
+    epoch = checkpoint.get("epoch")
+    if (not isinstance(epoch, int) or not 1 <= epoch <= config["epochs"] or not history
+        or [row.get("epoch") for row in history] != list(range(1, config["epochs"]+1))
+        or checkpoint.get("parameter_count") != metrics.get("parameter_count")):
+        raise ValueError("Checkpoint is not bound to a complete training history/parameter count")
+    prefix = "ema_" if checkpoint.get("variant") == "ema" else "" if checkpoint.get("variant") == "model" else None
+    if prefix is None:
+        raise ValueError("Unknown checkpoint weight variant")
+    for kind in ("accuracy", "loss"):
+        value = checkpoint.get("validation_"+kind)
+        expected = metrics.get("best_validation_"+kind)
+        historical = history[epoch-1].get(prefix+"validation_"+kind)
+        if any(not isinstance(v, (float, int)) or not math.isfinite(v) for v in (value, expected, historical)) or not (
+            math.isclose(value, expected, rel_tol=1e-9, abs_tol=1e-9) and
+            math.isclose(value, historical, rel_tol=1e-9, abs_tol=1e-9)):
+            raise ValueError("Selected checkpoint metrics do not match completed history")
 
 
 def stress(batch, case, offset=0):
@@ -207,10 +224,13 @@ def main():
     signature = {"archive_sha256": training_source(args.data_dir)["archive_sha256"],
                  "split_sha256": manifest["split"]["indices_sha256"]}
     metrics = json.loads((args.checkpoint.parent/"metrics.json").read_text())
+    history = json.loads((args.checkpoint.parent/"history.json").read_text())
     current_source = code_provenance()["source_sha256"]
-    validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics, current_source)
+    validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics, current_source, history)
     model = build_model(checkpoint["model_config"]).to(device=device, memory_format=torch.channels_last)
     model.load_state_dict(checkpoint["model"], strict=True)
+    if count_parameters(model) != metrics["parameter_count"]:
+        raise ValueError("Actual checkpoint architecture does not match its recorded parameter count")
     model.eval()
     if args.recalibrate_bn:
         train_images = tensor_images(images[train_ids], device)
@@ -238,6 +258,8 @@ def main():
     result = {"schema": SCHEMA, "status": "smoke" if args.limit else "complete", "examples": min(5000, args.limit or 5000),
               "training_examples": 40000, "parameter_count": count_parameters(model),
               "checkpoint_sha256": checkpoint_sha, "checkpoint_epoch": checkpoint["epoch"],
+              "training_metrics_sha256": sha256(args.checkpoint.parent/"metrics.json"),
+              "training_history_sha256": sha256(args.checkpoint.parent/"history.json"),
               "checkpoint_variant": checkpoint["variant"], "model_config": checkpoint["model_config"],
               "config": checkpoint["config"], "data_signature": signature,
               "stress_cases": list(CASES), "batch_size": args.batch_size,

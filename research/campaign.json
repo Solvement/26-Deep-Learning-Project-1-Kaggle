@@ -19,7 +19,7 @@
   "new_paid_budget_usd": null,
   "submission_limit_per_team_utc_day": 5,
   "benchmark_schema": "official_development_stress_v2",
-  "baseline_benchmark": "results/research/baseline_v2.json",
+  "baseline_benchmark": "results/research/baseline_v2_verified.json",
   "benchmark_clean_improvement": 0.001,
   "benchmark_stress_noninferiority": -0.002,
   "benchmark_stress_improvement": 0.005,

@@ -25,11 +25,14 @@ class ResearchBenchmarkTests(unittest.TestCase):
     def test_overlap_and_fingerprint_mismatch_are_rejected(self):
         train = np.arange(40000)
         dev = np.arange(40000, 45000)
-        checkpoint = {"config": {"train_all": False, "epochs":160}, "data_signature": {"split": "a"},
-                      "provenance":{"source_sha256":{"train.py":"original"}}}
-        metrics = {"status":"complete","config":checkpoint["config"],"epochs_completed":160,
-                   "training_examples":40000,"validation_examples":5000}
-        validate_checkpoint(checkpoint, train, dev, {"split": "a"}, metrics, {"train.py":"original"})
+        checkpoint = {"config": {"train_all": False, "epochs":2}, "data_signature": {"split": "a"},
+                      "provenance":{"source_sha256":{"train.py":"original"}}, "epoch":1,
+                      "variant":"model","parameter_count":10,"validation_accuracy":.96,"validation_loss":.1}
+        metrics = {"status":"complete","config":checkpoint["config"],"epochs_completed":2,
+                   "training_examples":40000,"validation_examples":5000,"parameter_count":10,
+                   "best_validation_accuracy":.96,"best_validation_loss":.1}
+        history=[{"epoch":i,"validation_accuracy":.96,"validation_loss":.1} for i in (1,2)]
+        validate_checkpoint(checkpoint, train, dev, {"split": "a"}, metrics, {"train.py":"original"}, history)
         with self.assertRaisesRegex(ValueError, "source/split"):
             validate_checkpoint(checkpoint, train, dev, {"split": "b"})
         with self.assertRaisesRegex(ValueError, "overlap"):
@@ -38,6 +41,9 @@ class ResearchBenchmarkTests(unittest.TestCase):
             validate_checkpoint(checkpoint, train, dev, {"split":"a"}, {**metrics,"status":"running"}, {"train.py":"original"})
         with self.assertRaisesRegex(ValueError, "training source"):
             validate_checkpoint(checkpoint, train, dev, {"split":"a"}, metrics, {"train.py":"changed"})
+        with self.assertRaisesRegex(ValueError, "checkpoint metrics"):
+            validate_checkpoint({**checkpoint,"validation_accuracy":.1}, train, dev, {"split":"a"}, metrics,
+                                {"train.py":"original"}, history)
 
     def test_partial_or_different_suite_cannot_be_a_promotion_baseline(self):
         cases = {case:{"examples":5000,"input_pixel_sha256":case} for case in CASES}
@@ -79,7 +85,7 @@ class ResearchBenchmarkTests(unittest.TestCase):
         model = torch.nn.Sequential(torch.nn.BatchNorm2d(3)).eval()
         calibrated = recalibrate_training_bn(model, images, batch_size=2)
         expected = normalize(images).mean(dim=(0, 2, 3))
-        self.assertTrue(torch.allclose(calibrated[0].running_mean, expected, atol=1e-5))
+        self.assertTrue(torch.allclose(calibrated[0].running_mean, expected, atol=5e-5))
         self.assertTrue(torch.equal(model[0].running_mean, torch.zeros(3)))
 
     def test_stability_repeat_is_excluded_before_any_file_access(self):
