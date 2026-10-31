@@ -30,6 +30,45 @@ def now():
     return datetime.now(timezone.utc)
 
 
+def trainer_identity(trainer, precision):
+    """Bind resume to the actual trainer; frozen core always uses CUDA BF16."""
+    aliases = {"bfloat16": "bf16", "torch.bfloat16": "bf16"}
+    precision = aliases.get(precision, precision)
+    if trainer not in {"frozen", "shadow", "sam"} or precision not in {"auto", "bf16", "fp16", "fp32"}:
+        raise ValueError("Unknown trainer or precision")
+    if trainer == "frozen":
+        if precision not in {"auto", "bf16"}:
+            raise ValueError("Frozen trainer hardcodes BF16; precision overrides require shadow or SAM")
+        precision = "bf16"
+    return trainer, precision
+
+
+def validate_resume_identity(previous, trainer, precision):
+    # Historical local receipts predate these fields and called frozen train.py.
+    prior = trainer_identity(previous.get("trainer", "frozen"), previous.get("precision", "auto"))
+    requested = trainer_identity(trainer, precision)
+    if prior != requested:
+        raise ValueError("Resume trainer or precision changed; use the original trainer/precision")
+
+
+def build_commands(trainer, precision, config_path, folder, baseline, resume=False):
+    trainer_identity(trainer, precision)
+    training_entry, benchmark_entry = {
+        "frozen": ("train.py", "research/benchmark.py"),
+        "shadow": ("research/train_shadow.py", "research/benchmark_shadow.py"),
+        "sam": ("research/train_sam.py", "research/benchmark_sam.py"),
+    }[trainer]
+    command = [sys.executable, training_entry, "--config", str(config_path),
+               "--output-dir", str(folder), "--device", "cuda"]
+    if trainer != "frozen":
+        command.extend(["--precision", precision])
+    if resume:
+        command.append("--resume")
+    benchmark = [sys.executable, benchmark_entry, "--checkpoint", str(folder/"best.pt"),
+                 "--output", str(folder/"benchmark.json"), "--baseline", str(baseline), "--device", "cuda"]
+    return command, benchmark
+
+
 def assert_stopped(record):
     """Never resume while any recorded owner or training child is still alive."""
     for key, stamp in (("pid", "process_created_at"), ("child_pid", "child_created_at")):
@@ -83,6 +122,11 @@ def used_seconds(base, day_start, day_end, exclude=None):
         if path == exclude:
             continue
         record = json.loads(path.read_text())
+        if (record.get("backend") == "colab" or
+                record.get("resource_policy") == "existing_Colab_entitlement_only_no_purchases" or
+                ("session" in record and "assignment_attempts" in record)):
+            # Colab and local GPUs have independent leases and time budgets.
+            continue
         if record.get("status") in {"starting", "training", "benchmarking"}:
             raise RuntimeError("An unfinished supervisor needs reconciliation before more GPU work")
         began = datetime.fromisoformat(record["started_at"])
@@ -141,7 +185,10 @@ def main():
     parser.add_argument("--run", required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--resume", action="store_true", help="Resume an inactive interrupted run from its exact last.pt")
+    parser.add_argument("--trainer", choices=("frozen", "shadow", "sam"), default="frozen")
+    parser.add_argument("--precision", choices=("auto", "bf16", "fp16", "fp32"), default="auto")
     args = parser.parse_args()
+    _, bound_precision = trainer_identity(args.trainer, args.precision)
     if not args.run.replace("_", "").isalnum() or args.run.startswith("stability"):
         parser.error("Use a unique alphanumeric exploratory run ID")
     policy = json.loads((ROOT/"research/campaign.json").read_text())
@@ -161,6 +208,7 @@ def main():
         if not receipt_path.exists() or not (folder/"last.pt").exists():
             raise FileNotFoundError("Resume requires an existing receipt and last checkpoint")
         previous = json.loads(receipt_path.read_text())
+        validate_resume_identity(previous, args.trainer, args.precision)
         if previous.get("config_sha256") != sha256(config_path) or (folder/"benchmark.json").exists():
             raise ValueError("Resume configuration changed or benchmark already exists")
         assert_stopped(previous)
@@ -172,6 +220,8 @@ def main():
     receipt = {"run": args.run, "status": "starting", "pid": os.getpid(),
                "started_at": now().isoformat(), "config_sha256": sha256(config_path),
                "confirmation_evaluated": False, "submitted": False,
+               "backend": "local", "trainer": args.trainer, "precision": bound_precision,
+               "precision_requested": args.precision,
                "process_created_at": psutil.Process().create_time(), "resumed": args.resume}
     owns_receipt = not args.resume
     try:
@@ -189,9 +239,8 @@ def main():
             raise RuntimeError("No local runtime budget remains")
         receipt.update(reserved_seconds=budget, utc_budget_day=day, status="training")
         write_json(receipt_path, receipt)
-        command = [sys.executable, "train.py", "--config", str(config_path), "--output-dir", str(folder), "--device", "cuda"]
-        if args.resume:
-            command.append("--resume")
+        command, benchmark = build_commands(args.trainer, args.precision, config_path, folder,
+                                             ROOT/policy["baseline_benchmark"], args.resume)
         log_name = "training_resume_"+str(time.time_ns())+".log" if args.resume else "training.log"
         receipt["training_log"] = log_name
         supervised_command(command, folder/log_name, budget, receipt_path, receipt)
@@ -200,8 +249,6 @@ def main():
         remaining = budget-(time.perf_counter()-started)
         if remaining < 60:
             raise TimeoutError("No supervised runtime remains for the required benchmark")
-        benchmark = [sys.executable, "research/benchmark.py", "--checkpoint", str(folder/"best.pt"),
-                     "--output", str(folder/"benchmark.json"), "--baseline", str(ROOT/policy["baseline_benchmark"]), "--device", "cuda"]
         supervised_command(benchmark, folder/"benchmark.log", remaining, receipt_path, receipt)
         evidence = json.loads((folder/"benchmark.json").read_text())
         receipt.update(status="complete", benchmark_sha256=sha256(folder/"benchmark.json"),

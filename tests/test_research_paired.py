@@ -18,6 +18,13 @@ from research import paired_compare as paired
 
 
 class PairedEvidenceTests(unittest.TestCase):
+    def test_unknown_training_extension_rejects_without_falling_back_to_shadow(self):
+        with self.assertRaisesRegex(ValueError, "Unsupported"):
+            paired.training_validator("unverified_new_training")
+        validator, path = paired.training_validator("research_shadow_training_v1")
+        self.assertIs(validator, paired.validate_shadow)
+        self.assertEqual(path.name, "benchmark_shadow.py")
+
     def fixture(self):
         config = {"train_all": False, "depth": 22, "widen_factor": 4, "dropout": 0., "num_classes": 10}
         constructor = {key: value for key, value in config.items() if key != "train_all"}

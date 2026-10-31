@@ -26,7 +26,7 @@
   都计入任务耗时。该本地监督器不等于 Colab 的调度/预算桥接已经完成。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。`wrn22_wd1e4` 已完成并被拒绝晋级，`wrn34_3` 配置已准备；
-  SWA、SAM、SE 等新训练方法尚未实现或取得自有实验成绩。
+  SAM 已独立实现并通过 CPU 验证，尚待实际 BF16 测速和正式训练；SWA、SE 尚未实现。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -127,7 +127,7 @@ v3 明确用 `is_bf16_supported(including_emulation=False)` 检测原生支持�
 仅允许 40k/5k。T4 使用 native FP16 与 GradScaler；溢出跳步不更新 EMA，
 检查点保存 scaler、更新次数和全部 RNG，恢复要求源码/精度/配置相同。
 额外训练源码由 [benchmark_shadow.py](benchmark_shadow.py) 核验，随后调用未修改的
-v2 benchmark；新候选不能只凭兼容核心的字段绕过独立训练源码检查。
+v3 benchmark；新候选不能只凭兼容核心的字段绕过独立训练源码检查。
 
 [wrn22_cutmix.json](configs/wrn22_cutmix.json) 实现待测 recipe：WRN22-4、160 epoch、
 WD5e-4 不变，用 CutMix alpha1、概率0.5 替换 Mixup 和 Cutout。
@@ -174,7 +174,7 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
    支持对 SGD 轨迹权重做平均，最终保留单个模型。作者 CIFAR/WRN 示例从 epoch 161 开始 SWA，
    SWA LR 为 0.05。这里拟议的 40–80 epoch tail、LR 0.01/0.05 都必须单独做 40k benchmark，
    再冻结 full refit；平均后的 BN 只用允许的优化训练图像重新估计。
-4. **SAM，尚未实现。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
+4. **SAM，已实现、未取得训练结果。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
    的 CIFAR-10 WRN-28-10 参考配置使用 LR 0.1、WD 0.0005、rho 0.05。
    迁移到预算内 WRN-22-4 是新假设；原大模型成绩不移用。每次更新需要两次反向传播，
    预算先按约两倍计算并实测。实现须复用相同增强/MixUp、控制第二遍 BN 统计，
@@ -192,6 +192,22 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
 所有候选最终都以实际 `model.parameters()` 的总数和 trainable 数复核，包括 BN、捷径、
 门控和分类头。文献 CIFAR 实验仅说明方法依据，不能当成当前比赛成绩或提升承诺。
 原 `robust_full` 同时改变增强、训练时长、EMA、BN 和 TTA，不能从其结果推断某一个改动的因果作用。
+
+### 下一轮优化器对照：SAM
+
+[sam.py](sam.py)、[train_sam.py](train_sam.py) 与
+[benchmark_sam.py](benchmark_sam.py) 是独立入口，不修改当前 CutMix 或原始训练源码。
+配方 [wrn22_sam.json](configs/wrn22_sam.json) 保留原 WRN22-4、160轮、WD5e-4、
+Cutout16/Mixup0.2，仅加入非自适应 SAM rho0.05。两次前后向复用同一增强批次，
+第二遍仍用批次 BN 归一化，但不重复累计运行统计；精确恢复原权重后只做一次 SGD。
+当前只验证 CPU FP32 与本地原生 BF16 路径，FP16/scaler 明确拒绝。
+
+SAM 的21项 CPU检查包含解析二次函数更新、扰动范数、失败恢复、BN只更新一次，
+以及实际小模型中断恢复后 model/EMA/SGD/RNG 一致。新增方法后全套108项 CPU检查通过。
+这些不构成真实 GPU 性能或比赛准确率。先在空闲 GPU 上运行受监督的
+`--benchmark-steps 20` 合成测速，再依据耗时和现有候选结果决定是否投入完整对照。
+本地监督器新增 `--trainer sam --precision bf16`，保存训练器/精度并禁止交叉恢复。
+云端与本地时间预算分开计数；活动 Colab 任务不会被误计为本地 GPU 时间。
 
 ## 提交与证据
 

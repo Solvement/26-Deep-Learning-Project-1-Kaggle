@@ -29,6 +29,15 @@ SEED, REPLICATES = 20261031, 10000
 STABILITY_SHA = "258c4f4714f1382ace8864141a817a14e629d15b01628ef0c94497247cacd049"
 
 
+def training_validator(schema):
+    if schema == "research_shadow_training_v1":
+        return validate_shadow, ROOT/"research/benchmark_shadow.py"
+    if schema == "research_sam_training_v1":
+        from research.benchmark_sam import validate_sam
+        return validate_sam, ROOT/"research/benchmark_sam.py"
+    raise ValueError("Unsupported independent training source schema")
+
+
 def paired_bootstrap(candidate, baseline, seed=SEED, replicates=REPLICATES, chunk_size=100):
     """Accept private [original image, clean + five stress cases] correctness."""
     candidate, baseline = np.asarray(candidate), np.asarray(baseline)
@@ -118,10 +127,11 @@ def load_experiment(checkpoint_path, evidence_path, signature, context, core_sou
     if ("research_training" in checkpoint.get("provenance", {}) or
             "research_training" in metrics or "research_training_integrity" in document):
         provenance, environment = [json.loads((folder/name).read_text(encoding="utf-8")) for name in ("provenance.json", "environment.json")]
-        integrity = validate_shadow(checkpoint, metrics, history, provenance, environment)
+        validator, validator_path = training_validator(checkpoint.get("provenance", {}).get("research_training", {}).get("schema"))
+        integrity = validator(checkpoint, metrics, history, provenance, environment)
         recorded = document.get("research_training_integrity", {})
         if (any(recorded.get(key) != value for key, value in integrity.items()) or
-                recorded.get("validator_source_sha256") != suite.sha256(ROOT/"research/benchmark_shadow.py") or
+                recorded.get("validator_source_sha256") != suite.sha256(validator_path) or
                 recorded.get("provenance_document_sha256") != suite.sha256(folder/"provenance.json") or
                 recorded.get("environment_document_sha256") != suite.sha256(folder/"environment.json")):
             raise ValueError("Shadow benchmark integrity/source records differ")
@@ -176,7 +186,9 @@ def run(args):
         names = ["metrics.json", "history.json"]
         if "research_training" in checkpoint.get("provenance", {}):
             names += ["provenance.json", "environment.json"]
-            evidence_paths += [ROOT/"research/benchmark_shadow.py", ROOT/"research/train_shadow.py", ROOT/"research/augmentations.py"]
+            marker = checkpoint["provenance"]["research_training"]
+            _, validator_path = training_validator(marker["schema"])
+            evidence_paths += [validator_path, *(ROOT/name for name in marker["source_sha256"])]
             evidence_paths += [evidence.with_name(evidence.stem+".core.json")]
         evidence_paths += [path.parent/name for name in names]
     snapshots = {path: suite.sha256(path) for path in evidence_paths}
