@@ -25,3 +25,5 @@ research/profile_augmix.py text eol=lf
 tests/test_augmix_profile.py text eol=lf
 research/trivialaugment-plan.md text eol=lf
 docs/augmix-profile-results.json text eol=lf
+research/benchmark_augmix_bn.py text eol=lf
+tests/test_augmix_bn.py text eol=lf
