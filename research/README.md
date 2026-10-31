@@ -45,6 +45,10 @@ GradScaler、有限梯度和真实参数更新通过。合成 batch256、dropout
 原主研究的四个核心文件不因新研究而修改。新实现、配置、日志和产物应单独保存，
 每次保留代码/配置/数据分割/检查点/benchmark 的 SHA-256。
 
+最新真实进度：WRN34-3 在本地训练；修正后的 Colab CutMix 任务已通过实际 CUDA
+GradScaler 更新/溢出检查并进入真实 40k 训练。T4 的完整 v3 基线为 clean96.28%、
+stress77.648%，原生 FP16，六个 case 各5,000张。候选尚未完成，不能报告提分。
+
 ## 已测结果：不因小幅波动而提交
 
 下面是最初 v1 的完整 5,000 张 development 本地消融，batch size 128。
@@ -146,6 +150,18 @@ CLI 的速率来自 `consumptionRateHourly`，不是美元账单字段；[官方
 
 当前扩展回归含实际训练中断恢复后 model/EMA 完全一致、
 CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，以及本地恢复归档失败不覆盖旧回执。
+
+### 小幅收益的配对核验
+
+[paired_compare.py](paired_compare.py) 在相同 v3 环境下复算候选 policy 与原基线 flip，
+校验输入像素、准确率、检查点/配置/完整历史及 shadow 来源。然后以 **5,000 个原图 ID**
+为抽样单位，每次连同五个 stress 视图共同重采样，固定 seed20261031、10,000 次，
+输出 clean/stress 差值的95% percentile区间和配对正确/错误计数。只保存聚合结果，
+正确性向量留在进程内存。它不覆盖晋级 gate，也不把复用且已选模的 dev 当成新确认集。
+
+仅在对应 GPU 空闲、已有任务结束并按监督/预算记录后运行；不能与持有 lease 的任务并行。
+云端 FP16 benchmark 不能直接与本地 BF16 混用；如改到本地复算，先在同一本地环境
+完整重测候选和可信原基线。工具的 CPU 合成检查已通过，尚无新候选的真实配对结论。
 
 1. **BN / TTA。** 作者的 [SWA BN 更新代码](https://github.com/timgaripov/swa/blob/master/utils.py)
    使用按 batch 样本数加权的统计更新。[Better Aggregation in Test-Time Augmentation](https://arxiv.org/abs/2011.11156)
