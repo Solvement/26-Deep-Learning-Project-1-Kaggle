@@ -846,12 +846,14 @@
     "CI": "success",
     "CI_url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41226413783",
     "latest_local_integration_CPU_tests": 458,
-    "integration_note": "All458 integrated CPU checks pass after the fixed officialID Unicode<U5 header correction:21 math+32 trainer+21 cloud+12 OS-treeguard checks added to the earlier372.12 actualWindows guard cases include unrecorded descendants,hard owner/trainer death,deadline and real guardedTorchDataLoader. Windows local nativepreflight is admitted by independent code review only after freelease/budget. POSIX nativeclosure will be verified by currentrevision LinuxCI before cloudlaunch.",
+    "integration_note": "All458 integrated CPU checks passed locally and in real LinuxCI, including12 actualWindows and12 actualPOSIX process-tree tests without skips on their respective platforms. Actuallocal AugMix FP16 train-image preflight passed23 updates plus overflow and completecleanup, but its fixed31101.54s guard exceeds3h: no formal local admission. See separate augmix-native-results.json; no AugMix accuracy exists.",
     "latest_verified_committed_CI": {
-      "commit": "4667eda87aef3df0f4d032c0352704465ad328c5",
-      "CPU_tests": 393,
+      "commit": "f906ae87d98be5da060f17f0350444e16ae01675",
+      "CPU_tests": 458,
       "result": "SUCCESS",
-      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41246543089"
+      "POSIX_actual_guard_tests": 12,
+      "POSIX_guard_skipped": 0,
+      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41250717270"
     },
     "cloud_attestation_note": "ResizeMix160 and shadowWRN300 actual independentcloudrepeat attestations were built/rederived after complete training,officialcleanup andmatchedlocalv3. Both frozenprimaries2000rowpredictions and strictprepare pass. No uploads/intent or researchscores exist."
   },

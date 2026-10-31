@@ -20,3 +20,4 @@ research/run_colab_augmix.py text eol=lf
 tests/test_colab_augmix.py text eol=lf
 research/process_tree_guard.py text eol=lf
 tests/test_process_tree_guard.py text eol=lf
+docs/augmix-native-results.json text eol=lf
