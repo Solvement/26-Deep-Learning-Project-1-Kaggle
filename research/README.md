@@ -15,22 +15,30 @@
   不再评价原 5,000 张 confirmation 图像，不覆盖原检查点或评分记录。
 - 仅使用官方允许的训练图像。开发比较固定为 40,000 张训练、5,000 张 development，
   split seed 2026；最终单个 residual CNN 的总参数和可训练参数均不得超过 5,000,000。
-- 用户选择**先用已有 Colab**。官方 CLI 的 WSL 接入正在配置；浏览器已登录不代表 CLI
-  已连接运行时，也不代表 GPU 已分配。必须用实际会话、设备和 AMP 预检日志确认。
+- 用户选择**先用已有 Colab**。官方 CLI 0.7.5 已在 Ubuntu WSL 完成最小权限认证，
+  只读余额为 0.00 CU；仅授权 Colab 与基本身份信息，Drive/Cloud 未授权。
+  认证成功不代表 GPU 已分配，必须用实际会话、设备和 AMP 预检日志确认。
   不充值，不新增其他 GPU 供应商或付费预算。
 - [run_local.py](run_local.py) 已提供本地进程监督、持久 GPU lease、超时和预算账本：
   本地并发 1 个任务、**每 UTC 日最多 6 小时、每个任务最多 3 小时**；训练和完整 benchmark
   都计入任务耗时。该本地监督器不等于 Colab 的调度/预算桥接已经完成。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
-  CPU 回归检查 34 项通过。`wrn22_wd1e4`、`wrn34_3` 两份配置已准备；
+  扩展回归由 CI 验证。`wrn22_wd1e4` 已在本地启动，`wrn34_3` 配置已准备；
   SWA、SAM、SE 等新训练方法尚未实现或取得自有实验成绩。
+
+Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
+在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
+原生凭据留在 WSL 用户目录，目录权限 700、文件 600。`--refresh-auth` 可执行一次
+同权限的强制刷新和实际 scope 核验；代码不含任何凭据。Windows 不在官方 CLI 支持范围内，
+本机采用现有 Ubuntu WSL；复现安装版本见 [requirements/colab.txt](../requirements/colab.txt)。
+运行时分配、真实 GPU 和训练吞吐仍须单独预检，余额为零不代表已获得免费 GPU。
 
 原主研究的四个核心文件不因新研究而修改。新实现、配置、日志和产物应单独保存，
 每次保留代码/配置/数据分割/检查点/benchmark 的 SHA-256。
 
 ## 已测结果：不因小幅波动而提交
 
-下面都是完整 5,000 张 development 的本地测量，batch size 128。
+下面是最初 v1 的完整 5,000 张 development 本地消融，batch size 128。
 `stress` 是五个自生成变换的准确率算术平均，不是隐藏测试准确率。
 
 | BN 状态与 policy | Clean accuracy | Mean stress accuracy | 结论 |
@@ -48,6 +56,12 @@
 `results/research/baseline.json`、`results/research/bn_calibration.json`。
 BN 校准仅使用 40,000 张优化训练图像，使用按样本数加权的动量
 `batch_size / (seen_examples + batch_size)`，避免末尾小 batch 被赋予同等权重。
+
+后续自动晋级使用 `official_development_stress_v2`。v2 统一使用 CPU 噪声发生器，
+逐 case 核对像素 SHA，并绑定完整训练历史、已选检查点指标、源码、设备和 AMP 精度。
+当前基线由 `campaign.json` 指向 `results/research/baseline_v2_verified.json`：
+flip 为 clean **96.28%** / stress **77.628%**；加权平移为 **96.32% / 77.756%**，
+仍未过 gate。v1 证据作为历史保留，不与 v2 混合用于新晋级。
 
 ### Benchmark 定义与晋级条件
 
