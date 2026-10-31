@@ -1,6 +1,6 @@
 {
   "schema": "exploratory_initial_benchmarks_v1",
-  "updated_at": "2026-10-31T16:06:41.838191+00:00",
+  "updated_at": "2026-10-31T16:17:55.114445+00:00",
   "current_benchmark_schema": "official_development_stress_v3",
   "records": [
     {
@@ -812,5 +812,31 @@
       "token_mode": "0o600",
       "oauth_prompt_seen": false
     }
+  },
+  "colab_real_trial_preflight": {
+    "status": "actual_amp_and_same_device_baseline_complete_candidate_training_in_progress",
+    "native_amp_smoke": {
+      "status": "complete",
+      "finite_update_verified": true,
+      "finite_loss_overflow_skipped": true,
+      "overflow_parameter_unchanged": true,
+      "scale_before_overflow": 65536.0,
+      "scale_after_overflow": 32768.0,
+      "torch_version": "2.11.0+cu130",
+      "shadow_source_sha256": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061"
+    },
+    "baseline": {
+      "schema": "official_development_stress_v3",
+      "examples": 5000,
+      "training_examples": 40000,
+      "amp_dtype": "torch.float16",
+      "parameter_count": 4298970,
+      "clean_accuracy": 0.9628,
+      "stress_accuracy": 0.7764800000000001,
+      "record_sha256": "3d5ed77bc09713bbfc511324c8e15de78cdec07cc038b415e910306fcb63f092"
+    },
+    "candidate_complete": false,
+    "new_Kaggle_submission": false,
+    "additional_purchase": false
   }
 }
