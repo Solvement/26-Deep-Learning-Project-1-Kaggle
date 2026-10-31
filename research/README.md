@@ -209,6 +209,11 @@ SAM 的21项 CPU检查包含解析二次函数更新、扰动范数、失败恢�
 本地监督器新增 `--trainer sam --precision bf16`，保存训练器/精度并禁止交叉恢复。
 云端与本地时间预算分开计数；活动 Colab 任务不会被误计为本地 GPU 时间。
 
+[run_diagnostic.py](run_diagnostic.py) 为测速、独立训练器重测与配对比较提供同一个
+本地 lease、预算和 watchdog，不用裸 GPU 命令绕过监督。SAM 实际测速入口为
+`python research/run_diagnostic.py --run wrn22_sam_native_preflight --mode sam-speed --config research/configs/wrn22_sam.json`。
+只有当前训练结束并释放 lease 后才能运行；输出为新目录中的不可覆盖工程证据。
+
 ## 提交与证据
 
 Kaggle 每 **UTC 日、整个队伍合计最多 5 次**。提交前读取实际 API 余额；
