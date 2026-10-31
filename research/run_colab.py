@@ -321,12 +321,18 @@ def acquire_lease(path, value):
         json.dump(value, stream)
 
 
-def stop_and_verify(cli, session):
-    code, _ = cli.run(["stop", "--session", session], 90)
+def stop_and_verify(cli, session, allocation_known=False):
+    code, output = cli.run(["stop", "--session", session], 90)
+    terminated = "[colab] Session terminated." in output
     usage_code, output = cli.run(["usage"], 30)
     usage = parse_usage(output) if not usage_code else None
-    return {"stop_exit_code": code, "usage_after": usage,
-            "runtime_stop_verified": code == 0 and usage is not None and usage["active_assignments"] == 0}
+    # Official CLI 0.7.5 also exits zero for an unknown session name. An
+    # allocation request with an unknown response may still be completing;
+    # a no-op stop plus zero current usage cannot reconcile that request.
+    return {"stop_exit_code": code, "stop_reported_termination": terminated,
+            "allocation_identity_verified": allocation_known, "usage_after": usage,
+            "runtime_stop_verified": allocation_known and code == 0 and terminated
+            and usage is not None and usage["active_assignments"] == 0}
 
 
 def watchdog(folder, parent, created, distro):
@@ -341,7 +347,8 @@ def watchdog(folder, parent, created, distro):
         except psutil.NoSuchProcess:
             alive = False
         if not alive or time.time() >= receipt["deadline_unix"]:
-            cleanup = stop_and_verify(ColabCLI(folder / "private", distro), receipt["session"])
+            cleanup = stop_and_verify(ColabCLI(folder / "private", distro), receipt["session"],
+                                      allocation_known=receipt.get("allocation_returned_success") is True)
             write_json(folder / "watchdog_cleanup.json", cleanup)
             return
         time.sleep(2)
@@ -372,6 +379,7 @@ def launch(folder, distro):
                "pid": os.getpid(), "process_created_at": psutil.Process().create_time(),
                "started_at": now().isoformat(), "deadline_unix": deadline,
                "assignment_attempts": 0, "no_new_purchases": True, "precision": "fp16",
+               "allocation_returned_success": False, "remote_guard_verified": False,
                "confirmation_evaluated": False, "submitted": False,
                "input_bundle_sha256": manifest["bundle_sha256"]}
     acquire_lease(lease_path, receipt)
@@ -389,7 +397,11 @@ def launch(folder, distro):
                                   "--distro", distro], stdin=subprocess.DEVNULL,
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                  creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-        cli.require(["new", "--gpu", "T4", "--session", session], 150)
+        allocation_output = cli.require(["new", "--gpu", "T4", "--session", session], 150)
+        if "[colab] Session READY." not in allocation_output:
+            raise RuntimeError("Allocation response did not confirm a persisted session identity")
+        receipt["allocation_returned_success"] = True
+        write_json(receipt_path, receipt)
         guard_path = folder / "remote_guard.py"
         guard_path.write_text(remote_guard(deadline), encoding="utf-8")
         output = cli.require(["exec", "--session", session, "--file", wsl_path(guard_path), "--timeout", "60"], 90)
@@ -397,6 +409,11 @@ def launch(folder, distro):
         if not matches:
             raise RuntimeError("Remote self-release/GPU guard not verified")
         receipt["runtime_preflight"] = json.loads(matches[-1])
+        if (receipt["runtime_preflight"].get("status") != "armed"
+            or receipt["runtime_preflight"].get("deadline_unix") != deadline):
+            raise RuntimeError("Remote self-release guard does not match this allocation")
+        receipt["remote_guard_verified"] = True
+        write_json(receipt_path, receipt)
         usage = parse_usage(cli.require(["usage"], 30))
         if usage["rate_compute_units_per_hour"] != 0:
             raise RuntimeError("Free runtime expected; refusing compute-unit consumption")
@@ -445,7 +462,8 @@ def launch(folder, distro):
     finally:
         if receipt["assignment_attempts"]:
             try:
-                receipt.update(stop_and_verify(cli, session))
+                receipt.update(stop_and_verify(cli, session,
+                               allocation_known=receipt["allocation_returned_success"]))
             except Exception as error:
                 receipt.update(runtime_stop_verified=False, cleanup_error_type=type(error).__name__)
         else:

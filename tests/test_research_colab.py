@@ -84,9 +84,19 @@ class ColabRunnerTests(unittest.TestCase):
 
     def test_stop_verification_checks_actual_usage(self):
         cli = MagicMock()
-        cli.run.side_effect = [(0, "stopped"), (0, "Current balance: 0 compute units\nUsage rate: 0/hr\nActive assignments: 1")]
-        self.assertFalse(runner.stop_and_verify(cli, "owned")["runtime_stop_verified"])
+        cli.run.side_effect = [(0, "[colab] Session terminated."), (0, "Current balance: 0 compute units\nUsage rate: 0/hr\nActive assignments: 1")]
+        self.assertFalse(runner.stop_and_verify(cli, "owned", allocation_known=True)["runtime_stop_verified"])
         self.assertEqual(cli.run.call_args_list[0].args[0], ["stop", "--session", "owned"])
+
+    def test_unknown_allocation_cannot_be_reconciled_by_noop_stop_and_zero_usage(self):
+        usage = "Current balance: 0 compute units\nUsage rate: 0/hr\nActive assignments: 0"
+        cli = MagicMock()
+        cli.run.side_effect = [(0, "[colab] Session 'owned' not found."), (0, usage)]
+        self.assertFalse(runner.stop_and_verify(cli, "owned")["runtime_stop_verified"])
+        cli.run.side_effect = [(0, "[colab] Session terminated."), (0, usage)]
+        self.assertFalse(runner.stop_and_verify(cli, "owned", allocation_known=False)["runtime_stop_verified"])
+        cli.run.side_effect = [(0, "[colab] Session terminated."), (0, usage)]
+        self.assertTrue(runner.stop_and_verify(cli, "owned", allocation_known=True)["runtime_stop_verified"])
 
     def test_failed_allocation_is_not_retried_and_uncertain_cleanup_keeps_lease(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -105,13 +115,15 @@ class ColabRunnerTests(unittest.TestCase):
             cli = MagicMock()
             cli.require.side_effect = ["Current balance: 0 compute units\nUsage rate: 0/hr\nActive assignments: 0",
                                        RuntimeError("Unknown assignment response")]
+            cli.run.side_effect = [(0, "[colab] Session 'owned' not found."),
+                                   (0, "Current balance: 0 compute units\nUsage rate: 0/hr\nActive assignments: 0")]
             process = MagicMock()
             process.poll.return_value = None
             with patch.object(runner, "ROOT", root), \
                  patch.object(runner, "ColabCLI", return_value=cli), \
                  patch.object(runner, "private_directory", side_effect=lambda p: p.mkdir(exist_ok=True)), \
                  patch.object(runner.subprocess, "Popen", return_value=process), \
-                 patch.object(runner, "stop_and_verify", return_value={"runtime_stop_verified": False}) as cleanup:
+                 patch.object(runner, "stop_and_verify", wraps=runner.stop_and_verify) as cleanup:
                 with self.assertRaisesRegex(RuntimeError, "Unknown assignment"):
                     runner.launch(folder, "Ubuntu")
             allocation_calls = [call for call in cli.require.call_args_list if call.args[0][0] == "new"]
@@ -121,6 +133,10 @@ class ColabRunnerTests(unittest.TestCase):
             receipt = json.loads((folder / "supervisor.json").read_text())
             self.assertFalse(receipt["runtime_stop_verified"])
             self.assertEqual(receipt["assignment_attempts"], 1)
+            self.assertFalse(receipt["allocation_returned_success"])
+            self.assertFalse(receipt["remote_guard_verified"])
+            self.assertEqual(receipt["stop_exit_code"], 0)
+            self.assertEqual(receipt["usage_after"]["active_assignments"], 0)
             self.assertEqual(receipt["status"], "failed")
 
     def test_remote_program_has_self_release_and_no_hidden_or_submission_calls(self):

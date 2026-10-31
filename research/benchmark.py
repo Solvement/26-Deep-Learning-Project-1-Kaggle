@@ -25,10 +25,17 @@ from data import load_training_arrays
 from model import build_model, count_parameters
 from train import code_provenance, normalize, tensor_images, training_source
 
-SCHEMA = "official_development_stress_v2"
+SCHEMA = "official_development_stress_v3"
 CASES = ("clean", "noise_004", "boxblur3", "contrast065", "brightness080", "resize24")
 POLICIES = ("plain", "flip", "center80_shift20")
 BASELINE_CHECKPOINT_SHA = "502979bc03301aa2f0273a7414f86799302b908a3abada622a88e4578c4b734f"
+
+
+def benchmark_dtype(device):
+    """Emulated BF16 support must never select the T4 evaluation precision."""
+    if device.type == "cuda":
+        return torch.bfloat16 if torch.cuda.is_bf16_supported(including_emulation=False) else torch.float16
+    return torch.float32
 
 
 def sha256(path):
@@ -136,7 +143,7 @@ def recalibrate_training_bn(model, train_images, batch_size):
 def score(model, images, labels, device, policy, batch_size, limit=None):
     reports = {}
     examples = min(len(labels), limit) if limit else len(labels)
-    dtype = torch.bfloat16 if device.type != "cuda" or torch.cuda.is_bf16_supported() else torch.float16
+    dtype = benchmark_dtype(device)
     with torch.inference_mode():
         for case in CASES:
             correct = 0
@@ -243,7 +250,7 @@ def main():
         reports[policy] = score(model, val_images, val_labels, device, policy, args.batch_size, args.limit)
         print(json.dumps({"policy": policy, **reports[policy]}), flush=True)
     baseline_doc = json.loads(args.baseline.read_text()) if args.baseline else None
-    dtype = "torch.bfloat16" if device.type == "cuda" and torch.cuda.is_bf16_supported() else "torch.float16" if device.type == "cuda" else "torch.float32"
+    dtype = str(benchmark_dtype(device))
     context = {"device_type": device.type, "amp_dtype": dtype, "torch_version": torch.__version__,
                "training_core_sha256": current_source}
     if baseline_doc:

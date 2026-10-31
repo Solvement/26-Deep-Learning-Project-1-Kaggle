@@ -1,7 +1,7 @@
 {
   "schema": "exploratory_initial_benchmarks_v1",
-  "updated_at": "2026-10-31T06:13:14.206526+00:00",
-  "current_benchmark_schema": "official_development_stress_v2",
+  "updated_at": "2026-10-31T16:06:41.838191+00:00",
+  "current_benchmark_schema": "official_development_stress_v3",
   "records": [
     {
       "experiment": "baseline",
@@ -579,6 +579,166 @@
       },
       "confirmation_evaluated": false,
       "hidden_images_loaded": false
+    },
+    {
+      "schema": "official_development_stress_v2",
+      "status": "complete",
+      "examples": 5000,
+      "training_examples": 40000,
+      "parameter_count": 4298970,
+      "checkpoint_sha256": "3cfaafcb6ac5490e6dd4754b45a4be6eab29ab61db64de12824a1bb1172a421c",
+      "benchmark_source_sha256": "181ea5a0f368a4e7bdc021aaae053220d2b7e1b2032e59fb0ab11249363b0f3d",
+      "bn_recalibrated": false,
+      "batch_size": 128,
+      "evaluation_context": {
+        "device_type": "cuda",
+        "amp_dtype": "torch.bfloat16",
+        "torch_version": "2.12.0+cu130",
+        "training_core_sha256": {
+          "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+          "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+          "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+          "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+        }
+      },
+      "promotion": {
+        "plain": {
+          "passed": false,
+          "clean_delta": -0.0020000000000000018,
+          "stress_delta": -0.012600000000000056,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        },
+        "flip": {
+          "passed": false,
+          "clean_delta": -0.0010000000000000009,
+          "stress_delta": -0.0052000000000000934,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        },
+        "center80_shift20": {
+          "passed": false,
+          "clean_delta": 0.00039999999999995595,
+          "stress_delta": -0.003920000000000035,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        }
+      },
+      "confirmation_evaluated": false,
+      "hidden_images_loaded": false,
+      "external_data_loaded": false,
+      "experiment": "wrn22_wd1e4_s2026",
+      "record_sha256": "08a91ee04c8405b2a4c8882811590044ec4da1584410248a90d8683940ea682b",
+      "source_commit": "18441d4e697fbf83f8fd547a5a6b0d692f6aafb8",
+      "policies": {
+        "plain": {
+          "clean_accuracy": 0.9608,
+          "clean_loss": 0.14263673451375217,
+          "stress_accuracy": 0.76368
+        },
+        "flip": {
+          "clean_accuracy": 0.9618,
+          "clean_loss": 0.1299319994041696,
+          "stress_accuracy": 0.77108
+        },
+        "center80_shift20": {
+          "clean_accuracy": 0.9632,
+          "clean_loss": 0.12773832397274673,
+          "stress_accuracy": 0.77236
+        }
+      }
+    },
+    {
+      "schema": "official_development_stress_v3",
+      "status": "complete",
+      "examples": 5000,
+      "training_examples": 40000,
+      "parameter_count": 4298970,
+      "checkpoint_sha256": "502979bc03301aa2f0273a7414f86799302b908a3abada622a88e4578c4b734f",
+      "benchmark_source_sha256": "d30acccd66a18f8de198824a57b565cb8e16cd7044fa1cec6608007c80d37f16",
+      "bn_recalibrated": false,
+      "batch_size": 128,
+      "evaluation_context": {
+        "device_type": "cuda",
+        "amp_dtype": "torch.bfloat16",
+        "torch_version": "2.12.0+cu130",
+        "training_core_sha256": {
+          "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+          "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+          "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+          "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+        }
+      },
+      "promotion": {
+        "plain": {
+          "passed": false,
+          "clean_delta": -0.0020000000000000018,
+          "stress_delta": -0.0047600000000000975,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        },
+        "flip": {
+          "passed": false,
+          "clean_delta": 0.0,
+          "stress_delta": 0.0,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        },
+        "center80_shift20": {
+          "passed": false,
+          "clean_delta": 0.00039999999999995595,
+          "stress_delta": 0.0012799999999999478,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        }
+      },
+      "confirmation_evaluated": false,
+      "hidden_images_loaded": false,
+      "external_data_loaded": false,
+      "experiment": "baseline_v3_verified",
+      "record_sha256": "eced314d97fcb5ddef4cad25c6968ba299d0e8a2c79af6bdcbdbf305b79c632d",
+      "source_commit": "18441d4e697fbf83f8fd547a5a6b0d692f6aafb8",
+      "policies": {
+        "plain": {
+          "clean_accuracy": 0.9608,
+          "clean_loss": 0.13458006502240896,
+          "stress_accuracy": 0.77152
+        },
+        "flip": {
+          "clean_accuracy": 0.9628,
+          "clean_loss": 0.1221306333810091,
+          "stress_accuracy": 0.7762800000000001
+        },
+        "center80_shift20": {
+          "clean_accuracy": 0.9632,
+          "clean_loss": 0.12036975517272949,
+          "stress_accuracy": 0.77756
+        }
+      }
     }
   ],
   "interpretation": "Reused official development and synthetic stress proxies, not CIFAR-C or hidden accuracy; original study unchanged; none of these inference/BN changes qualified.",

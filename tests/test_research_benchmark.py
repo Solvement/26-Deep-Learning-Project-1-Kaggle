@@ -3,6 +3,7 @@ from pathlib import Path
 import copy
 import sys
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -11,13 +12,27 @@ import runtime
 import numpy as np
 import torch
 from research.benchmark import (promotion_gate, stress, validate_checkpoint, recalibrate_training_bn,
-                                validate_baseline, SCHEMA, CASES, BASELINE_CHECKPOINT_SHA)
+                                validate_baseline, SCHEMA, CASES, BASELINE_CHECKPOINT_SHA, benchmark_dtype)
 from train import normalize
 from scripts.submit_verified import ALLOWED_RUNS as UPLOAD_RUNS, validate_run
 from scripts.make_benchmark_submissions import ALLOWED_RUNS as PREDICTION_RUNS
 
 
 class ResearchBenchmarkTests(unittest.TestCase):
+    def test_t4_emulated_bf16_cannot_select_benchmark_precision(self):
+        with patch("torch.cuda.is_bf16_supported", side_effect=lambda including_emulation=True: including_emulation) as supported:
+            self.assertEqual(benchmark_dtype(torch.device("cuda")), torch.float16)
+            supported.assert_called_once_with(including_emulation=False)
+
+    def test_native_bf16_gpu_keeps_bf16(self):
+        with patch("torch.cuda.is_bf16_supported", return_value=True) as supported:
+            self.assertEqual(benchmark_dtype(torch.device("cuda")), torch.bfloat16)
+            supported.assert_called_once_with(including_emulation=False)
+
+    def test_cpu_precision_does_not_query_cuda(self):
+        with patch("torch.cuda.is_bf16_supported", side_effect=AssertionError("CUDA query on CPU")):
+            self.assertEqual(benchmark_dtype(torch.device("cpu")), torch.float32)
+
     def test_full_data_models_cannot_claim_held_out_development(self):
         with self.assertRaisesRegex(ValueError, "full-data"):
             validate_checkpoint({"config": {"train_all": True}}, [], [], {})

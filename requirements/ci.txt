@@ -4,3 +4,5 @@ numpy==2.3.5
 pandas==2.2.3
 scikit-learn==1.8.0
 matplotlib==3.10.8
+# Research supervisors bind process leases to PID creation time.
+psutil==7.2.2

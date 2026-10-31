@@ -1,8 +1,8 @@
 # 五天探索研究：先 benchmark，再晋级
 
-已有 Colab 已通过真实 T4 工程预检；首个本地 WD 对照训练中断在第 119 轮，
-已核对源码/数据/检查点并从第 120 轮恢复。中断原因未知，旧回执及环境记录已保留，
-该次中断按预留上限保守计入本地预算。
+首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
+该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
+旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。
 目前测过的 BN 校准和加权平移 TTA 均未通过晋级门槛。
 
 **材料护照：** `mode=quick` · `sources=verified primary papers/author code + measured local JSON` · `status=exploratory`。记录日期：2026-10-31。
@@ -25,7 +25,7 @@
   本地并发 1 个任务、**每 UTC 日最多 6 小时、每个任务最多 3 小时**；训练和完整 benchmark
   都计入任务耗时。该本地监督器不等于 Colab 的调度/预算桥接已经完成。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
-  扩展回归由 CI 验证。`wrn22_wd1e4` 已在本地启动，`wrn34_3` 配置已准备；
+  扩展回归由 CI 验证。`wrn22_wd1e4` 已完成并被拒绝晋级，`wrn34_3` 配置已准备；
   SWA、SAM、SE 等新训练方法尚未实现或取得自有实验成绩。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
@@ -66,11 +66,19 @@ GradScaler、有限梯度和真实参数更新通过。合成 batch256、dropout
 BN 校准仅使用 40,000 张优化训练图像，使用按样本数加权的动量
 `batch_size / (seen_examples + batch_size)`，避免末尾小 batch 被赋予同等权重。
 
-后续自动晋级使用 `official_development_stress_v2`。v2 统一使用 CPU 噪声发生器，
+后续自动晋级使用 `official_development_stress_v3`。v2 统一使用 CPU 噪声发生器，
 逐 case 核对像素 SHA，并绑定完整训练历史、已选检查点指标、源码、设备和 AMP 精度。
-当前基线由 `campaign.json` 指向 `results/research/baseline_v2_verified.json`：
+v2 基线保存于 `results/research/baseline_v2_verified.json`：
 flip 为 clean **96.28%** / stress **77.628%**；加权平移为 **96.32% / 77.756%**，
 仍未过 gate。v1 证据作为历史保留，不与 v2 混合用于新晋级。
+
+WD1e-4 的 v2 完整结果：flip 为 **96.18% / 77.108%**，加权平移为
+**96.32% / 77.236%**；所有 policy 都失败，不生成隐藏预测或消耗提交次数。
+
+v3 明确用 `is_bf16_supported(including_emulation=False)` 检测原生支持，防止 T4 的
+模拟 BF16 被误选；训练、case、像素和 gate 不变。当前配置指向独立重测的
+`results/research/baseline_v3_verified.json`；所有新候选须与 v3 同设备/精度基线配对。
+旧 v1/v2 证据不覆盖、不混用于 v3 晋级。尚未分配的 v2 Colab 输入包已作废，不能启动。
 
 ### Benchmark 定义与晋级条件
 
@@ -130,7 +138,7 @@ WD5e-4 不变，用 CutMix alpha1、概率0.5 替换 Mixup 和 Cutout。
 不确定清理时保留 cloud lease，禁止盲目再申请。
 实际长训练、传输和评分须以回执为准；CPU 测试通过不代表这些云端步骤已完成。
 
-当前扩展后全套 68 项 CPU 测试通过，含实际训练中断恢复后 model/EMA 完全一致、
+当前扩展回归含实际训练中断恢复后 model/EMA 完全一致、
 CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，以及本地恢复归档失败不覆盖旧回执。
 
 1. **BN / TTA。** 作者的 [SWA BN 更新代码](https://github.com/timgaripov/swa/blob/master/utils.py)
