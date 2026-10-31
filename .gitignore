@@ -15,13 +15,17 @@ __pycache__/
 kaggle.json
 access_token
 
-# Competition data and generated artifacts
+# Private competition data, models, predictions, and generated documents
 /data/
 /artifacts/
 /outputs/
 /checkpoints/
 /runs/
 /submissions/
+/results/
+/reports/
+/tmp/
 *.pt
 *.pth
 *.ckpt
+project1.pdf

@@ -38,3 +38,5 @@ jobs:
           python -m pip check
       - name: Train and validate the environment smoke model
         run: python scripts/smoke_environment.py --output-dir "$RUNNER_TEMP/smoke-output"
+      - name: Validate the official-data training pipeline
+        run: python -m unittest discover -s tests -v

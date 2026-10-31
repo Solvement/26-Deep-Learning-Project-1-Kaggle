@@ -1,0 +1,12 @@
+# Select a matching CUDA PyTorch build from https://pytorch.org/get-started/locally/.
+# Actual verified laptop build: torch 2.12.0+cu130, Python 3.14.3.
+numpy>=2.3,<3
+Pillow>=11,<13
+matplotlib>=3.10,<4
+reportlab>=4,<6
+pypdf>=5,<7
+nbformat>=5.10,<6
+nbclient>=0.10,<1
+ipykernel>=6,<8
+
+# Kaggle CLI is isolated with `uv tool install kaggle==2.2.5`.
