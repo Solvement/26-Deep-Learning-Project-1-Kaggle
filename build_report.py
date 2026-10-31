@@ -14,7 +14,7 @@ import sys
 from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parent
-REPOSITORY = "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle"
+REPOSITORY = "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/cifar10-resnet-submission"
 COMPETITION = "https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl"
 REFERENCES = [
     ("He, Zhang, Ren and Sun (2016). Deep Residual Learning for Image Recognition.", "https://arxiv.org/abs/1512.03385"),
@@ -417,9 +417,10 @@ def create_pdf(evidence, selected, plots, output_dir):
       "The local runtime required a process-local cuDNN path correction before importing PyTorch; "
       "no global CUDA package change was needed.")
     p("Private leaderboard results remain unavailable until released. Course Google Form registration and "
-      "Brightspace upload must be confirmed separately. The assignment gives 6 November 2026 at 23:59 "
-      "for the competition and 9 November 2026 at 23:59 for the report, without a timezone; the course's "
-      "latest official announcement governs. Any added teammate must complete the formal course/Kaggle procedure.")
+      "Brightspace upload must be confirmed separately. The verified Kaggle deadline is 6 November 2026 "
+      "at 23:59:59 EST (UTC-05:00), equivalent to 7 November at 04:59:59 UTC. The assignment gives "
+      "9 November 2026 at 23:59 for the report without a timezone; confirm that report timezone in "
+      "the course announcements. Any added teammate must complete the formal course/Kaggle procedure.")
     h("References")
     for index, (title, url) in enumerate(REFERENCES, 1):
         p(f'[{index}] {escape(title)} <link href="{url}" color="#167e75">{url}</link>', "SmallProject")

@@ -52,8 +52,12 @@ This observed platform behavior does not change the data restrictions.
 ## Team and public code
 
 - Maximum team size is three. Each participant may belong to one team.
+- The Kaggle team UI displays a platform capacity of five, but the written
+  competition rules and assignment cap this project at **three**; enforce three.
 - Course Google Form registration is mandatory; the registered team name must
-  match Kaggle. The user supplied **Saber**, currently Kevin Yang (`ky2738`).
+  match Kaggle. The browser verified team **Saber**, with `Kevin_1220` as its sole
+  current leader/member. The report identifies Kevin Yang (`ky2738`). Google
+  Form registration is a separate course action and has not been verified.
 - Sharing trained weights, predictions or private solutions across teams is forbidden.
 - Public reference code is permitted with attribution. Kaggle foundational
   rules section 6 also requires publicly shared code to be shared in a
@@ -79,10 +83,18 @@ source code and summarized evidence are reviewable in Git.
 
 ## Deadlines and course actions
 
-The assignment PDF gives **2026-11-06 at 23:59** for the competition and
-**2026-11-09 at 23:59** for the report. It states no timezone. Competition rules
-section 16 still says deadlines will be announced through course channels.
-Confirm any updates and the governing timezone in the course announcements.
+The authenticated Kaggle header tooltip was read in the browser and states
+**Friday 2026-11-06 23:59:59 GMT-0500 (Eastern Standard Time)**. This is
+**2026-11-07 04:59:59 UTC**. The PDF's competition date is consistent with that
+deadline. The assignment gives **2026-11-09 at 23:59** for the report, without a
+timezone; confirm the report timezone through the course announcements.
+Competition rules section 16 still contains TBA text, so distinguish that stale
+written placeholder from the verified live Kaggle deadline.
+
+The GitHub repository is now publicly accessible. The implemented pipeline is
+on [the feature branch](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/cifar10-resnet-submission)
+and PR 6; `main` remains the earlier harness pending human review. Report links
+therefore point directly to the code branch rather than implying it was merged.
 
 The PDF itself states no AI-use prohibition. Kaggle rules require university
 academic-integrity compliance; this file does not infer unseen course policies.

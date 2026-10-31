@@ -4,6 +4,11 @@ Kevin Yang (`ky2738`) | Team **Saber** | NYU Deep Learning Project 1
 
 [Competition](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl) · [Verified requirements](docs/competition.md) · [Experiment protocol](docs/experiment-plan.md) · [Delivery checklist](docs/requirements-checklist.md)
 
+The repository is public. The implemented pipeline is on
+[`feat/cifar10-resnet-submission`](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/cifar10-resnet-submission)
+and [PR 6](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/pull/6),
+pending human review; `main` still contains the earlier environment harness.
+
 The main model is a scratch-initialized **WideResNet-22-4 with 4,298,970 total and
 trainable parameters**. Its constructor rejects models above the 5,000,000
 parameter limit. Training uses only the official competition images and labels;
@@ -138,6 +143,12 @@ notebook outputs are committed. Publicly shared code must also be shared through
 a competition-associated Kaggle notebook or discussion under the competition's
 foundational rules. Original code is licensed under [MIT](LICENSE).
 
+`scripts/build_public_notebook.py` builds a CPU-only, self-contained source
+notebook. Publication URL/status are pending confirmation. If Kaggle rejects a
+public notebook with restricted competition inputs attached, `--standalone`
+omits the data attachment while retaining the explicit competition reference.
+The notebook carries no competition data, weights, predictions or credentials.
+
 ## Course delivery and collaboration
 
 The report names **Kevin Yang (ky2738)** and **Saber**; a future teammate must be
@@ -145,9 +156,11 @@ added only through official course/Kaggle procedures. Confirm the mandatory
 course Google Form registration independently. The PDF must have a public GitHub
 link on page one and be uploaded to Brightspace by each registered member.
 
-The assignment lists **6 November 2026, 23:59** for the competition and
-**9 November 2026, 23:59** for the report, without a timezone. The API rules still
-mark deadlines TBA; the latest course/Kaggle announcements govern.
+The verified Kaggle deadline is **6 November 2026, 23:59:59 EST (UTC-05:00)**,
+equivalent to **7 November 2026, 04:59:59 UTC**. The assignment gives
+**9 November 2026, 23:59** for the report without a timezone; confirm that report
+timezone in the course channels. Written project rules cap teams at three,
+even though the Kaggle team interface displays capacity five.
 
 Changes use one feature branch and a PR linked to its Issue. Human maintainer
 review and explicit merge authorization remain required; an agent's review does

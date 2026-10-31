@@ -16,7 +16,8 @@ the local three-page assignment PDF and [verified requirements](competition.md).
 ## Code, report and notebook
 
 - [ ] Push reproducible source, configuration and tests through a feature-branch PR.
-- [ ] Confirm the GitHub repository is publicly accessible.
+- [x] Confirm the GitHub repository is publicly accessible; implemented source is
+  on `feat/cifar10-resnet-submission` / PR 6, awaiting human review before merge.
 - [ ] Publish the shared code in a competition-associated Kaggle notebook or forum,
   as required by the Kaggle foundational public-code-sharing rule.
 - [ ] Generate and visually verify a PDF of at most 8 pages, including references.
@@ -37,8 +38,9 @@ the local three-page assignment PDF and [verified requirements](competition.md).
   procedures before the applicable team deadline.
 - [ ] **Human action:** upload the final PDF to Brightspace by the course deadline.
 
-The assignment lists the competition deadline as **2026-11-06 23:59** and the
-report deadline as **2026-11-09 23:59**, without a timezone. The fetched competition
-rules still say those deadlines will be announced. Confirm the governing
-timezone and updates in the course channels. Private leaderboard accuracy is
-unavailable until released by Kaggle.
+The live Kaggle header confirms **2026-11-06 23:59:59 EST (UTC-05:00)**, or
+**2026-11-07 04:59:59 UTC**. The assignment's report deadline is
+**2026-11-09 23:59**, with its timezone still unspecified. Confirm that report
+timezone in the course channels. Private leaderboard accuracy is unavailable
+until released by Kaggle. Team Saber currently has one member; enforce the
+written three-person maximum even though the platform UI displays capacity five.

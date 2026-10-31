@@ -5,8 +5,8 @@
 - Repository: `Solvement/26-Deep-Learning-Project-1-Kaggle`.
 - Competition: https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/overview
 - Development and CI use CPU. Real training may use Kaggle Notebook GPU, Google Colab, or a local GPU, subject to verified competition rules, availability, performance, and cost. Keep training platform-independent.
-- The competition requirements have not yet been retrieved. Read `docs/competition.md`; never invent architecture constraints, deadlines, dataset layouts, or submission columns.
-- Two to three humans will maintain this project. Their GitHub usernames are not yet configured. Do not invent CODEOWNERS entries or count an agent review as a human approval.
+- Competition requirements are verified in `docs/competition.md`: residual CNN, <=5,000,000 trainable parameters, scratch training, official competition inputs only. Do not substitute external CIFAR data or pretrained weights. Deadline verified in Kaggle UI: Nov 6, 2026 23:59:59 EST. Course report due Nov 9, timezone unspecified.
+- Current owner is Kevin Yang (ky2738), GitHub Solvement, Kaggle kevin1220, registered team Saber. Currently solo; a teammate may join later subject to the written three-member limit. Do not invent CODEOWNERS entries or count an agent review as a human approval.
 
 ## Team operating model
 
@@ -46,3 +46,6 @@
 - Do not submit to Kaggle, publish a dataset/notebook, enable GPU training jobs, alter repository security settings, or spend cloud resources without task authorization.
 - No automatic Kaggle submission is configured. Confirm the rules and build/validate a real competition pipeline before adding delivery automation.
 - Record the commit, configuration, seed, environment, dataset version, validation score, and artifact checksum for each real experiment.
+- The user explicitly authorized local training, use of available free resources, code pushes, public repository visibility, and validated Kaggle submission. Do not request those permissions again. Paid resources and merging main are not authorized by that statement.
+- Formal local campaign: fixed official 40k train / 5k development / 5k one-time confirmation split (seed 2026), three matched 160-epoch recipes, selection by development only, one confirmation, then frozen-recipe full-50k training. `run_campaign.py` enforces artifact checks and a three-hour wall-time cap. Do not retune after confirmation or expose hidden labels.
+- Keep original private Kaggle input-export jobs private. One independent free GPU repeat was attempted but aborted before training because CUDA was unavailable; no seed-stability score exists for that attempt. Local training is the verified backend.
