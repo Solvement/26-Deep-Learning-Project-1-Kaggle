@@ -22,6 +22,7 @@ REFERENCES = [
     ("Zhang et al. (2018). mixup: Beyond Empirical Risk Minimization.", "https://arxiv.org/abs/1710.09412"),
     ("DeVries and Taylor (2017). Improved Regularization of Convolutional Neural Networks with Cutout.", "https://arxiv.org/abs/1708.04552"),
     ("Loshchilov and Hutter (2017). SGDR: Stochastic Gradient Descent with Warm Restarts. Cosine schedule reference; this project need not use restarts.", "https://arxiv.org/abs/1608.03983"),
+    ("Cubuk, Zoph, Shlens and Le (2019). RandAugment: Practical automated data augmentation with a reduced search space.", "https://arxiv.org/abs/1909.13719"),
 ]
 RUN_ORDER = ("baseline", "architecture", "regularized", "final_full")
 RUN_NAMES = set(RUN_ORDER)
@@ -106,6 +107,8 @@ def collect_evidence(results_dir: Path):
     confirmation = read_json(results_dir / "confirmation.json", {})
     selection = read_json(results_dir / "selection.json", {})
     stability = read_json(results_dir / "stability.json", {})
+    exploratory = {"config": read_json(results_dir / "robust_full/config.json", {}),
+                   "metrics": read_json(results_dir / "robust_full/metrics.json", {})}
     submissions = read_json(results_dir / "kaggle_submissions.json", [])
     if isinstance(submissions, dict):
         submissions = submissions.get("submissions", [])
@@ -114,6 +117,7 @@ def collect_evidence(results_dir: Path):
     runs.sort(key=lambda run: RUN_ORDER.index(run["name"]))
     return {"runs": runs, "submission": submission, "confirmation": confirmation,
             "selection": selection, "stability": stability, "submissions": submissions,
+            "exploratory": exploratory,
             "repository": REPOSITORY,
             "team": "Saber", "author": "Kevin Yang", "netid": "ky2738"}
 
@@ -121,6 +125,34 @@ def collect_evidence(results_dir: Path):
 def completed_benchmarks(evidence):
     return [record for record in evidence.get("submissions", [])
             if str(record.get("status", "")).lower() == "complete" and public_accuracy(record) is not None]
+
+
+def exploratory_method(evidence):
+    """Keep the public-feedback exploration separate from the frozen main study."""
+    scored = any(record.get("run") == "robust_full" for record in completed_benchmarks(evidence))
+    config = evidence.get("exploratory", {}).get("config", {})
+    metrics = evidence.get("exploratory", {}).get("metrics", {})
+    epochs = first(metrics, ("epochs_completed", "epochs"), config.get("epochs", 300)) if scored else config.get("epochs", 300)
+    ema = config.get("ema_decay", .999)
+    introduction = "The separately scored robust_full benchmark" if scored else "The planned robust_full exploration"
+    original = next((run for run in evidence.get("runs", []) if run["name"] == "regularized"), None)
+    receipt = next((record for record in completed_benchmarks(evidence) if record.get("run") == "regularized"), None)
+    gap = ""
+    if original and receipt:
+        dev = number(checkpoint_details(original)["development_accuracy"])
+        public = public_accuracy(receipt)
+        if dev is not None and public is not None:
+            gap = (f"The regularized candidate's development/public accuracies were {accuracy(dev)}/{accuracy(public)}; "
+                   "the cause of this gap was not established. ")
+    return (
+        gap + f"{introduction}, specified after official public feedback, uses a scratch WRN-22-4 on all 50,000 "
+        f"permitted training images: {epochs} SGD/cosine epochs, RandAugment N=2/M=9 [6], crop/flip, "
+        f"Cutout and MixUp, EMA decay {ema}, clean-training-only batch-normalization recalibration, "
+        "and fixed reflect-pad-four five-crop-plus-flip logit averaging. The original 160-epoch study "
+        "and its confirmation result remain unchanged. This bundled, public-feedback-driven extension "
+        "has no held-out development score or confirmation re-evaluation and is not a causal ablation. "
+        "The earlier confirmation accuracy belongs only to the selected 40,000-image candidate. "
+        "Execution or scoring is claimed only when actual artifacts and official receipts support it.")
 
 
 def choose_run(evidence, requested=None):
@@ -528,7 +560,7 @@ def create_pdf(evidence, selected, plots, output_dir):
                 receipt.get("submission_ref", "Pending"),
                 receipt.get("status", "Pending")])
         table(benchmark_rows, [1.35*inch,.85*inch,.85*inch,.8*inch,1.65*inch,.9*inch], compact=True)
-        p("Five daily entries benchmark the frozen baseline, architecture, regularized, full-data and seed-repeat models. Public scores may guide official Kaggle entry selection; they do not change the completed training/confirmation protocol. Private scores remain unavailable.", "SmallProject")
+        p("The five-entry plan compares baseline, architecture, regularized, primary full-data and exploratory robust_full models. The seed repeat remains validation-only. Public comparison and exploratory work are separate from the frozen main study; private scores remain unavailable.", "SmallProject")
     story.append(PageBreak())
     p("Measured findings and limitations", "Heading1")
     findings = measured_interpretation(evidence)
@@ -542,11 +574,12 @@ def create_pdf(evidence, selected, plots, output_dir):
       "significance or isolate seed variation. The full-data refit has no held-out development metric; "
       "public and private leaderboard outcomes can differ.", "SmallProject")
     if evidence.get("submissions"):
-        p("The user requested use of the five-entry daily allowance for official comparisons. Predictions use "
-          "existing fixed checkpoints and development-selected inference rules. Selecting the highest of "
+        p("The user requested use of the five-entry daily allowance. The primary 160-epoch recipe and "
+          "confirmation remain frozen; public feedback additionally motivated a separately labeled "
+          "robust_full exploration. Selecting the highest of "
           "five public scores can favor sampling noise on the 1,000-image public subset. The benchmark "
-          "table and primary full-data result are both reported; no public-score-driven retraining, "
-          "post-confirmation recipe change or claim of a known private winner is made.", "SmallProject")
+          "table and primary full-data result are both reported. No confirmation re-evaluation or claim "
+          "of a known private winner is made.", "SmallProject")
     if "confirmation" in plots:
         h("One-time confirmation error analysis")
         story.append(Image(str(plots["confirmation"]), width=5.0*inch, height=4.14*inch))
@@ -577,12 +610,9 @@ def create_pdf(evidence, selected, plots, output_dir):
       "full unreviewed runtime outputs stay outside Git. An audited executed results notebook may contain "
       "scalar metrics, configurations, plots and aggregate confusion counts for review. "
       "Artifact checksums should be checked before reusing a checkpoint or prediction file.")
-    h("Design lessons and remaining work")
-    p("The parameter budget favors widening a moderate-depth network rather than using an unmodified "
-      "large ImageNet model. A CIFAR stem preserves the limited 32x32 spatial information. Separating "
-      "data validation, checkpoint selection and Kaggle scoring makes an apparent score auditable. "
-      "The local runtime required a process-local cuDNN path correction before importing PyTorch; "
-      "no global CUDA package change was needed.")
+    h("Separately labeled exploratory benchmark")
+    p(escape(exploratory_method(evidence)), "SmallProject")
+    h("Remaining course actions")
     p("Private leaderboard results remain unavailable until released. Course Google Form registration and "
       "Brightspace upload must be confirmed separately. The verified Kaggle deadline is 6 November 2026 "
       "at 23:59:59 EST (UTC-05:00), equivalent to 7 November at 04:59:59 UTC. The assignment gives "
@@ -591,7 +621,7 @@ def create_pdf(evidence, selected, plots, output_dir):
     h("References")
     for index, (title, url) in enumerate(REFERENCES, 1):
         p(f'[{index}] {escape(title)} <link href="{url}" color="#167e75">{url}</link>', "SmallProject")
-    p(f'[6] Course Project 1 assignment, pp. 1-3; <link href="{COMPETITION}/rules" color="#167e75">Kaggle competition rules</link> (retrieved 30 October 2026).', "SmallProject")
+    p(f'[{len(REFERENCES)+1}] Course Project 1 assignment, pp. 1-3; <link href="{COMPETITION}/rules" color="#167e75">Kaggle competition rules</link> (retrieved 30 October 2026).', "SmallProject")
 
     target = output_dir / "ky2738_Project1_Report.pdf"
     doc = SimpleDocTemplate(str(target), pagesize=letter, rightMargin=.55*inch,
@@ -628,7 +658,8 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
         nbformat.v4.new_markdown_cell("# Project 1: executed experiment evidence\n\n**Kevin Yang (ky2738), Team Saber**\n\n"
             f"[Public GitHub source]({REPOSITORY})\n\n"
             "This notebook reads measured artifacts; it does not replace training logs with expected accuracy. "
-            "The separate training entrypoint contains the full scratch-training implementation. "
+            "The separate training entrypoint contains the main scratch-training implementation. "
+            "The public-feedback-driven robust_full extension is exploratory and is reported separately. "
             "Private leaderboard accuracy is not yet available."),
         nbformat.v4.new_code_cell(
             "from pathlib import Path\nimport json, sys\n"
@@ -661,7 +692,8 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
         nbformat.v4.new_markdown_cell("## Actual experimental configurations and results\n"
             "The matched protocol fixes the split, seed, schedule and optimizer. The architecture comparison "
             "changes depth and width jointly; the regularization comparison changes Cutout and MixUp jointly. "
-            "The measured effects below do not establish statistical significance or separate the bundled factors."),
+            "The measured effects below do not establish statistical significance or separate the bundled factors.\n\n"
+            "### Exploratory robust_full specification\n" + exploratory_method(evidence)),
         nbformat.v4.new_code_cell(
             "for run in evidence['runs']:\n"
             "    print('\\nRUN:', run['name'])\n"
@@ -679,8 +711,9 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
         nbformat.v4.new_markdown_cell("## Final test accuracy\n"
             "The public leaderboard measures only half of the 2,000 hidden evaluation images. "
             "Development, confirmation, the primary full-data public score and the best observed official "
-            "benchmark score are distinct. Five daily submissions compare fixed models and may guide "
-            "official Kaggle entry selection; they do not retune the frozen training/confirmation protocol. "
+            "benchmark score are distinct. The five-entry plan includes a separately labeled robust_full "
+            "exploration motivated by official public feedback. Public results may guide entry selection; "
+            "the main 160-epoch recipe and its confirmation are not changed or repeated. "
             "Private accuracy remains unknown."),
         nbformat.v4.new_code_cell(
             "metrics = selected['metrics'] if selected else {}\n"

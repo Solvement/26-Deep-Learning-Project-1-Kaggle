@@ -57,18 +57,30 @@ statistical significance or seed stability.
 
 ## User-directed official submission comparisons
 
-The user requested full use of the daily five-entry allowance. Submit the fixed
-`baseline`, `architecture`, `regularized`, `final_full`, and seed-2027 regularized
-models as five official benchmarks, subject to the actual remaining Kaggle quota.
-Use the existing frozen checkpoints and development-selected inference rules;
-do not use public feedback to alter the training recipe or repeat confirmation.
+The user requested full use of the daily five-entry allowance. The plan is
+`baseline`, `architecture`, `regularized`, `final_full`, and an additional
+exploratory `robust_full`, subject to the actual remaining Kaggle quota. The
+first four retain their existing frozen primary-study rules. The seed-2027
+regularized repeat remains validation-only and does not consume the fifth entry.
+
+Official public feedback prompted the separately labeled exploration: WRN-22-4
+from scratch on all 50,000 official images, 300 SGD/cosine epochs, RandAugment
+N=2/M=9 plus crop/flip, Cutout and MixUp, EMA 0.999, clean-training-only BN
+recalibration, and fixed reflect-pad-four five-crop-plus-flip logit averaging.
+The proposed private free-GPU job is pending availability/execution evidence;
+do not substitute the specification for a completed experiment. Runtime precision
+must be recorded: T4 requires FP16 with gradient scaling, whereas native BF16 is
+used only where supported. This is a bundled exploratory extension, not a causal
+ablation, and has no held-out development score or confirmation re-evaluation.
 
 Keep every receipt in `results/kaggle_submissions.json`, including the exact run,
 training sample count, parameters, score, submission reference, timestamp and
 prediction-file SHA-256. The independent study's primary full-data receipt stays
 in `results/kaggle_submission.json`. Public scores may select the official Kaggle
-entry, but the report must distinguish that choice from the already frozen
-development/confirmation protocol. Report the full-data result and best public
+entry and motivate the separate exploratory recipe, but the report must
+distinguish that work from the already frozen 160-epoch development/confirmation
+protocol. The 96.64% confirmation result applies only to the selected 40,000-image
+primary-study candidate, not to either full-data model. Report the primary full-data result and best public
 benchmark separately when they differ. Private accuracy remains unknown, and
 selecting the largest public score among five can favor sampling noise.
 

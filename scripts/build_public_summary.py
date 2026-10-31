@@ -4,6 +4,7 @@ The output contains allowlisted configurations, aggregate metrics and hashes.
 It excludes images, weights, prediction rows, gold-label rows, credentials,
 environment paths and arbitrary error messages. Missing measurements stay null
 and appear in pending_fields. --require-complete also verifies checkpoint bytes.
+--require-five-submissions requires all five distinct completed official entries.
 
 Example: python scripts/build_public_summary.py --output docs/results.json --require-complete
 """
@@ -22,7 +23,12 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPETITION = "cifar-10-res-net-architecture-challenge-dl"
 CANDIDATES = ("baseline", "architecture", "regularized")
 RUNS = (*CANDIDATES, "final_full")
+SUBMISSION_RUNS = (*RUNS, "robust_full")
+SAMPLE_SHA256 = "83aa7ddd58d46026c3b3f870f507c33b178ebfbdf24e0a69d9f7a9d6d8cfff59"
 CORE_FILES = ("train.py", "model.py", "data.py", "runtime.py")
+ROBUST_SOURCE_FILES = (*CORE_FILES, "train_robust.py", "configs/robust_full.json")
+TTA_MODES = ("reflectpad4_five_crops_plus_horizontal_flip_mean_logits",
+             "reflect-pad4-five-crops-and-flips-logit-average")
 CONFIG_KEYS = (
     "depth", "widen_factor", "dropout", "num_classes", "epochs", "batch_size",
     "lr", "min_lr", "warmup_epochs", "momentum", "weight_decay",
@@ -127,7 +133,214 @@ def validate_csv(path, sample_path):
     return {"rows": count, "columns": ["id", "label"], "ids_match_official_order": True, "sha256": sha256(path)}
 
 
-def build_summary(results_dir, data_dir, *, verify_checkpoints=False, require_complete=False):
+def robust_configuration(raw):
+    result = configuration(raw)
+    for key in ("randaugment_n", "randaugment_m", "checkpoint_interval"):
+        if key in raw:
+            check(isinstance(raw[key], int) and not isinstance(raw[key], bool) and raw[key] >= 0,
+                  "Robust augmentation/checkpoint setting must be a nonnegative integer")
+            result[key] = raw[key]
+    if "randaugment_interpolation" in raw:
+        check(raw["randaugment_interpolation"] == "bilinear", "Unknown robust interpolation setting")
+        result["randaugment_interpolation"] = raw["randaugment_interpolation"]
+    if "randaugment_fill" in raw:
+        fill = raw["randaugment_fill"]
+        check(isinstance(fill, list) and len(fill) == 3 and all(
+            isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 255 for value in fill),
+            "Robust RGB fill must contain three uint8 channel values")
+        result.update({"randaugment_fill_" + channel: value for channel, value in zip("rgb", fill)})
+    for key in ("exploratory_after_public_feedback", "confirmation_endorsement"):
+        if key in raw:
+            check(isinstance(raw[key], bool), "Robust protocol flag must be boolean")
+            result[key] = raw[key]
+    if "tta_mode" in raw:
+        check(raw["tta_mode"] in TTA_MODES, "Unknown robust test-time augmentation rule")
+        result["tta_mode"] = raw["tta_mode"]
+    return result
+
+
+def robust_evidence(results_dir, split_sha, archive_sha, verify_checkpoints):
+    """Separate post-feedback exploration from the unchanged primary study."""
+    folder = results_dir / "robust_full"
+    metrics = read_json(folder / "metrics.json")
+    evaluation = read_json(folder / "evaluation.json")
+    provenance = read_json(folder / "provenance.json")
+    raw_config = read_json(folder / "config.json") or metrics.get("config", {})
+    config = robust_configuration(raw_config)
+    if raw_config:
+        check(config.get("epochs") == 300 and config.get("train_all") is True
+              and config.get("final_variant") == "ema", "Robust recipe must be the full-data 300-epoch EMA run")
+        check(config.get("exploratory_after_public_feedback") is True and config.get("confirmation_endorsement") is False,
+              "Robust experiment must remain post-public-feedback exploration without primary confirmation endorsement")
+    if metrics:
+        check(metrics.get("status") in ("training", "running", "complete", "failed"), "Unknown robust training status")
+        check(raw_config == metrics.get("config"), "Robust configuration artifacts disagree")
+        check(metrics.get("training_examples") == 50000 and metrics.get("validation_examples") == 0,
+              "Robust run must train on all 50k images with no held-out development score")
+        check(metrics.get("best_validation_accuracy") is None and metrics.get("best_validation_loss") is None,
+              "Robust full-data training cannot claim a development score")
+        check(isinstance(metrics.get("epochs_completed"), int) and 0 <= metrics["epochs_completed"] <= 300,
+              "Invalid robust epoch count")
+        if metrics["status"] == "complete":
+            check(metrics["epochs_completed"] == 300, "Completed robust run has fewer than 300 epochs")
+            check(bool(evaluation), "Completed robust run is missing its final inference evidence")
+    params = metrics.get("parameter_count", evaluation.get("parameter_count"))
+    if params is not None:
+        check(isinstance(params, int) and not isinstance(params, bool) and 0 < params <= 5_000_000,
+              "Robust parameter budget violated")
+    if "bn_recalibrated_on_training_only" in metrics:
+        check(isinstance(metrics["bn_recalibrated_on_training_only"], bool), "Robust BN calibration flag must be boolean")
+    code_raw = provenance.get("code", evaluation.get("provenance", {}))
+    code = code_provenance(code_raw)
+    code["source_sha256"] = {name: digest(code_raw.get("source_sha256", {}).get(name))
+                              for name in ROBUST_SOURCE_FILES if name in code_raw.get("source_sha256", {})}
+    checkpoint = digest(evaluation.get("checkpoint_sha256"))
+    verified = False
+    if evaluation:
+        check(metrics.get("status") == "complete", "Robust evaluation belongs to an unfinished run")
+        check(evaluation.get("validation_examples") == 0 and all(evaluation.get(key) is None for key in (
+            "plain_validation_accuracy", "flip_validation_accuracy", "validation_accuracy", "validation_loss")),
+            "Robust full-data evaluation cannot claim overlapping development accuracy")
+        check(evaluation.get("epoch") == 300 and evaluation.get("variant") == "ema"
+              and evaluation.get("flip_tta") is True and evaluation.get("tta_mode") == config.get("tta_mode")
+              and evaluation.get("tta_views") == 10 and evaluation.get("tta_aggregation") == "mean_logits",
+              "Robust fixed epoch/variant/ten-view inference policy mismatch")
+        check(evaluation.get("parameter_count") == params and evaluation.get("exploratory_after_public_feedback") is True
+              and evaluation.get("main_confirmation_endorses_this_run") is False,
+              "Robust evaluation lacks its separate exploratory context")
+        for record in (evaluation, provenance):
+            signature = record.get("data_signature", {})
+            check(signature.get("split_sha256") == split_sha and signature.get("archive_sha256") == archive_sha,
+                  "Robust official source/split fingerprint mismatch")
+        check(code_provenance(evaluation.get("provenance", {})) == code_provenance(code_raw),
+              "Robust checkpoint/code provenance mismatch")
+        check(len(code["source_sha256"]) == len(ROBUST_SOURCE_FILES) and all(code["source_sha256"].values())
+              and all(evaluation.get("provenance", {}).get("source_sha256", {}).get(name) == value
+                      for name, value in code["source_sha256"].items()), "Robust extended source fingerprints disagree")
+        if verify_checkpoints:
+            check((folder / "best.pt").is_file() and sha256(folder / "best.pt") == checkpoint,
+                  "Stale robust checkpoint/evaluation hash")
+            verified = True
+    return {
+        "status": metrics.get("status", "pending"), "purpose": "post_public_feedback_exploratory_robustness",
+        "main_confirmation_endorses_this_run": False, "development_accuracy": None,
+        "config": config or None, "epochs_completed": metrics.get("epochs_completed"),
+        "training_examples": metrics.get("training_examples"), "development_examples": metrics.get("validation_examples"),
+        "parameter_count": params, "elapsed_seconds": number(metrics.get("elapsed_seconds")),
+        "variant": evaluation.get("variant"), "flip_tta": evaluation.get("flip_tta"),
+        "tta_mode": config.get("tta_mode"), "checkpoint_sha256": checkpoint,
+        "checkpoint_bytes_verified": verified, "code": code,
+        "bn_recalibrated_on_training_only": metrics.get("bn_recalibrated_on_training_only"),
+    }
+
+
+def official_submissions(results_dir, data_dir, *, require_five=False):
+    path = results_dir / "kaggle_submissions.json"
+    receipts = json.loads(path.read_text(encoding="utf-8-sig")) if path.is_file() else []
+    check(isinstance(receipts, list), "Kaggle submission history must be a list")
+    if receipts:
+        check(sha256(data_dir / "sample_submission.csv") == SAMPLE_SHA256,
+              "Official benchmark sample submission fingerprint mismatch")
+    result, names, refs, csv_hashes = [], set(), set(), set()
+    for receipt in receipts:
+        check(isinstance(receipt, dict), "Official submission receipt must be an object")
+        name = receipt.get("run")
+        check(name in SUBMISSION_RUNS and name not in names, "Unknown or duplicate official submission run")
+        check(receipt.get("competition") == COMPETITION and receipt.get("team") == "Saber",
+              "Benchmark receipt belongs to another competition/team")
+        check(receipt.get("status") == "complete", "Recorded official entry has not completed scoring")
+        ref = receipt.get("submission_ref")
+        check(not isinstance(ref, bool) and isinstance(ref, (int, str)) and re.fullmatch(r"[0-9]+", str(ref))
+              and int(ref) > 0 and int(ref) not in refs, "Invalid or duplicate official submission reference")
+        csv_sha = digest(receipt.get("submission_sha256"))
+        check(csv_sha is not None and csv_sha not in csv_hashes, "Missing or duplicate official prediction hash")
+        timestamp = receipt.get("submitted_at")
+        check(isinstance(timestamp, str) and re.fullmatch(r"[0-9TtZz:.+ -]{10,50}", timestamp),
+              "Invalid official submission timestamp")
+        folder = results_dir / name
+        metrics = read_json(folder / "metrics.json")
+        config = read_json(folder / "config.json") or metrics.get("config", {})
+        evaluation = read_json(folder / "evaluation.json")
+        full = name in ("final_full", "robust_full")
+        epochs = 300 if name == "robust_full" else 160
+        examples = 50000 if full else 40000
+        check(metrics.get("status") == "complete" and metrics.get("epochs_completed") == epochs
+              and config.get("epochs") == epochs and config.get("train_all") is full,
+              "Submitted run lacks its completed fixed training budget: " + name)
+        check(metrics.get("config") == config and metrics.get("training_examples") == examples
+              and metrics.get("validation_examples") == (0 if full else 5000), "Submitted run partition/config mismatch")
+        params = metrics.get("parameter_count")
+        check(isinstance(params, int) and not isinstance(params, bool) and 0 < params <= 5_000_000
+              and receipt.get("parameter_count") == params and receipt.get("training_examples") == examples,
+              "Submitted parameter/sample counts disagree with training")
+        prediction_folder = results_dir / ("submission_" + name) if name in CANDIDATES else folder
+        csv_path = prediction_folder / "submission.csv"
+        validated = validate_csv(csv_path, data_dir / "sample_submission.csv")
+        check(validated["sha256"] == csv_sha, "Official benchmark CSV no longer matches its receipt")
+        metadata = read_json(prediction_folder / "metadata.json")
+        if name == "final_full" and not metadata:
+            check(evaluation.get("submission", {}).get("sha256") == csv_sha, "Primary final evaluation CSV hash mismatch")
+            metadata = {
+                "submission_sha256": csv_sha, "checkpoint_sha256": evaluation.get("checkpoint_sha256"),
+                "flip_tta": evaluation.get("flip_tta"), "source_git_commit": evaluation.get("provenance", {}).get("git_commit"),
+                "source_sha256": evaluation.get("provenance", {}).get("source_sha256", {}),
+                "parameter_count": evaluation.get("parameter_count"), "training_examples": examples,
+            }
+        else:
+            check(metadata.get("run") == name and metadata.get("competition") == COMPETITION
+                  and metadata.get("hidden_test_labels_loaded") is False, "Submitted prediction metadata context mismatch")
+            check(metadata.get("original_evaluation_sha256") == sha256(folder / "evaluation.json"),
+                  "Submitted run's original evaluation artifact changed")
+        check(metadata.get("submission_sha256") == csv_sha and metadata.get("parameter_count") == params
+              and metadata.get("training_examples") == examples, "Submitted metadata disagrees with CSV/training")
+        checkpoint_sha = digest(evaluation.get("checkpoint_sha256"))
+        check(checkpoint_sha is not None and metadata.get("checkpoint_sha256") == checkpoint_sha
+              and sha256(folder / "best.pt") == checkpoint_sha, "Submitted checkpoint bytes/evaluation/metadata mismatch")
+        check(isinstance(receipt.get("flip_tta"), bool) and receipt["flip_tta"] == metadata.get("flip_tta"),
+              "Submitted inference averaging rule mismatch")
+        source = code_provenance({"git_commit": metadata.get("source_git_commit"),
+                                  "source_sha256": metadata.get("source_sha256", {})})
+        check(source["git_commit"] is not None and receipt.get("source_git_commit") == source["git_commit"]
+              and evaluation.get("provenance", {}).get("git_commit") == source["git_commit"],
+              "Submitted source revision disagrees with checkpoint provenance")
+        allowlist = ROBUST_SOURCE_FILES if name == "robust_full" else CORE_FILES
+        source["source_sha256"] = {key: digest(metadata.get("source_sha256", {})[key]) for key in allowlist
+                                     if key in metadata.get("source_sha256", {})}
+        check(len(source["source_sha256"]) == len(allowlist) and all(source["source_sha256"].values()),
+              "Submitted source fingerprints are incomplete")
+        check(all(evaluation.get("provenance", {}).get("source_sha256", {}).get(key) == value
+                  for key, value in source["source_sha256"].items()), "Submitted source hashes disagree with checkpoint provenance")
+        public_score = number(receipt.get("public_score"), accuracy=True)
+        check(public_score is not None, "Completed official receipt has no measured public score")
+        public = {
+            "run": name, "status": "complete", "competition": COMPETITION, "team": "Saber",
+            "public_score": public_score, "private_score": number(receipt.get("private_score"), accuracy=True),
+            "submission_ref": int(ref), "submitted_at": timestamp, "submission_sha256": csv_sha,
+            "checkpoint_sha256": checkpoint_sha, "training_examples": examples, "parameter_count": params,
+            "epochs_completed": epochs, "flip_tta": receipt["flip_tta"],
+            "source_git_commit": source["git_commit"],
+            "code": source, "config": robust_configuration(config) if name == "robust_full" else configuration(config),
+            "primary_protocol_full_retrain": name == "final_full", "exploratory_after_public_feedback": name == "robust_full",
+        }
+        if name == "robust_full":
+            public["main_confirmation_endorses_this_run"] = False
+        mode = metadata.get("tta_mode", receipt.get("tta_mode"))
+        if mode is not None:
+            check(mode in TTA_MODES and ("tta_mode" not in receipt or receipt["tta_mode"] == mode),
+                  "Submitted test-time augmentation metadata mismatch")
+            public["tta_mode"] = mode
+        names.add(name); refs.add(int(ref)); csv_hashes.add(csv_sha); result.append(public)
+    result.sort(key=lambda item: SUBMISSION_RUNS.index(item["run"]))
+    missing = [name for name in SUBMISSION_RUNS if name not in names]
+    if require_five:
+        check(not missing and len(result) == len(refs) == len(csv_hashes) == 5,
+              "Five completed distinct official submissions are required; missing: " + ", ".join(missing))
+    return result, {"expected_runs": list(SUBMISSION_RUNS), "complete_count": len(result),
+                    "five_complete": not missing, "missing_runs": missing}
+
+
+def build_summary(results_dir, data_dir, *, verify_checkpoints=False, require_complete=False,
+                  require_five_submissions=False):
     pending = []
 
     def need(condition, field):
@@ -369,11 +582,16 @@ def build_summary(results_dir, data_dir, *, verify_checkpoints=False, require_co
             public_kaggle["private_score_status"] = "available"
     need(kaggle.get("status") == "complete" and public_kaggle.get("public_score") is not None
          and public_kaggle.get("submission_ref") is not None, "official_kaggle_public_score")
+    benchmark_receipts, submission_campaign = official_submissions(results_dir, data_dir,
+                                                                  require_five=require_five_submissions)
+    robust = robust_evidence(results_dir, split_sha, archive_sha, verify_checkpoints or require_complete)
     summary = {
         "schema_version": 1, "status": "pending" if pending else "complete", "competition": COMPETITION, "team": "Saber",
         "metric": "classification_accuracy_fraction", "official_data": data, "runs": runs,
         "selection": public_selection, "confirmation": public_confirmation, "stability": public_stability,
         "validated_submission": submission, "kaggle_submission": public_kaggle, "pending_fields": pending,
+        "official_submissions": benchmark_receipts, "submission_campaign": submission_campaign,
+        "robust_exploratory": robust,
     }
     if require_complete:
         check(not pending, "Evidence is incomplete: " + ", ".join(pending))
@@ -387,9 +605,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--verify-checkpoints", action="store_true")
     parser.add_argument("--require-complete", action="store_true")
+    parser.add_argument("--require-five-submissions", action="store_true")
     args = parser.parse_args()
     summary = build_summary(args.results_dir, args.data_dir, verify_checkpoints=args.verify_checkpoints,
-                            require_complete=args.require_complete)
+                            require_complete=args.require_complete,
+                            require_five_submissions=args.require_five_submissions)
     serialized = json.dumps(summary, indent=2, allow_nan=False) + "\n"
     check(not re.search(r"[A-Za-z]:\\\\|KGAT_|sk-proj-", serialized), "Private path or credential pattern in public summary")
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -91,17 +91,18 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
    ```
 
    The team limit is five submissions per day; check the actual remaining quota.
-   At the user's request this delivery uses the allowance to benchmark five
-   fixed models: `baseline`, `architecture`, `regularized`, `final_full`, and the
-   seed-2027 regularized stability repeat. The first three and the repeat train
-   on 40,000 images; `final_full` trains on all 50,000. Checkpoints and inference
-   rules remain frozen. Store all scored receipts in
+   At the user's request the five-entry plan benchmarks `baseline`, `architecture`,
+   `regularized`, `final_full`, and a separately labeled exploratory `robust_full`.
+   The first three train on 40,000 images; both full-data variants use all 50,000.
+   The seed-2027 regularized repeat remains a local validation-only stability
+   check and is not the fifth upload. Store all scored receipts in
    `results/kaggle_submissions.json`, including run, training size, parameter
    count, reference, public score, file SHA-256 and timestamp. Keep the primary
    full-data receipt separately in `results/kaggle_submission.json`.
 
-   Public benchmark scores may guide official Kaggle entry selection. They do
-   not revise the completed training recipe or confirmation study. Report both
+   Public feedback motivated the separate robust exploration and may guide
+   official Kaggle entry selection. It does not revise the completed primary
+   160-epoch recipe or repeat its confirmation study. Report both
    the primary full-data score and the highest observed public benchmark if
    they differ; the best of five on 1,000 public images can reflect sampling
    noise. Private leaderboard accuracy remains unknown until Kaggle releases it.
@@ -138,6 +139,16 @@ accuracy is not clean-image test accuracy. The regularization bundle does not
 isolate the effects of its two components. A single split/seed does not establish
 statistical significance. The public leaderboard is a separate partial hidden
 test and does not establish the final private ranking.
+
+The additional **exploratory `robust_full`** recipe was specified after official
+public feedback: scratch WRN-22-4, all 50,000 official images, 300 SGD/cosine
+epochs, RandAugment N=2/M=9 plus crop/flip, Cutout and MixUp, EMA decay 0.999,
+clean-training-only batch-normalization recalibration, and fixed reflect-pad-four
+five-crop-plus-flip logit averaging. A free private Kaggle GPU job is proposed;
+availability, execution and score are not assumed. Actual artifacts/receipts
+establish its status. This bundled exploration has no development score and no
+new confirmation evaluation; the earlier confirmation result belongs only to
+the selected 40,000-image primary-study candidate.
 
 ## Evidence and private artifacts
 
@@ -191,3 +202,6 @@ not supply human approval. Existing team conventions remain in
 - Zhang et al., [mixup](https://arxiv.org/abs/1710.09412).
 - DeVries and Taylor, [Cutout](https://arxiv.org/abs/1708.04552).
 - Loshchilov and Hutter, [SGDR](https://arxiv.org/abs/1608.03983), cosine-schedule reference; this project need not use restarts.
+
+Exploratory augmentation reference: Cubuk et al.,
+[RandAugment](https://arxiv.org/abs/1909.13719).

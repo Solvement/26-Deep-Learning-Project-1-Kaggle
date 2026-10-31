@@ -44,10 +44,11 @@ Label indices: `0 airplane`, `1 automobile`, `2 bird`, `3 cat`, `4 deer`,
 | Daily limit | 5 submissions per entire team | Rules section 8; submission-limits API |
 
 The user requested using the five-entry allowance for fixed-model official
-comparisons: baseline, architecture, regularized, the 50,000-image full-data
-refit, and the seed-2027 regularized repeat. Official public scores may inform
-Kaggle entry selection; they do not alter the frozen development/confirmation
-study or its primary full-data result. Record all receipts and distinguish the
+comparisons: baseline, architecture, regularized, the primary 50,000-image refit,
+and a separately labeled exploratory robust_full variant. The seed repeat stays
+validation-only. Official public feedback may motivate this separate exploration
+and inform Kaggle entry selection; it does not alter the frozen 160-epoch
+development/confirmation study or its primary full-data result. Record all receipts and distinguish the
 highest public benchmark from the primary refit if they differ. The 1,000-image
 public portion does not reveal private accuracy or guarantee private ranking.
 
