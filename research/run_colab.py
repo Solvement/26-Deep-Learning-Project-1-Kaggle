@@ -35,9 +35,10 @@ CACHE = ("official_train_images.npy", "official_train_labels.npy", "official_tra
          "official_split_indices.npz", "training_manifest.json")
 SOURCES = (*CORE, "research/train_shadow.py", "research/augmentations.py", "research/benchmark.py",
            "research/benchmark_shadow.py")
+RESIZEMIX_SOURCES = ("research/train_resizemix.py", "research/resizemix.py", "research/benchmark_resizemix.py")
 OUTPUTS = ("baseline/benchmark.json", "candidate/best.pt", "candidate/last.pt", "candidate/metrics.json",
            "candidate/history.json", "candidate/config.json", "candidate/environment.json",
-           "candidate/provenance.json", "native_amp_smoke.json", "controller.log",
+           "candidate/provenance.json", "native_amp_smoke.json", "method_preflight.json", "controller.log",
            "candidate/training.log", "candidate/benchmark.log", "candidate/benchmark.json",
            "candidate/benchmark.core.json",
            "baseline/benchmark.log", "remote_receipt.json")
@@ -75,6 +76,18 @@ def validate_config(config):
         raise ValueError("A positive epoch count is required")
     if config.get("num_classes", 10) != 10:
         raise ValueError("This experiment requires the official ten classes")
+
+
+def trainer_routes(trainer):
+    if trainer not in {"shadow", "resizemix"}:
+        raise ValueError("Unsupported Colab training method")
+    return {"shadow": ("research/train_shadow.py", "research/benchmark_shadow.py"),
+            "resizemix": ("research/train_resizemix.py", "research/benchmark_resizemix.py")}[trainer]
+
+
+def sources_for_trainer(trainer):
+    trainer_routes(trainer)
+    return SOURCES if trainer == "shadow" else (*SOURCES, *RESIZEMIX_SOURCES)
 
 
 def parse_usage(output):
@@ -160,9 +173,10 @@ class ColabCLI:
         return output
 
 
-def prepare(root, config_path, folder, run):
+def prepare(root, config_path, folder, run, trainer="shadow"):
     """Create an exact allowlisted bundle; no directory recursion or networks."""
     root, config_path, folder = Path(root), Path(config_path), Path(folder)
+    sources = sources_for_trainer(trainer)
     config = json.loads(config_path.read_text())
     validate_config(config)
     for name, expected in CORE.items():
@@ -176,7 +190,7 @@ def prepare(root, config_path, folder, run):
         or manifest.get("official_test_labels_loaded") is not False
         or manifest.get("split", {}).get("seed") != 2026):
         raise ValueError("Official training provenance is required")
-    entries = {name: root / name for name in SOURCES}
+    entries = {name: root / name for name in sources}
     entries.update({"data/" + name: root / "data" / name for name in CACHE})
     entries.update({"baseline/" + name: root / "results/regularized" / name
                     for name in ("best.pt", "metrics.json", "history.json")})
@@ -197,6 +211,7 @@ def prepare(root, config_path, folder, run):
             chunks.append({"name": path.name, "sha256": sha256(path), "bytes": len(chunk)})
     revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True)
     value = {"schema": "private_colab_input_v1", "run": run, "files_sha256": fingerprints,
+             "trainer": trainer,
              "source_git_commit": revision.stdout.strip() if revision.returncode == 0 else None,
              "bundle_sha256": sha256(bundle), "chunks": chunks, "config": config,
              "hidden_images_packaged": False, "external_data_packaged": False,
@@ -226,10 +241,14 @@ print("SABER_GUARD_JSON=" + json.dumps({{"status":"armed", "deadline_unix":_dead
 
 def remote_program(manifest, session, deadline):
     # Every interpolated value is a validated ID or a Python literal; no shell.
+    trainer = manifest.get("trainer", "shadow")
+    train_entry, validation_entry = trainer_routes(trainer)
     return '''import hashlib,json,os,subprocess,sys,time,zipfile
 from pathlib import Path
 M = ''' + repr(manifest) + '''
 D = ''' + repr(deadline) + '''
+TRAIN = ''' + repr(train_entry) + '''
+VALIDATOR = ''' + repr(validation_entry) + '''
 P = Path('/content')
 R = P / ''' + repr(session) + '''
 R.mkdir(exist_ok=False)
@@ -249,7 +268,7 @@ for n,h in M['files_sha256'].items():
 os.chdir(R)
 (R/'candidate').mkdir()
 receipt={'status':'running','confirmation_evaluated':False,'hidden_images_loaded':False,
-         'source_files_sha256':M['files_sha256'],'run':M['run']}
+         'source_files_sha256':M['files_sha256'],'run':M['run'],'trainer':M.get('trainer','shadow')}
 def run(args, log):
     remaining = D-time.time()-180
     if remaining < 1: raise TimeoutError('No research runtime remains')
@@ -277,15 +296,68 @@ try:
     smoke={'status':'complete','finite_update_verified':True,'finite_loss_overflow_skipped':True,
            'overflow_parameter_unchanged':True,'scale_before_overflow':scale_before,
            'scale_after_overflow':scaler.get_scale(),'torch_version':torch.__version__,
-           'shadow_source_sha256':M['files_sha256']['research/train_shadow.py']}
+           'shadow_source_sha256':M['files_sha256']['research/train_shadow.py'],
+           'trainer':M.get('trainer','shadow'),'trainer_source_sha256':M['files_sha256'][TRAIN]}
     (R/'native_amp_smoke.json').write_text(json.dumps(smoke,indent=2))
     receipt['native_amp_smoke']=smoke
     del p,opt,scaler
+    if M.get('trainer','shadow')=='resizemix':
+        from research.train_resizemix import prepare_batch, optimizer_step
+        from train import DEFAULT_CONFIG
+        from runtime import seed_all
+        from model import build_model, count_parameters
+        import math, statistics
+        seed_all(2026)
+        cfg={**DEFAULT_CONFIG,**M['config']}
+        pre_model=build_model({k:cfg[k] for k in ('depth','widen_factor','dropout','num_classes')}).to(device='cuda',memory_format=torch.channels_last).train()
+        pre_opt=torch.optim.SGD(pre_model.parameters(),lr=cfg['lr'],momentum=cfg['momentum'],weight_decay=cfg['weight_decay'],nesterov=True)
+        pre_scaler=torch.amp.GradScaler('cuda',init_scale=256.)
+        pre_images=torch.randint(0,256,(cfg['batch_size'],32,32,3),device='cuda',dtype=torch.uint8)
+        pre_labels=torch.arange(cfg['batch_size'],device='cuda')%10
+        geometry=prepare_batch(pre_images,pre_labels,{**cfg,'resizemix_probability':1.})
+        assert geometry[2] is not None and 0<geometry[3]<1 and torch.isfinite(geometry[0]).all()
+        assert len(geometry[4])==cfg['batch_size'] and all(0<=t<b<=32 and 0<=l<r<=32 and abs(geometry[3]-(1-(b-t)*(r-l)/1024))<1e-12 for t,b,l,r in geometry[4])
+        durations=[]; mixed_calls=0; changed_steps=0
+        probe=next(pre_model.parameters())
+        torch.cuda.reset_peak_memory_stats()
+        for index in range(13):
+            torch.cuda.synchronize(); began=time.perf_counter(); before=probe.detach().clone()
+            x,y,permutation,retained,boxes=prepare_batch(pre_images,pre_labels,cfg)
+            mixed_calls+=int(permutation is not None)
+            pre_opt.zero_grad(set_to_none=True)
+            with torch.autocast('cuda',dtype=torch.float16):
+                logits=pre_model(x)
+                loss=torch.nn.functional.cross_entropy(logits,y,label_smoothing=cfg['label_smoothing'])*retained
+                if permutation is not None: loss+=torch.nn.functional.cross_entropy(logits,y[permutation],label_smoothing=cfg['label_smoothing'])*(1-retained)
+            assert optimizer_step(loss,pre_opt,pre_scaler)
+            assert torch.isfinite(probe).all() and not torch.equal(probe.detach(),before)
+            changed_steps+=1
+            torch.cuda.synchronize()
+            if index>=3: durations.append(time.perf_counter()-began)
+        assert mixed_calls>0 and changed_steps==13
+        median=statistics.median(durations)
+        estimate=median*math.ceil(40000/cfg['batch_size'])*cfg['epochs']
+        safe_estimate=2*estimate+300
+        method={'status':'complete','method':'resizemix','synthetic_only':True,'training_data_loaded':False,
+            'hidden_images_loaded':False,'geometry_verified':True,'native_fp16_verified':True,'real_parameter_updates':changed_steps,
+            'actual_mixed_batches':mixed_calls,'batch_size':cfg['batch_size'],'parameters':count_parameters(pre_model),
+            'model_config':{k:cfg[k] for k in ('depth','widen_factor','dropout','num_classes')},'seed':2026,
+            'warmup_steps':3,'timed_steps':10,'median_step_seconds':median,'p90_step_seconds':statistics.quantiles(durations,n=10,method='inclusive')[8],
+            'images_per_second':cfg['batch_size']/median,'peak_gpu_memory_bytes':torch.cuda.max_memory_allocated(),
+            'grad_scaler_initial_scale':256.,'grad_scaler_final_scale':pre_scaler.get_scale(),'engineering_only':True,
+            'trainer_source_sha256':M['files_sha256'][TRAIN],'helper_source_sha256':M['files_sha256']['research/resizemix.py'],
+            'estimated_training_only_seconds':estimate,'conservative_pipeline_seconds':safe_estimate,
+            'runtime_budget_fit':safe_estimate<D-time.time()-180}
+        (R/'method_preflight.json').write_text(json.dumps(method,indent=2))
+        receipt['method_preflight']=method
+        if not method['runtime_budget_fit']: raise RuntimeError('ResizeMix measured speed does not fit the remaining supervised runtime')
+        del pre_model,pre_opt,pre_scaler,pre_images,pre_labels,probe,before,x,y,permutation,loss,logits,geometry
+        torch.cuda.empty_cache()
     run(['research/benchmark.py','--checkpoint','baseline/best.pt','--output','baseline/benchmark.json',
          '--device','cuda'], 'baseline/benchmark.log')
-    run(['research/train_shadow.py','--config','research/configs/candidate.json','--output-dir','candidate',
+    run([TRAIN,'--config','research/configs/candidate.json','--output-dir','candidate',
          '--data-dir','data','--device','cuda','--precision','fp16'], 'candidate/training.log')
-    run(['research/benchmark_shadow.py','--checkpoint','candidate/best.pt','--output','candidate/benchmark.json',
+    run([VALIDATOR,'--checkpoint','candidate/best.pt','--output','candidate/benchmark.json',
          '--baseline','baseline/benchmark.json','--device','cuda'], 'candidate/benchmark.log')
     receipt['status']='complete'
 except Exception as e:
@@ -367,6 +439,8 @@ def watchdog(folder, parent, created, distro):
 
 def launch(folder, distro):
     manifest = json.loads((folder / "input_manifest.json").read_text())
+    trainer = manifest.get("trainer", "shadow")
+    trainer_routes(trainer)
     validate_run(manifest["run"])
     validate_config(manifest["config"])
     if sha256(folder / "input.private.zip") != manifest["bundle_sha256"]:
@@ -387,6 +461,7 @@ def launch(folder, distro):
     session = "saber-" + manifest["run"] + "-" + uuid.uuid4().hex[:8]
     lease_path = ROOT / "results/research/cloud_lease.json"
     receipt = {"run": manifest["run"], "session": session, "status": "preparing",
+               "trainer": trainer,
                "pid": os.getpid(), "process_created_at": psutil.Process().create_time(),
                "started_at": now().isoformat(), "deadline_unix": deadline,
                "assignment_attempts": 0, "no_new_purchases": True, "precision": "fp16",
@@ -502,6 +577,7 @@ def main():
     parser.add_argument("--run")
     parser.add_argument("--config", type=Path)
     parser.add_argument("--launch", action="store_true")
+    parser.add_argument("--trainer", choices=("shadow", "resizemix"), default="shadow")
     parser.add_argument("--distro", default="Ubuntu")
     parser.add_argument("--watchdog", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--parent", type=int, help=argparse.SUPPRESS)
@@ -516,12 +592,14 @@ def main():
     folder = ROOT / "results/research" / ("colab_" + args.run)
     if folder.exists():
         manifest = json.loads((folder / "input_manifest.json").read_text())
+        if manifest.get("trainer", "shadow") != args.trainer:
+            raise ValueError("Prepared Colab trainer differs; never reinterpret an existing source bundle")
         if not args.launch or sha256(args.config) != manifest["files_sha256"]["research/configs/candidate.json"]:
             raise FileExistsError("Prepared run exists; inspect it and use --launch once")
     else:
         private_directory(folder)
         try:
-            prepare(ROOT, args.config.resolve(), folder, args.run)
+            prepare(ROOT, args.config.resolve(), folder, args.run, args.trainer)
         except BaseException:
             write_json(folder / "preparation_failed.json", {"at": now().isoformat()})
             raise

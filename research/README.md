@@ -209,6 +209,24 @@ SAM 的21项 CPU检查包含解析二次函数更新、扰动范数、失败恢�
 本地监督器新增 `--trainer sam --precision bf16`，保存训练器/精度并禁止交叉恢复。
 云端与本地时间预算分开计数；活动 Colab 任务不会被误计为本地 GPU 时间。
 
+### 新云端对照：ResizeMix 风格变体
+
+CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress78.896%，
+相对于同 T4 基线，stress提高1.248个百分点、clean降低0.06个百分点，符合工程门槛。
+它仍缺配对和独立 seed 证据，尚未获准生成提交。产物已取回，原运行时的服务器 assignment
+列表和后续用量均核实为0；首次即时清理检查未收敛，原回执及后续核验均保留。
+
+[train_resizemix.py](train_resizemix.py)、[resizemix.py](resizemix.py) 与
+[benchmark_resizemix.py](benchmark_resizemix.py) 独立实现下一轮配方，保持WRN22-4/160轮/WD5e-4，
+替换旧Mixup/Cutout。整张供体图缩小后粘贴，tau是均匀0.1到0.8的边长比例，标签按真实面积。
+每张图独立采样中心，将完整补丁移入边界，不裁掉供体内容。
+[作者代码](https://github.com/JieQin-AI/ResizeMix)使用nearest和始终启用；本轮明确采用
+**bilinear、概率0.5**，属于待测的受控变体，不宣称复现作者配方或准确率。
+
+云监督器新增 `--trainer resizemix`，仅在实际方法的CUDA几何、FP16正常更新和测速预检通过后
+才运行完整基线与训练；原始训练源码和已冻结WRN34交付文件不改。当前配对/交付版本只支持
+已有类型；若本方法晋级，须另行提供兼容验证版本，不能绕过源码约束直接提交。
+
 [run_diagnostic.py](run_diagnostic.py) 为测速、独立训练器重测与配对比较提供同一个
 本地 lease、预算和 watchdog，不用裸 GPU 命令绕过监督。SAM 实际测速入口为
 `python research/run_diagnostic.py --run wrn22_sam_native_preflight --mode sam-speed --config research/configs/wrn22_sam.json`。

@@ -11,6 +11,34 @@ from research import run_colab as runner
 
 
 class ColabRunnerTests(unittest.TestCase):
+    def test_trainer_routes_are_allowlisted_and_legacy_default_remains_shadow(self):
+        for trainer, entries in {"shadow": ("research/train_shadow.py", "research/benchmark_shadow.py"),
+                                 "resizemix": ("research/train_resizemix.py", "research/benchmark_resizemix.py")}.items():
+            self.assertEqual(runner.trainer_routes(trainer), entries)
+            manifest = {"run": "abc", "trainer": trainer, "chunks": [], "files_sha256": {}, "bundle_sha256": "x"}
+            program = runner.remote_program(manifest, "owned", 1900000000)
+            compile(program, "remote.py", "exec")
+            self.assertIn("TRAIN = " + repr(entries[0]), program)
+            self.assertIn("VALIDATOR = " + repr(entries[1]), program)
+            self.assertIn("'trainer_source_sha256':M['files_sha256'][TRAIN]", program)
+            self.assertIn("from research.train_shadow import optimizer_step", program)
+        legacy = runner.remote_program({"run": "old"}, "owned", 1900000000)
+        self.assertIn("TRAIN = 'research/train_shadow.py'", legacy)
+        self.assertNotIn("research/resizemix.py", runner.sources_for_trainer("shadow"))
+        self.assertTrue(set(runner.RESIZEMIX_SOURCES) <= set(runner.sources_for_trainer("resizemix")))
+
+    def test_unknown_trainer_rejected_before_cloud_lease_or_client(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder/"input_manifest.json").write_text(json.dumps({"trainer": "arbitrary_command"}))
+            with patch.object(runner, "acquire_lease") as lease, patch.object(runner, "ColabCLI") as client:
+                with self.assertRaisesRegex(ValueError, "Unsupported Colab training method"):
+                    runner.launch(folder, "Ubuntu")
+            lease.assert_not_called()
+            client.assert_not_called()
+        with self.assertRaises(ValueError):
+            runner.remote_program({"trainer": "../../custom.py"}, "owned", 1900000000)
+
     def test_full_training_and_unsafe_ids_rejected(self):
         for value in ("../new", "bad-name", "stability_seed2027", ""):
             with self.assertRaises(ValueError):
@@ -57,7 +85,7 @@ class ColabRunnerTests(unittest.TestCase):
             (root / "data").mkdir()
             (root / "research").mkdir()
             (root / "results/regularized").mkdir(parents=True)
-            for name in ("core.py", "research/train_shadow.py"):
+            for name in ("core.py", "research/train_shadow.py", *runner.RESIZEMIX_SOURCES):
                 (root / name).write_text("own code")
             hashes = {}
             for name in runner.CACHE[:-1]:
@@ -73,21 +101,27 @@ class ColabRunnerTests(unittest.TestCase):
             (root / "data/cifar-10-python.tar.gz").write_bytes(b"external never package")
             config = root / "config.json"
             config.write_text(json.dumps({"train_all": False, "split_seed": 2026, "epochs": 160}))
-            output = root / "prepared"
-            output.mkdir()
-            with patch.object(runner, "CORE", {"core.py": runner.sha256(root / "core.py")}), \
-                 patch.object(runner, "SOURCES", ("core.py", "research/train_shadow.py")), \
-                 patch.object(runner, "BASELINE_SHA", runner.sha256(root / "results/regularized/best.pt")):
-                result = runner.prepare(root, config, output, "candidate1")
-            with zipfile.ZipFile(output / "input.private.zip") as archive:
-                names = set(archive.namelist())
-            self.assertNotIn("data/official_test.npz", names)
-            self.assertNotIn("data/cifar-10-python.tar.gz", names)
-            self.assertIn("data/official_split_indices.npz", names)
-            self.assertFalse(result["confirmation_evaluated"])
-            self.assertEqual(result["bundle_sha256"], runner.sha256(output / "input.private.zip"))
-            restored = b"".join((output / p["name"]).read_bytes() for p in result["chunks"])
-            self.assertEqual(hashlib.sha256(restored).hexdigest(), result["bundle_sha256"])
+            for trainer in ("shadow", "resizemix"):
+                output = root / ("prepared_" + trainer)
+                output.mkdir()
+                with patch.object(runner, "CORE", {"core.py": runner.sha256(root / "core.py")}), \
+                     patch.object(runner, "SOURCES", ("core.py", "research/train_shadow.py")), \
+                     patch.object(runner, "BASELINE_SHA", runner.sha256(root / "results/regularized/best.pt")):
+                    result = runner.prepare(root, config, output, "candidate1", trainer)
+                with zipfile.ZipFile(output / "input.private.zip") as archive:
+                    names = set(archive.namelist())
+                self.assertNotIn("data/official_test.npz", names)
+                self.assertNotIn("data/cifar-10-python.tar.gz", names)
+                self.assertIn("data/official_split_indices.npz", names)
+                self.assertEqual(result["trainer"], trainer)
+                if trainer == "resizemix":
+                    self.assertTrue(set(runner.RESIZEMIX_SOURCES) <= names)
+                else:
+                    self.assertTrue(set(runner.RESIZEMIX_SOURCES).isdisjoint(names))
+                self.assertFalse(result["confirmation_evaluated"])
+                self.assertEqual(result["bundle_sha256"], runner.sha256(output / "input.private.zip"))
+                restored = b"".join((output / p["name"]).read_bytes() for p in result["chunks"])
+                self.assertEqual(hashlib.sha256(restored).hexdigest(), result["bundle_sha256"])
 
     def test_unapproved_output_and_corrupt_download_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -166,6 +200,22 @@ class ColabRunnerTests(unittest.TestCase):
         self.assertIn("research/benchmark_shadow.py", program)
         for forbidden in ("load_confirmation_indices", "load_kaggle_test", "kaggle competitions submit"):
             self.assertNotIn(forbidden, program)
+
+    def test_resizemix_native_method_preflight_is_before_formal_baseline_and_training(self):
+        manifest = {"run": "resize", "trainer": "resizemix", "chunks": [], "files_sha256": {}, "bundle_sha256": "x"}
+        program = runner.remote_program(manifest, "owned", 1900000000)
+        compile(program, "resizemix_remote.py", "exec")
+        self.assertIn("if M.get('trainer','shadow')=='resizemix':", program)
+        self.assertIn("from research.train_resizemix import prepare_batch, optimizer_step", program)
+        self.assertIn("{**cfg,'resizemix_probability':1.}", program)
+        self.assertIn("torch.amp.GradScaler('cuda',init_scale=256.)", program)
+        self.assertIn("torch.autocast('cuda',dtype=torch.float16)", program)
+        self.assertIn("for index in range(13)", program)
+        self.assertIn("assert mixed_calls>0 and changed_steps==13", program)
+        self.assertIn("'warmup_steps':3,'timed_steps':10", program)
+        self.assertIn("'runtime_budget_fit':safe_estimate<D-time.time()-180", program)
+        self.assertLess(program.index("(R/'method_preflight.json')"), program.index("run(['research/benchmark.py'"))
+        self.assertIn("method_preflight.json", runner.OUTPUTS)
 
     def test_cli_command_has_no_broad_auth_or_shell(self):
         cli = runner.ColabCLI(Path("unused"), python="/home/example/.local/share/uv/tools/google-colab-cli/bin/python")

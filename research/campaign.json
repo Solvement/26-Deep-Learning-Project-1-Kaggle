@@ -37,5 +37,13 @@
     "preflight_required": "synthetic native BF16 SAM speed and real parameter updates; current local lease must be released",
     "changes_from_regularized": ["SAM_rho0.05_two_pass_optimizer"],
     "priority": "after current results; repeat a qualifying promising recipe before speculative expansion when evidence favors it"
+  },
+  "next_cloud_experiment": {
+    "id": "wrn22_resizemix_s2026_v3",
+    "config": "research/configs/wrn22_resizemix.json",
+    "trainer": "resizemix",
+    "precision": "fp16",
+    "recipe": "uniform side ratio 0.1-0.8, bilinear full-donor resize, per-image shifted full-fit box, probability0.5; replaces Mixup/Cutout",
+    "preflight_required": "actual CUDA method geometry/FP16 parameter updates and measured runtime within three-hour deadline"
   }
 }

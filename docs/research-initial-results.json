@@ -1,6 +1,6 @@
 {
   "schema": "exploratory_initial_benchmarks_v1",
-  "updated_at": "2026-10-31T16:44:47.856889+00:00",
+  "updated_at": "2026-10-31T17:15:14.682080+00:00",
   "current_benchmark_schema": "official_development_stress_v3",
   "records": [
     {
@@ -857,6 +857,88 @@
           }
         },
         "interpretation": "Exploratory reused/postselected development; percentile intervals are conditional on these fitted checkpoints, not independent confirmation or hidden-test guarantees."
+      }
+    },
+    {
+      "schema": "official_development_stress_v3",
+      "status": "complete",
+      "examples": 5000,
+      "training_examples": 40000,
+      "parameter_count": 4298970,
+      "checkpoint_sha256": "f7d4b804bb6a36c102f30a356d9c2338d04b0d67edf09a0a69228ca694351282",
+      "checkpoint_epoch": 159,
+      "checkpoint_variant": "model",
+      "benchmark_source_sha256": "d30acccd66a18f8de198824a57b565cb8e16cd7044fa1cec6608007c80d37f16",
+      "batch_size": 128,
+      "evaluation_context": {
+        "device_type": "cuda",
+        "amp_dtype": "torch.float16",
+        "torch_version": "2.11.0+cu130",
+        "training_core_sha256": {
+          "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+          "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+          "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+          "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+        }
+      },
+      "promotion": {
+        "plain": {
+          "passed": false,
+          "clean_delta": -0.0010000000000000009,
+          "stress_delta": 0.0031599999999999406,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        },
+        "flip": {
+          "passed": true,
+          "clean_delta": -0.0010000000000000009,
+          "stress_delta": 0.012239999999999918,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        },
+        "center80_shift20": {
+          "passed": true,
+          "clean_delta": -0.0005999999999999339,
+          "stress_delta": 0.012479999999999936,
+          "thresholds": {
+            "clean_improvement": 0.001,
+            "stress_noninferiority": -0.002,
+            "stress_improvement": 0.005,
+            "clean_noninferiority": -0.002
+          }
+        }
+      },
+      "confirmation_evaluated": false,
+      "hidden_images_loaded": false,
+      "external_data_loaded": false,
+      "experiment": "wrn22_cutmix_s2026_colab",
+      "record_sha256": "53147b35c843078330dd6a52a38f92540355c56f571099bedb21b5ac52ec16b5",
+      "paired_and_independent_repeat": "pending",
+      "runtime_released_verified": true,
+      "policies": {
+        "plain": {
+          "clean_accuracy": 0.9618,
+          "clean_loss": 0.1364984983742237,
+          "stress_accuracy": 0.77964
+        },
+        "flip": {
+          "clean_accuracy": 0.9618,
+          "clean_loss": 0.1269646221548319,
+          "stress_accuracy": 0.78872
+        },
+        "center80_shift20": {
+          "clean_accuracy": 0.9622,
+          "clean_loss": 0.12548031286597253,
+          "stress_accuracy": 0.78896
+        }
       }
     }
   ],
