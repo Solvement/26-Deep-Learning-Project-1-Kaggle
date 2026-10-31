@@ -2,16 +2,16 @@
   "schema": "audited_research_report_preview_v1",
   "recorded_at": "2026-10-31T21:17:07.553585+00:00",
   "source_summary": "docs/research-followup-results.json",
-  "source_summary_sha256": "0257a24d227c436a89eea185db941e3df857c96a79497fdd9f21dd3333a39d8c",
+  "source_summary_sha256": "b3e06bd38571f484c6d90475437162e8849eb65980e982572deb4e166c022d0d",
   "public_notebook": "notebooks/Project1_Research_Executed.ipynb",
   "PDF_pages": 8,
   "executed_code_cells": 8,
   "PNG_outputs": 4,
   "sha256": {
-    "ky2738_Project1_Report.pdf": "444b7b617f9f9d2630f94a89a82f2ee1ed4358de4dc653a960aca4e030f8ae44",
-    "Project1_Results_Executed.ipynb": "ac754b71910c712edc755b02cc8f12c219210608248c2ac25deb823c3f6f6921",
-    "research_conditional_deltas.png": "ac0455758a398a07d2fdd906246aff4ae03ec298fb6eced371a86ead337572ea",
-    "research_followup_evidence.json": "b8c18083bc7384f645d7d0e90ba5b230937ff174eac02f5ad8c9e5661cc93936"
+    "ky2738_Project1_Report.pdf": "d45ffbdc1b9f0d1c18fb64f6601cbe800b7eb92fb130be9f5d8c9d65bfd62567",
+    "Project1_Results_Executed.ipynb": "22503771eaad42345b08ccf2de7c2d694a6b6f301221a6f3df411cdc6534a8d3",
+    "research_followup_evidence.json": "dbd186271cbf032049687ee601dac47900902715efcbbe1fce7cc16f01b07e43",
+    "research_conditional_deltas.png": "ac0455758a398a07d2fdd906246aff4ae03ec298fb6eced371a86ead337572ea"
   },
   "original_frozen_outputs_unchanged": true,
   "original_six_code_cell_outputs_equal": true,
@@ -27,6 +27,7 @@
     "Synthetic stress is not hidden test accuracy.",
     "This is a dated preview; hard-stop delivery will use actual latest aggregate and scored receipts."
   ],
-  "public_notebook_sha256": "9484ad22583e2dd3c40c5b2cd2e9024bf909e3c3142a085a6b7dbb0bc96224e0",
-  "public_notebook_serialization": "Canonical LF JSON; all cells, execution counts, outputs, metadata and embedded PNG bytes equal the audited source notebook. The source preview notebook hash in sha256 is its original Windows CRLF serialization."
+  "public_notebook_sha256": "67369be8f5cee9e99b76372748bc81e68604064539d19e74c07739927c395340",
+  "public_notebook_serialization": "Canonical LF JSON; all cells, execution counts, outputs, metadata and embedded PNG bytes equal the audited source notebook. The source preview notebook hash in sha256 is its original Windows CRLF serialization.",
+  "source_summary_git_commit": "43e6e2ef75645a6714751b02c094e4ccea252fad"
 }
