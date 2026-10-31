@@ -14,6 +14,43 @@ trainable parameters**. Its constructor rejects models above the 5,000,000
 parameter limit. Training uses only the official competition images and labels;
 no external data or pretrained weights are used.
 
+## Measured results
+
+All **five official submissions are scored**, using the full daily allowance
+for **2026-10-31 UTC** (Kaggle reported 5 submitted and 0 remaining on that date).
+The exploratory T4 run completed
+300 epochs plus training-only BN recalibration and fixed ten-view prediction.
+
+| Run | Training images | Parameters | Development accuracy | Kaggle public accuracy | Submission reference |
+| --- | --- | --- | --- | --- | --- |
+| `baseline` | 40,000 | 691,674 | 94.86% | 83.50% | 57825539 |
+| `architecture` | 40,000 | 4,298,970 | 95.72% | 85.40% | 57825558 |
+| `regularized` | 40,000 | 4,298,970 | 96.30% | **87.40%** | 57825566 |
+| `final_full` (primary refit) | 50,000 | 4,298,970 | Not evaluated | 87.10% | 57825964 |
+| `robust_full` (exploratory) | 50,000 | 4,298,970 | Not evaluated | 86.20% | 57827678 |
+
+The independent one-time confirmation result is **96.64%** for the selected
+40,000-image `regularized` candidate. It is not a confirmation score for either
+full-data model. The current highest completed public score is 87.40%; the
+primary 160-epoch full-data result is separately reported as 87.10%. The
+exploratory 86.20% result did not improve the best observed public score. The
+primary study and its one-time confirmation remain unchanged; no individual
+cause is inferred from this bundled extension. Private leaderboard scores are
+not yet available. The cause of the development/public gap has not been established.
+Verified aggregate records are available in [docs/results.json](docs/results.json)
+and the [audited executed results notebook](notebooks/Project1_Results_Executed.ipynb).
+
+The independent stability repeat keeps the same regularized recipe and split:
+
+| Training seed | Selected checkpoint | Plain development | Flip-average development | Used for recipe selection |
+| --- | --- | --- | --- | --- |
+| 2026 | epoch 151, raw weights | 96.08% | 96.30% | Yes |
+| 2027 | epoch 148, EMA weights | 96.14% | 96.36% | No |
+
+The 0.06 percentage-point difference is a two-run observation, not a confidence
+interval or significance result. The repeat generated no hidden-test predictions
+and consumed no Kaggle submission.
+
 ## Reproduce a run
 
 Use Python with a compatible PyTorch installation for your chosen CPU/GPU. Keep
@@ -28,8 +65,10 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
    your own authorized Kaggle identity. Alternatively, run
    `scripts/export_official_data.py` privately in a Kaggle CPU notebook with this
    competition attached, then download its `official_train.npz`,
-   `official_source_manifest.json` and `train_labels.csv` into `data/`. Keep all
-   exported competition data private. Prepare the fixed stratified split:
+   `official_source_manifest.json` and `train_labels.csv` into `data/`. The private
+   `scripts/export_official_test.py` helper similarly exports `official_test.npz`,
+   `official_test_source_manifest.json`, `test.csv` and `sample_submission.csv`.
+   Keep both official exports private. Prepare the fixed stratified split:
 
    ```bash
    python prepare_data.py --data-dir data --seed 2026
@@ -41,7 +80,7 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
    competition download returns 404, individual test downloads are supported:
 
    ```bash
-   python download_kaggle.py --data-dir data --workers 4
+   uv run --no-project --with kaggle==2.2.5 python download_kaggle.py --data-dir data --workers 4
    ```
 
    This helper requires the Kaggle package in the selected Python environment;
@@ -86,12 +125,32 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
    submission checksum before uploading:
 
    ```bash
-   kaggle competitions submit cifar-10-res-net-architecture-challenge-dl -f results/final_full/submission.csv -m "Saber scratch residual model, frozen full-data recipe"
-   kaggle competitions submissions cifar-10-res-net-architecture-challenge-dl
+   python scripts/submit_verified.py --run final_full --csv results/final_full/submission.csv
+   uv run --no-project --with kaggle==2.2.5 python scripts/submit_verified.py --run final_full --csv results/final_full/submission.csv --execute
    ```
 
+   The first command validates locally without uploading. The second uses an
+   isolated official Kaggle client and existing secure authentication. The helper
+   validates the completed training budget, official CSV and checkpoint hashes,
+   records an upload intent/reference, and recovers a known submission instead of
+   uploading duplicate bytes. It refuses an ambiguous prior attempt rather than
+   silently spending another slot. The recorded `final_full` submission is already
+   complete, so repeating this command returns its existing receipt.
+
+   To regenerate the first three official benchmark predictions from their
+   frozen checkpoints, use:
+
+   ```bash
+   python scripts/make_benchmark_submissions.py --runs baseline architecture regularized --device cuda
+   ```
+
+   These CSVs are under `results/submission_<run>/`; validate/upload each with the
+   same helper and its corresponding `--run`. `robust_full` generates its own
+   `results/robust_full/submission.csv` after its fixed training and inference;
+   this delivery's robust entry is already scored as well.
+
    The team limit is five submissions per day; check the actual remaining quota.
-   At the user's request the five-entry plan benchmarks `baseline`, `architecture`,
+   The five-entry campaign benchmarks `baseline`, `architecture`,
    `regularized`, `final_full`, and a separately labeled exploratory `robust_full`.
    The first three train on 40,000 images; both full-data variants use all 50,000.
    The seed-2027 regularized repeat remains a local validation-only stability
@@ -111,6 +170,7 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
 
    ```bash
    python build_report.py --results-dir results --final-run final_full --output-dir outputs
+   python scripts/build_public_summary.py --output docs/results.json --require-complete --require-five-submissions
    ```
 
    The builder creates `outputs/ky2738_Project1_Report.pdf`,
@@ -118,8 +178,15 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
    executes the results notebook, prints parameter count and public test accuracy,
    and enforces the eight-page PDF limit. Missing results stay visibly pending.
    The generated notebook reads saved artifacts; the complete training code is
-   the separate `train.py` entrypoint. Install `reportlab`, `pypdf`, `matplotlib`,
-   `nbformat`, `nbclient` and `ipykernel` if they are missing.
+   the separate `train.py` entrypoint. The strict summary command requires both
+   `--require-complete` and `--require-five-submissions`; it verifies actual
+   evidence/checkpoint bytes and all five official scored receipts before writing
+   `docs/results.json`. It does not accept a pending fifth entry as a completed
+   delivery. Its output contains only allowlisted configurations, aggregate
+   results and hashes, excluding local paths, raw images, weights, prediction
+   rows and credentials. Install report dependencies from `requirements/training.txt`
+   if they are missing. Inspect every final notebook cell/output before copying
+   only `outputs/Project1_Results_Executed.ipynb` to `notebooks/` for Git.
 
 ## Training and selection
 
@@ -144,11 +211,28 @@ The additional **exploratory `robust_full`** recipe was specified after official
 public feedback: scratch WRN-22-4, all 50,000 official images, 300 SGD/cosine
 epochs, RandAugment N=2/M=9 plus crop/flip, Cutout and MixUp, EMA decay 0.999,
 clean-training-only batch-normalization recalibration, and fixed reflect-pad-four
-five-crop-plus-flip logit averaging. A free private Kaggle GPU job is proposed;
-availability, execution and score are not assumed. Actual artifacts/receipts
-establish its status. This bundled exploration has no development score and no
+five-crop-plus-flip logit averaging. The private free-quota T4 job completed all
+300 epochs using FP16 with GradScaler, followed by train-only BN recalibration
+and ten-view inference. Recorded training/calibration/prediction time was
+**4,838.19 seconds (80.64 minutes)**. Its official public score was **86.20%**,
+which did not improve the current best 87.40%. This bundled exploration has no development score and no
 new confirmation evaluation; the earlier confirmation result belongs only to
 the selected 40,000-image primary-study candidate.
+
+The robust source/config are frozen at commit
+`4c2d5fdcd109e3772a88ceaedf39bee9fdd48f8a`. To reproduce the same fixed recipe on
+an authorized CUDA machine with official data, run it in a fresh output directory:
+
+```bash
+python train_robust.py --config configs/robust_full.json --data-dir data --output-dir results/robust_full --device cuda --max-seconds 10500
+```
+
+The job uses the fixed final-epoch EMA, recalibrates BN only on clean permitted
+training images, and applies the prescribed ten views without selecting a
+checkpoint or changing its TTA after observing its own public score.
+`scripts/launch_robust_kaggle.py` packages the committed
+source for a private, free-quota-checked cloud run; its existing launch-attempt
+receipt prevents accidentally starting this delivery's job twice.
 
 ## Evidence and private artifacts
 
@@ -161,6 +245,7 @@ the selected 40,000-image primary-study candidate.
 | `notebooks/Project1_Results_Executed.ipynb` | Audited final executed results, scalar metrics and plots only | Tracked only after the final output audit |
 | `results/kaggle_submission.json` | Actual submission reference/public score/checksum | Ignored, retained locally |
 | `results/kaggle_submissions.json` | Five fixed-model official benchmark receipts | Ignored; summarized in report/notebook |
+| `docs/results.json` | Strictly verified, sanitized aggregate evidence and official receipts | Tracked after all five entries complete |
 
 No model weights, prediction CSVs, credentials, raw competition images or full
 unreviewed runtime outputs are committed. The final curated results notebook

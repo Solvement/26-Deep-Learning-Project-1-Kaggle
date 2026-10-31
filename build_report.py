@@ -108,7 +108,8 @@ def collect_evidence(results_dir: Path):
     selection = read_json(results_dir / "selection.json", {})
     stability = read_json(results_dir / "stability.json", {})
     exploratory = {"config": read_json(results_dir / "robust_full/config.json", {}),
-                   "metrics": read_json(results_dir / "robust_full/metrics.json", {})}
+                   "metrics": read_json(results_dir / "robust_full/metrics.json", {}),
+                   "evaluation": read_json(results_dir / "robust_full/evaluation.json", {})}
     submissions = read_json(results_dir / "kaggle_submissions.json", [])
     if isinstance(submissions, dict):
         submissions = submissions.get("submissions", [])
@@ -147,7 +148,8 @@ def exploratory_method(evidence):
     return (
         gap + f"{introduction}, specified after official public feedback, uses a scratch WRN-22-4 on all 50,000 "
         f"permitted training images: {epochs} SGD/cosine epochs, RandAugment N=2/M=9 [6], crop/flip, "
-        f"Cutout and MixUp, EMA decay {ema}, clean-training-only batch-normalization recalibration, "
+        f"Cutout and MixUp, the fixed final-epoch EMA checkpoint (decay {ema}), "
+        "clean-training-only batch-normalization recalibration, "
         "and fixed reflect-pad-four five-crop-plus-flip logit averaging. The original 160-epoch study "
         "and its confirmation result remain unchanged. This bundled, public-feedback-driven extension "
         "has no held-out development score or confirmation re-evaluation and is not a causal ablation. "
@@ -705,6 +707,15 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
             "    print('Epochs recorded:', len(run['history']))\n"
             "if not evidence['runs']:\n    print('Training artifacts are pending.')\n"
             "for finding in measured_interpretation(evidence):\n    print('\\nMEASURED FINDING:', finding)"),
+        nbformat.v4.new_code_cell(
+            "exploratory = evidence.get('exploratory', {})\n"
+            "print('EXPLORATORY RUN: robust_full (separate from the primary study)')\n"
+            "print('CONFIGURATION:', json.dumps(exploratory.get('config', {}), indent=2))\n"
+            "print('METRICS:', json.dumps(exploratory.get('metrics', {}), indent=2))\n"
+            "safe_exploratory_keys = ('epoch','variant','parameter_count','validation_examples','validation_accuracy','flip_tta','tta_views','tta_mode','checkpoint_sha256','submission_sha256','bn_recalibrated_on_training_only','exploratory_after_public_feedback','main_confirmation_endorses_this_run')\n"
+            "evaluation = exploratory.get('evaluation', {})\n"
+            "print('FIXED CHECKPOINT AND INFERENCE:', json.dumps({k:evaluation[k] for k in safe_exploratory_keys if k in evaluation}, indent=2))\n"
+            "print('No development or confirmation accuracy is assigned to this full-data exploration.')"),
         nbformat.v4.new_code_cell(
             "from IPython.display import Image, display\n"
             f"display(Image(filename=str({portable_path(plots['learning_curves'])})))\n"
