@@ -26,5 +26,7 @@
     "Conditional paired intervals reuse development and selected checkpoints.",
     "Synthetic stress is not hidden test accuracy.",
     "This is a dated preview; hard-stop delivery will use actual latest aggregate and scored receipts."
-  ]
+  ],
+  "public_notebook_sha256": "9484ad22583e2dd3c40c5b2cd2e9024bf909e3c3142a085a6b7dbb0bc96224e0",
+  "public_notebook_serialization": "Canonical LF JSON; all cells, execution counts, outputs, metadata and embedded PNG bytes equal the audited source notebook. The source preview notebook hash in sha256 is its original Windows CRLF serialization."
 }
