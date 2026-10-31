@@ -278,7 +278,7 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 
 [wrn34_3_300.json](configs/wrn34_3_300.json)保持模型与原增强、WD，仅延长配置中的训练轮数。
 云端使用独立shadow原生FP16入口，与同一运行时可信WRN22基线比较；原WRN34-160是本地BF16，
-因此不能把跨环境差异归因于训练轮数。已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；weighted clean96.52%/stress79.708%，同T4基线96.28%/77.656%，三policy点gate通过。产物已下载，官方assignment缺席和后续usage0均已核实，原回执备份保留。本地v3重测及配对完成，weighted96.54%/79.716%，主权重/策略已冻结；全新独立seed2027正在T4训练，尚无其完整重复benchmark或隐藏预测/新增提交。
+因此不能把跨环境差异归因于训练轮数。主2026已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；本地v3重测为96.54%/79.716%，配对及epoch298raw/加权策略先冻结。独立2027也完整完成300轮、93,866成功/34跳步；同T4完整benchmark为96.70%/80.532%，回收验证后本地同v3为96.66%/80.584%，固定policy通过。真实组合证明、冻结主2026的2,000行预测及严格离线交付校验均完成，等待实际UTC配额；尚无上传或新评分。
 
 普通Mixup/Cutout的shadow路径新增真实模型级FP16预检：3步预热、10步计时、13次真实更新，
 核验所有参数/损失有限、参数<=5M及训练/增强源码SHA。预先固定预算公式为
@@ -372,7 +372,7 @@ SE入口为[train_se_sam.py](train_se_sam.py)、[benchmark_se_sam.py](benchmark_
 
 WRN34-300现已同本地v3完整重测：weighted96.54%/79.716%，相对本地基线+0.26/+2.088pp；
 10,000次原图聚类bootstrap clean条件95%区间[-0.18,+0.72]pp跨0、stress[+1.6719,+2.488]pp为正。
-主epoch298raw/weighted和精确seed2027配置已于20:07:28UTC冻结，独立重复正在训练，尚无隐藏预测。
+主epoch298raw/weighted和精确seed2027配置已于20:07:28UTC冻结；独立完整重复、本地重测和主模型预测均已完成。
 官方assignment缺席和后续usage0核实后，原回执备份保留并完成清理核验；ResizeMix独立seed也已完整结束并核实回收。
 原repeat_attestation.py只支持ResizeMix160；WRN300使用下述独立shadow证明schema。
 
@@ -387,10 +387,10 @@ chunks、精确raw/effective配置、真实300轮/更新与溢出、SGD/EMA/RNG/
 只读核验通过，旧主实验作为repeat被拒绝。原ready WRN160真实--prepare仍通过，无上传或intent。
 
 新mode为`run_diagnostic.py --mode cloud-shadow-repeat-predict`；uploader显式区分两种云证明schema，
-普通predict-v2拒绝云receipt。新WRN300seed2027在前一任务确认回收后只分配一次，是当前唯一云job。
-21:12:55UTC独立官方GET核实45/300轮、14,081成功+4跳步，源码/配置和指标有限性匹配。
-模型级预检13次真实更新，中位47.447ms，固定预算保护通过；预检不代表完整训练或比赛成绩。
-尚无该重复的真实新证明或隐藏预测。
+普通predict-v2拒绝云receipt。WRN300seed2027只分配一次，已在22:33UTC完成训练/完整benchmark/产物下载，
+22:35官方自有端点缺席、22:38后续usage0均核实。原cleanup未收敛回执字节已保留，附证明及哈希后完成规范reconcile；
+未再次stop/unassign。其后本地完整v3、显式shadow证明及只预测冻结主2026均通过，strict`--prepare`不创建intent。
+重复虽有更高开发分，主模型仍是预先冻结的epoch298raw，而非重复epoch300EMA。
 
 ## 报告与执行Notebook的探索扩展
 
@@ -418,5 +418,17 @@ policy、训练范围及参数量；准备完成、CSV或intent均不算官方�
 [实现说明](augmix-implementation-notes.md)记录作者精确commit、随机流/归一化/预处理差异和数值设计。
 实测合成CPU增强+stack由0.314s/sourcebatch降至0.149s，32组图像/随机trace/output逐位相同；
 这是工程诊断，未测传输、GPU、训练或准确率。公开聚合见[augmix-engineering-results.json](../docs/augmix-engineering-results.json)。
-完整typed trainer和独立云监督入口正在CPU实现，必须先测真实训练图像/并行CPU增强/传输/单3B/更新的
-端到端native流水线，再按实际预算准入；旧run_colab及所有已绑定源码保持冻结。
+独立[trainer](train_augmix.py)、[完整benchmark](benchmark_augmix.py)、[本地监督](run_augmix_local.py)及
+[Colab监督](run_colab_augmix.py)已完成CPU实现。固定2个spawn CPU worker/prefetch2，按原图显式PCG64种子，
+另存sampler/loader随机状态；epoch边界恢复逐位检查通过。底层引擎支持同配方26/27，当前监督器正式只允许主2026；
+未来repeat须经过配对/冻结的新可信入口。FP16 init_scale256明确登记，区别于旧shadow正式默认65536；
+不把跨数值协议的差异仅归因于增强。固定官方缓存/NPY头严格校验，ID的实际dtype为Unicode`<U5`，不接受object/pickle。
+
+[进程树保护](process_tree_guard.py)在导入Torch/训练代码前建立独立OS边界：Windows专属非继承Job Object，
+POSIX自有session及独立watchdog。12项实际Windows CPU测试覆盖无pool回执子孙、owner/trainer硬死、超时、
+部分启动、无关canary及真实双worker DataLoader；显式清理未知时保留并锁住lease。Linux路径由CI实际验证。
+不修改原监督器/已绑定源码。仅在真实训练图像的CPU/PIL、queue wait、传输、单3B、完整loss/backward/SGD/EMA
+及有限性proof端到端native预检通过后，才考虑正式训练。23正常更新之外单独验证有限loss引发inf梯度时跳过SGD，
+保留全部参数/动量/EMA并降低scale；正式进程重新scratch初始化。固定guard为`1.5×median×313×160+300`，
+云端另留180秒传输/清理。显存/预算不适合则停止，不降batch、不拆view、不转无JSD挽救。
+本地预检不能替代同T4实际准入；当前尚无AugMix正式训练、开发集结果、配对或交付资格。

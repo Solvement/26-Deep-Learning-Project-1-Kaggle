@@ -37,5 +37,6 @@
     "max_absolute_error": 0.0,
     "new_cross_implementation_CPU_regression_test": true
   },
-  "interpretation": "Synthetic CPU augmentation/stack diagnostic only. No official images, transfer, GPU, training, complete pipeline budget admission or accuracy measured. The observed speed ratio is specific to these five batches and context."
+  "interpretation": "Synthetic CPU augmentation/stack diagnostic only. No official images, transfer, GPU, training, complete pipeline budget admission or accuracy measured. The observed speed ratio is specific to these five batches and context.",
+  "seed": 2026
 }

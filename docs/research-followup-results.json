@@ -1,6 +1,6 @@
 {
   "schema": "audited_followup_research_aggregate_v1",
-  "recorded_at": "2026-10-31T21:17:07.553585+00:00",
+  "recorded_at": "2026-10-31T22:55:50.644315+00:00",
   "issue": 7,
   "interpretation": "Exploratory reused development and fixed synthetic stress proxies. Not hidden accuracy or independent confirmation. No new research submission scored at this snapshot.",
   "baseline": {
@@ -810,7 +810,7 @@
     "not_before_utc": "2026-11-01T00:00:00Z"
   },
   "research_submission": {
-    "status": "two_qualified_distinct_primary_CSVs_verified_waiting_actual_quota",
+    "status": "three_distinct_qualified_primary_CSVs_verified_waiting_actual_quota",
     "official_rows": 2000,
     "delivery_manifest_sha256": "803f03ab8d1cb5e0107ef0501e63f956358070202570d1f5f8758c2579fae27e",
     "new_submission_reference": null,
@@ -831,6 +831,12 @@
         "primary_seed": 2026,
         "policy": "center80_shift20",
         "delivery_manifest_sha256": "7376bed6c3789c4f78df6ec37ae3da738656826ec72a5a95fc37e88714522313"
+      },
+      {
+        "name": "WRN34-3/300",
+        "primary_seed": 2026,
+        "policy": "center80_shift20",
+        "delivery_manifest_sha256": "f2fc4b3f1577b11b7488f3fca713ac3086be572f7042681e83f7bac7c1625fab"
       }
     ]
   },
@@ -839,15 +845,15 @@
     "CPU_tests": 182,
     "CI": "success",
     "CI_url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41226413783",
-    "latest_local_integration_CPU_tests": 351,
-    "integration_note": "All351 integrated CPU tests pass with the CI unittest command, including24 report-adapter and17 report-builder checks. Reporting tests use explicit progress-only fixtures and real headless PNG output. CPU CI dependencies now explicitly include nbformat/reportlab/pypdf/IPython; no kernel is run by CI. Source-bound training, proofs and uploaders are unchanged.",
+    "latest_local_integration_CPU_tests": 458,
+    "integration_note": "All458 integrated CPU checks pass after the fixed officialID Unicode<U5 header correction:21 math+32 trainer+21 cloud+12 OS-treeguard checks added to the earlier372.12 actualWindows guard cases include unrecorded descendants,hard owner/trainer death,deadline and real guardedTorchDataLoader. Windows local nativepreflight is admitted by independent code review only after freelease/budget. POSIX nativeclosure will be verified by currentrevision LinuxCI before cloudlaunch.",
     "latest_verified_committed_CI": {
-      "commit": "6aceb1f51aa627b6e8957593a50ae153cd4fb81c",
-      "CPU_tests": 310,
+      "commit": "4667eda87aef3df0f4d032c0352704465ad328c5",
+      "CPU_tests": 393,
       "result": "SUCCESS",
-      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41238529760"
+      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41246543089"
     },
-    "cloud_attestation_note": "Actual independent ResizeMix seed2027 complete160 cloud/cleanup/then same-local-v3 proof was deeply rederived and actual primary-only2000 prediction plus strict offline prepare passed; no upload or intent. ShadowWRN300 independent repeat is running, with no actual completed attestation or prediction yet."
+    "cloud_attestation_note": "ResizeMix160 and shadowWRN300 actual independentcloudrepeat attestations were built/rederived after complete training,officialcleanup andmatchedlocalv3. Both frozenprimaries2000rowpredictions and strictprepare pass. No uploads/intent or researchscores exist."
   },
   "resizemix_T4_primary": {
     "schema": "official_development_stress_v3",
@@ -1807,7 +1813,7 @@
     "transfer_cleanup_reserve_seconds": 180,
     "runtime_budget_fit": true
   },
-  "WRN34_300_status": "Primary full T4 and localv3 benchmark, pairing and primary freeze complete. Fresh exact seed2027 FP16 cloud repeat running, 45/300 verified at21:12:55UTC, no final repeat benchmark/attestation/prediction.",
+  "WRN34_300_status": "Independentfreshseed2027 completed300epochs/93866success+34skip, fullsameT4baseline+candidate benchmark, verifiedofficialcleanup, subsequent same-local-v3 fixedweighted96.66%/80.584% gatepass. Exactcloudtypedattestation, frozenprimary2026-only2000predictions andstrictpreparecomplete. Waitingactualquota; no uploadorintent. Primary remains epoch298raw53d8, not repeat epoch300EMA b549.",
   "resizemix_local_repeat_capacity": {
     "status": "incomplete_capacity_stop",
     "completed_epochs": 9,
@@ -2994,9 +3000,11 @@
     "actual_primary_structure_audit": "passed read-only; explicitly refused as repeat",
     "repeat_prepared": true,
     "repeat_launched": true,
-    "actual_attestation": false,
-    "actual_hidden_prediction": false,
-    "diagnostic_mode": "cloud-shadow-repeat-predict"
+    "actual_attestation": true,
+    "actual_hidden_prediction": true,
+    "diagnostic_mode": "cloud-shadow-repeat-predict",
+    "actual_attestation_sha256": "f42cb6a6f573fb4a2b69bd74e2a92a4809f5faab2ac9624f2e7f1102e23aa8ff",
+    "strict_offline_prepare_passed": true
   },
   "resizemix_repeat_progress": {
     "status": "complete",
@@ -3267,19 +3275,501 @@
     "training_backend": "Colab Tesla T4"
   },
   "WRN34_300_repeat_progress": {
-    "checked_at": "2026-10-31T21:12:55+00:00",
-    "epochs_completed": 45,
+    "status": "complete",
+    "epochs_completed": 300,
     "planned_epochs": 300,
-    "successful_updates": 14081,
-    "skipped_updates": 4,
-    "actual_training_seconds": 839.682863606,
+    "successful_updates": 93866,
+    "skipped_updates": 34,
     "training_seed": 2027,
     "native_precision": "fp16",
-    "device": "Tesla T4",
-    "torch": "2.11.0+cu130",
-    "configuration_and_sources_verified": true,
-    "all_recorded_metrics_finite": true,
-    "estimated_training_finish_UTC": "2026-10-31T22:32:14+00:00",
-    "estimate_not_final_benchmark": true
+    "source_and_config_verified": true,
+    "all_full_benchmarks_complete": true,
+    "runtime_stop_verified": true,
+    "subsequent_local_v3_repeat_passed": true,
+    "attestation_sha256": "f42cb6a6f573fb4a2b69bd74e2a92a4809f5faab2ac9624f2e7f1102e23aa8ff",
+    "frozen_primary_prediction_manifest_sha256": "f2fc4b3f1577b11b7488f3fca713ac3086be572f7042681e83f7bac7c1625fab",
+    "actual_submission_uploaded": false
+  },
+  "WRN34_300_local_repeat": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "examples": 5000,
+    "training_examples": 40000,
+    "parameter_count": 4166298,
+    "checkpoint_sha256": "b54934328880ff6930028cb274a6df5d00112a2da4a5129aa01a86a80d7a537a",
+    "checkpoint_epoch": 300,
+    "checkpoint_variant": "ema",
+    "config": {
+      "depth": 34,
+      "widen_factor": 3,
+      "dropout": 0.0,
+      "num_classes": 10,
+      "epochs": 300,
+      "batch_size": 128,
+      "lr": 0.1,
+      "min_lr": 0.0001,
+      "warmup_epochs": 5,
+      "momentum": 0.9,
+      "weight_decay": 0.0005,
+      "label_smoothing": 0.0,
+      "cutout": 16,
+      "mixup_alpha": 0.2,
+      "mixup_probability": 0.5,
+      "ema_decay": 0.995,
+      "seed": 2027,
+      "split_seed": 2026,
+      "train_all": false,
+      "final_variant": "ema",
+      "fixed_flip_tta": false
+    },
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.bfloat16",
+      "torch_version": "2.12.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    },
+    "bn_recalibrated": false,
+    "promotion": {
+      "plain": {
+        "passed": true,
+        "clean_delta": 0.0016000000000000458,
+        "stress_delta": 0.02311999999999992,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "flip": {
+        "passed": true,
+        "clean_delta": 0.0038000000000000256,
+        "stress_delta": 0.028279999999999972,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "center80_shift20": {
+        "passed": true,
+        "clean_delta": 0.0038000000000000256,
+        "stress_delta": 0.02956000000000003,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      }
+    },
+    "baseline_sha256": "eced314d97fcb5ddef4cad25c6968ba299d0e8a2c79af6bdcbdbf305b79c632d",
+    "elapsed_seconds": 32.4067916999993,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded": false,
+    "external_data_loaded": false,
+    "policies": {
+      "plain": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9644,
+            "loss": 0.13196224097311496,
+            "examples": 5000,
+            "seconds": 1.560757700000977,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7444,
+            "loss": 0.9326766507506371,
+            "examples": 5000,
+            "seconds": 0.4512575000007928,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4892,
+            "loss": 1.9994368556976319,
+            "examples": 5000,
+            "seconds": 0.4085328000001027,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9568,
+            "loss": 0.1466007375538349,
+            "examples": 5000,
+            "seconds": 0.427015900000697,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.963,
+            "loss": 0.13423465112298727,
+            "examples": 5000,
+            "seconds": 0.39401989999896614,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8436,
+            "loss": 0.5405276041030884,
+            "examples": 5000,
+            "seconds": 0.4329539999998815,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9644,
+        "clean_loss": 0.13196224097311496,
+        "stress_accuracy": 0.7994
+      },
+      "flip": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9666,
+            "loss": 0.11844932437688112,
+            "examples": 5000,
+            "seconds": 0.803494400002819,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7492,
+            "loss": 0.8812962770938874,
+            "examples": 5000,
+            "seconds": 0.8311539999995148,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4942,
+            "loss": 1.9432341201782226,
+            "examples": 5000,
+            "seconds": 0.7960775999999896,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9622,
+            "loss": 0.1339521774172783,
+            "examples": 5000,
+            "seconds": 0.8430351999995764,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.9648,
+            "loss": 0.12296410703659058,
+            "examples": 5000,
+            "seconds": 0.8001598000009835,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8524,
+            "loss": 0.49664180755615234,
+            "examples": 5000,
+            "seconds": 0.8018670999990718,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9666,
+        "clean_loss": 0.11844932437688112,
+        "stress_accuracy": 0.80456
+      },
+      "center80_shift20": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9666,
+            "loss": 0.11649430992305279,
+            "examples": 5000,
+            "seconds": 3.870254199999181,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7502,
+            "loss": 0.8671251901268959,
+            "examples": 5000,
+            "seconds": 3.9223586000007344,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4964,
+            "loss": 1.9308464912414551,
+            "examples": 5000,
+            "seconds": 3.8750420000033046,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9618,
+            "loss": 0.13183959249258043,
+            "examples": 5000,
+            "seconds": 3.906877599998552,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.9652,
+            "loss": 0.12106595526337624,
+            "examples": 5000,
+            "seconds": 3.902870300000359,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8556,
+            "loss": 0.48823227443695066,
+            "examples": 5000,
+            "seconds": 3.9032039000012446,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9666,
+        "clean_loss": 0.11649430992305279,
+        "stress_accuracy": 0.8058400000000001
+      }
+    },
+    "benchmark_sha256": "b957e602ec0f56f9de54a600fe29cd6d17bb0856cac5dcf6675cc868534a1f6d",
+    "training_precision": "fp16",
+    "training_backend": "Colab Tesla T4"
+  },
+  "WRN34_300_T4_repeat": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "examples": 5000,
+    "training_examples": 40000,
+    "parameter_count": 4166298,
+    "checkpoint_sha256": "b54934328880ff6930028cb274a6df5d00112a2da4a5129aa01a86a80d7a537a",
+    "checkpoint_epoch": 300,
+    "checkpoint_variant": "ema",
+    "config": {
+      "depth": 34,
+      "widen_factor": 3,
+      "dropout": 0.0,
+      "num_classes": 10,
+      "epochs": 300,
+      "batch_size": 128,
+      "lr": 0.1,
+      "min_lr": 0.0001,
+      "warmup_epochs": 5,
+      "momentum": 0.9,
+      "weight_decay": 0.0005,
+      "label_smoothing": 0.0,
+      "cutout": 16,
+      "mixup_alpha": 0.2,
+      "mixup_probability": 0.5,
+      "ema_decay": 0.995,
+      "seed": 2027,
+      "split_seed": 2026,
+      "train_all": false,
+      "final_variant": "ema",
+      "fixed_flip_tta": false
+    },
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.float16",
+      "torch_version": "2.11.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    },
+    "bn_recalibrated": false,
+    "promotion": {
+      "plain": {
+        "passed": true,
+        "clean_delta": 0.0013999999999999568,
+        "stress_delta": 0.022719999999999962,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "flip": {
+        "passed": true,
+        "clean_delta": 0.0038000000000000256,
+        "stress_delta": 0.027719999999999967,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "center80_shift20": {
+        "passed": true,
+        "clean_delta": 0.0041999999999999815,
+        "stress_delta": 0.028760000000000008,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      }
+    },
+    "baseline_sha256": "3818d6ee4984f5bae3d0a21ab52478d89b02c674df12f4e231ca1fdf88ca6b24",
+    "elapsed_seconds": 56.970043483000154,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded": false,
+    "external_data_loaded": false,
+    "policies": {
+      "plain": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9642,
+            "loss": 0.1321279250383377,
+            "examples": 5000,
+            "seconds": 1.497304000999975,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7448,
+            "loss": 0.9315682831525802,
+            "examples": 5000,
+            "seconds": 0.7826120859999719,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.488,
+            "loss": 2.003144857788086,
+            "examples": 5000,
+            "seconds": 0.7202005400004055,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9566,
+            "loss": 0.14647485797405244,
+            "examples": 5000,
+            "seconds": 0.7126018300004944,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.9626,
+            "loss": 0.1341030756443739,
+            "examples": 5000,
+            "seconds": 0.7130063380000138,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8444,
+            "loss": 0.5416043865203858,
+            "examples": 5000,
+            "seconds": 0.7361750769996434,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9642,
+        "clean_loss": 0.1321279250383377,
+        "stress_accuracy": 0.79928
+      },
+      "flip": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9666,
+            "loss": 0.11847894349396229,
+            "examples": 5000,
+            "seconds": 1.4199095250005485,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7484,
+            "loss": 0.8804643045663834,
+            "examples": 5000,
+            "seconds": 1.4857398260000991,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4942,
+            "loss": 1.946911585998535,
+            "examples": 5000,
+            "seconds": 1.3982365800002299,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.962,
+            "loss": 0.13385925578773022,
+            "examples": 5000,
+            "seconds": 1.4017699910000374,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.9646,
+            "loss": 0.12301777019202709,
+            "examples": 5000,
+            "seconds": 1.4068838920002236,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8522,
+            "loss": 0.4979287683486939,
+            "examples": 5000,
+            "seconds": 1.4186008859996946,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9666,
+        "clean_loss": 0.11847894349396229,
+        "stress_accuracy": 0.80428
+      },
+      "center80_shift20": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.967,
+            "loss": 0.11652696187496185,
+            "examples": 5000,
+            "seconds": 7.053371932999653,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7504,
+            "loss": 0.8663130759000778,
+            "examples": 5000,
+            "seconds": 7.193432854999628,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.495,
+            "loss": 1.9345380840301514,
+            "examples": 5000,
+            "seconds": 7.113716684000792,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9614,
+            "loss": 0.1317268262922764,
+            "examples": 5000,
+            "seconds": 7.102625128999534,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.965,
+            "loss": 0.12112209582924843,
+            "examples": 5000,
+            "seconds": 7.045320879999963,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8548,
+            "loss": 0.489456462097168,
+            "examples": 5000,
+            "seconds": 6.999572446999991,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.967,
+        "clean_loss": 0.11652696187496185,
+        "stress_accuracy": 0.80532
+      }
+    },
+    "benchmark_sha256": "f134e92c32a2dca734c07d29dae40303fdc0147b57a0f798d5c08dc263a9d929",
+    "training_precision": "fp16",
+    "training_backend": "Colab Tesla T4"
   }
 }
