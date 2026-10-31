@@ -30,6 +30,67 @@ def now():
     return datetime.now(timezone.utc)
 
 
+def assert_stopped(record):
+    """Never resume while any recorded owner or training child is still alive."""
+    for key, stamp in (("pid", "process_created_at"), ("child_pid", "child_created_at")):
+        if not record.get(key):
+            continue
+        try:
+            process = psutil.Process(record[key])
+        except psutil.NoSuchProcess:
+            continue
+        expected = record.get(stamp)
+        if expected is None or abs(process.create_time()-expected) < .01:
+            raise RuntimeError("Recorded experiment process is still alive; resume refused")
+
+
+def close_interrupted_attempt(receipt_path):
+    """Preserve an orphan receipt and conservatively charge its reservation."""
+    original_bytes = receipt_path.read_bytes()
+    record = json.loads(original_bytes)
+    if record.get("status") == "complete":
+        raise RuntimeError("Completed experiments cannot be resumed")
+    assert_stopped(record)
+    if not record.get("finished_at"):
+        began = datetime.fromisoformat(record["started_at"])
+        end = min(now(), began+timedelta(seconds=record["reserved_seconds"]))
+        record.update(original_status=record["status"], status="interrupted", finished_at=end.isoformat(),
+                      elapsed_seconds=(end-began).total_seconds(),
+                      budget_accounting="Conservative full reservation, capped by reconciliation time; actual interruption time unknown.",
+                      reconciled_at=now().isoformat())
+    number = 1
+    while ((receipt_path.parent/f"supervisor_attempt_{number}.json").exists() or
+           (receipt_path.parent/f"supervisor_raw_{number}.json").exists()):
+        number += 1
+    archived = receipt_path.parent/f"supervisor_attempt_{number}.json"
+    with (receipt_path.parent/f"supervisor_raw_{number}.json").open("xb") as stream:
+        stream.write(original_bytes)
+    for name in ("environment", "provenance"):
+        source = receipt_path.parent/f"{name}.json"
+        if source.exists():
+            with (receipt_path.parent/f"{name}_attempt_{number}.json").open("xb") as stream:
+                stream.write(source.read_bytes())
+    record["original_receipt_sha256"] = hashlib.sha256(original_bytes).hexdigest()
+    with archived.open("x", encoding="utf-8") as stream:
+        json.dump(record, stream, indent=2)
+    return archived
+
+
+def used_seconds(base, day_start, day_end, exclude=None):
+    used = 0.0
+    paths = list(base.glob("*/supervisor.json"))+list(base.glob("*/supervisor_attempt_*.json"))
+    for path in paths:
+        if path == exclude:
+            continue
+        record = json.loads(path.read_text())
+        if record.get("status") in {"starting", "training", "benchmarking"}:
+            raise RuntimeError("An unfinished supervisor needs reconciliation before more GPU work")
+        began = datetime.fromisoformat(record["started_at"])
+        finished = datetime.fromisoformat(record["finished_at"])
+        used += max(0, (min(finished, day_end)-max(began, day_start)).total_seconds())
+    return used
+
+
 def acquire_lease(path):
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -79,6 +140,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", required=True)
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--resume", action="store_true", help="Resume an inactive interrupted run from its exact last.pt")
     args = parser.parse_args()
     if not args.run.replace("_", "").isalnum() or args.run.startswith("stability"):
         parser.error("Use a unique alphanumeric exploratory run ID")
@@ -92,28 +154,35 @@ def main():
         raise ValueError("Local candidate must preserve independent 40k/5k development")
     base = ROOT/"results/research"
     folder = base/args.run
-    folder.mkdir(parents=True, exist_ok=False)
+    folder.mkdir(parents=True, exist_ok=args.resume)
     receipt_path = folder/"supervisor.json"
-    if receipt_path.exists():
+    prior_attempt = None
+    if args.resume:
+        if not receipt_path.exists() or not (folder/"last.pt").exists():
+            raise FileNotFoundError("Resume requires an existing receipt and last checkpoint")
+        previous = json.loads(receipt_path.read_text())
+        if previous.get("config_sha256") != sha256(config_path) or (folder/"benchmark.json").exists():
+            raise ValueError("Resume configuration changed or benchmark already exists")
+        assert_stopped(previous)
+    elif receipt_path.exists():
         raise FileExistsError("Existing supervised experiment: inspect/resume deliberately, never restart blindly")
     lease_path = base/"local_lease.json"
     acquire_lease(lease_path)
     started = time.perf_counter()
     receipt = {"run": args.run, "status": "starting", "pid": os.getpid(),
                "started_at": now().isoformat(), "config_sha256": sha256(config_path),
-               "confirmation_evaluated": False, "submitted": False}
+               "confirmation_evaluated": False, "submitted": False,
+               "process_created_at": psutil.Process().create_time(), "resumed": args.resume}
+    owns_receipt = not args.resume
     try:
+        if args.resume:
+            prior_attempt = close_interrupted_attempt(receipt_path)
+            owns_receipt = True
+            receipt.update(previous_attempt=prior_attempt.name, resumed_checkpoint_sha256=sha256(folder/"last.pt"))
         day = now().date().isoformat()
         day_start = now().replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start+timedelta(days=1)
-        used = 0.0
-        for path in base.glob("*/supervisor.json"):
-            record = json.loads(path.read_text())
-            if record.get("status") in {"starting", "training", "benchmarking"}:
-                raise RuntimeError("An unfinished supervisor needs reconciliation before more GPU work")
-            began = datetime.fromisoformat(record["started_at"])
-            finished = datetime.fromisoformat(record["finished_at"])
-            used += max(0, (min(finished, day_end)-max(began, day_start)).total_seconds())
+        used = used_seconds(base, day_start, day_end, exclude=receipt_path)
         budget = min(policy["local_job_timeout_seconds"], policy["local_gpu_seconds_per_utc_day"]-used,
                      int((deadline-now()).total_seconds()))
         if budget < 60:
@@ -121,7 +190,11 @@ def main():
         receipt.update(reserved_seconds=budget, utc_budget_day=day, status="training")
         write_json(receipt_path, receipt)
         command = [sys.executable, "train.py", "--config", str(config_path), "--output-dir", str(folder), "--device", "cuda"]
-        supervised_command(command, folder/"training.log", budget, receipt_path, receipt)
+        if args.resume:
+            command.append("--resume")
+        log_name = "training_resume_"+str(time.time_ns())+".log" if args.resume else "training.log"
+        receipt["training_log"] = log_name
+        supervised_command(command, folder/log_name, budget, receipt_path, receipt)
         receipt["status"] = "benchmarking"
         write_json(receipt_path, receipt)
         remaining = budget-(time.perf_counter()-started)
@@ -138,7 +211,8 @@ def main():
         raise
     finally:
         receipt.update(elapsed_seconds=time.perf_counter()-started, finished_at=now().isoformat())
-        write_json(receipt_path, receipt)
+        if owns_receipt:
+            write_json(receipt_path, receipt)
         # Delete only our own small lease file, never any experiment directory.
         if lease_path.exists() and json.loads(lease_path.read_text()).get("pid") == os.getpid():
             lease_path.unlink()
