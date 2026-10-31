@@ -27,11 +27,26 @@ def source_sha256():
     return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
+def _all_finite(values):
+    # For FP32 tensors, max(abs(x)) is finite iff every element is finite.
+    # Infinity norm cannot overflow like a summed norm. Aggregate on-device so
+    # each device needs one host decision, rather than one per parameter.
+    # Empty tensors are vacuously finite; their infinity norm is undefined.
+    groups = {}
+    for value in values:
+        if value.numel():
+            groups.setdefault(value.device, []).append(value)
+    return all(torch.isfinite(torch.stack(torch._foreach_norm(group, float("inf")))).all().item()
+               for group in groups.values())
+
+
 def _parameters(model):
     values = dict(model.named_parameters())
     for name, value in values.items():
-        if value.dtype != torch.float32 or not torch.isfinite(value).all():
+        if value.dtype != torch.float32:
             raise ValueError(f"SWA requires finite FP32 parameters: {name}")
+    if not _all_finite(values.values()):
+        raise ValueError("SWA requires finite FP32 parameters")
     return values
 
 
@@ -63,7 +78,7 @@ def average_parameters_(averaged_model, sampled_model, count):
         # finite FP32 inputs, while retaining equal weights across samples.
         weight = 1.0/(count+1)
         updated = [target[name].detach()*(1.0-weight)+source[name].detach()*weight for name in names]
-    if any(not torch.isfinite(value).all() for value in updated):
+    if not _all_finite(updated):
         raise FloatingPointError("SWA parameter average became nonfinite; no parameters were changed")
     for name, value in zip(names, updated):
         target[name].copy_(value)

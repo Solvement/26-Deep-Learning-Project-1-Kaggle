@@ -27,7 +27,7 @@
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
   复测和真实预测均完成。SAM 的160轮、完整benchmark和配对已完成，待正式seed复测；
-  SWA独立实现与276项全套CPU检查已完成，等待原生GPU预检；SE尚未实现。
+  SWA独立实现与276项全套CPU检查已完成，首个原生GPU预检通过真实更新、但未满足剩余预算；批量同步优化及278项CPU检查已通过，等待新源码GPU测速。SE尚未实现。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -290,7 +290,7 @@ LR0.01，逐epoch做40次FP32参数平均。输出显式`swa`及`raw_tail_contro
 
 [run_swa.py](run_swa.py)共享本地lease/预算/watchdog；先做20步实际原生BF16预检，再按实测余量启动。
 主模型只接续精确哈希的本方seed2026末轮检查点；正式seed2027在同一监督任务内重新scratch160+tail40。
-两份完整benchmark、BN和I/O均受任务上限。276项全套CPU检查与独立审查通过；尚未GPU预检或训练。
+两份完整benchmark、BN和I/O均受任务上限。276项全套CPU检查与独立审查通过。首次GPU预检23/23真实原生BF16有限更新，中位108.814ms；固定1.5倍流水线余量和300秒最终化要求2343.52秒，超过当日剩余2154.72秒，未启动正式训练。参数平均有294次逐tensor同步，按device聚合的无穷范数有限性检测现已实现，12项数学检查及278项集成CPU检查通过；不降低预算倍率或更改预检平均频率，新源码必须重新测速。
 若在epoch200之后的最终BN/eval阶段中断，当前入口拒绝直接resume，保留原last状态并先核验再处理。
 现有v1/v2交付入口不支持SWA，不以改名或旧weight variant替代方法审计。
 

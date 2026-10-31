@@ -1,6 +1,6 @@
 {
   "schema": "audited_followup_research_aggregate_v1",
-  "recorded_at": "2026-10-31T19:07:16.056750+00:00",
+  "recorded_at": "2026-10-31T19:49:54.078133+00:00",
   "issue": 7,
   "interpretation": "Exploratory reused development and fixed synthetic stress proxies. Not hidden accuracy or independent confirmation. No new research submission scored at this snapshot.",
   "baseline": {
@@ -804,13 +804,13 @@
     "CPU_tests": 182,
     "CI": "success",
     "CI_url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41226413783",
-    "latest_local_integration_CPU_tests": 239,
-    "integration_note": "Versioned ResizeMix pairing/delivery/local-repeat supervisor tested with synthetic CPU fixtures and independent review; actual ResizeMix paired/repeat/prediction still pending.",
+    "latest_local_integration_CPU_tests": 278,
+    "integration_note": "SWA fixed-tail/explicit-checkpoint/parent-gate math, source, provenance, supervisor and failure-boundary tests passed. Real initial native BF16 preflight passed23updates but failed remaining runtime allowance. No SWA accuracy/training/paired/repeat/delivery claim. WRN34 primary predictions are ready, SAM formal seed repeat and ResizeMix cloud repeat remain pending.",
     "latest_verified_committed_CI": {
-      "commit": "435410c917beadd8e9585736a25293d805b2b084",
-      "CPU_tests": 219,
+      "commit": "0af75629dfaeb97db4e52d2891dcf326ebd53787",
+      "CPU_tests": 276,
       "result": "SUCCESS",
-      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41230654119"
+      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41235483249"
     },
     "cloud_attestation_note": "239 integrated CPU tests and independent review passed. Actual completed ResizeMix training/cleanup and native SAM receipt structure also checked read-only. No actual seed2027 cloud attestation exists yet."
   },
@@ -1757,5 +1757,50 @@
     "method_gate_failure": false,
     "promotion_allowed": false,
     "next": "Fresh same-recipe seed2027 on existing T4 after current cloud runtime is released, then local v3 benchmark"
+  },
+  "SWA_engineering_initial": {
+    "schema": "research_swa_engineering_v1",
+    "status": "complete",
+    "synthetic_only": true,
+    "precision": "bf16",
+    "model_config": {
+      "depth": 34,
+      "widen_factor": 3,
+      "dropout": 0.0,
+      "num_classes": 10
+    },
+    "parameter_count": 4166298,
+    "total_successful_updates": 23,
+    "parameter_changed_steps": 23,
+    "averaging_calls": 23,
+    "median_step_seconds": 0.1088137500009907,
+    "p90_step_seconds": 0.12348192999852474,
+    "native_bf16_verified": true,
+    "finite_losses_verified": true,
+    "finite_parameters_verified": true,
+    "source_sha256": {
+      "research/train_swa.py": "d566201a7065d5b97ebe60aec67a91e40eb99f014fd18f625d0b0553c0abf035",
+      "research/swa.py": "4a1acc7787d21518697d4bd8ce5e0a0e1cde1b40c21422d9c9b440353e5314be",
+      "research/train_shadow.py": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061",
+      "research/augmentations.py": "718530d2c56c556eb65508915126e0f5f0964a9c03d4937df74d3e3798551873"
+    },
+    "training_data_loaded": false,
+    "hidden_images_loaded": false,
+    "confirmation_evaluated": false,
+    "receipt_elapsed_seconds": 8.848953099997743,
+    "fixed_runtime_requirement_seconds": 2343.5222250186052,
+    "remaining_daily_allowance_after_preflight_seconds": 2154.7168960000017,
+    "formal_launch_allowed_by_this_measurement": false,
+    "interpretation": "Synthetic real-update engineering only, no model accuracy. The immutable initial timing fails the unchanged runtime guard. A mathematically equivalent grouped infinity-norm finiteness optimization now passed278integrated CPU tests; new source still requires a new native preflight."
+  },
+  "SWA_finite_check_optimization": {
+    "helper_sha256": "f3d05f96dc25d4e35d565798ee186583b2bc2cdb6db2bf66bcba8c7db515933a",
+    "previous_per_average_host_finite_decisions": 294,
+    "new_per_average_host_finite_decisions_single_device": 3,
+    "FP32_convex_mean_unchanged": true,
+    "initial_preflight_preserved": true,
+    "fixed_guard_and_23_preflight_averages_unchanged": true,
+    "CPU_tests": 278,
+    "native_speedup_measured": false
   }
 }

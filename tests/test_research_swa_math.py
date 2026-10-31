@@ -41,6 +41,39 @@ def tiny_augmentation(batch, cutout=0):
 
 
 class SWAMathTests(unittest.TestCase):
+    def test_grouped_finite_matches_elementwise_for_empty_extreme_and_noncontiguous_tensors(self):
+        finite = [torch.tensor(torch.finfo(torch.float32).max), torch.tensor([-3e38, 3e38, -0.]),
+                  torch.arange(12.).reshape(3, 4).t(), torch.empty(0), torch.empty((2, 0))]
+        cases = [[], [torch.empty(0)], finite]
+        for bad in (float("nan"), float("inf"), -float("inf")):
+            for position in range(len(finite)):
+                values = list(finite)
+                values[position] = torch.tensor([0., bad])
+                cases.append(values)
+        for values in cases:
+            expected = all(torch.isfinite(value).all().item() for value in values)
+            self.assertIs(swa._all_finite(values), expected)
+        with patch.object(torch, "_foreach_norm", wraps=torch._foreach_norm) as norms:
+            self.assertTrue(swa._all_finite([torch.empty(0), torch.empty((3, 0))]))
+        norms.assert_not_called()
+
+    def test_average_keeps_arithmetic_and_uses_one_finite_decision_per_device_per_phase(self):
+        source = torch.nn.ParameterDict({"a": torch.nn.Parameter(torch.full((2, 3), 4.)),
+            "b": torch.nn.Parameter(torch.arange(12.).reshape(3, 4).t()), "empty": torch.nn.Parameter(torch.empty(0))})
+        averaged = copy.deepcopy(source)
+        with torch.no_grad():
+            averaged["a"].fill_(2.); averaged["b"].add_(2.)
+        original_source = {name: value.clone() for name, value in source.items()}
+        expected = {name: averaged[name].detach()*(1-1/3)+source[name].detach()*(1/3) for name in source}
+        with patch.object(torch, "_foreach_norm", wraps=torch._foreach_norm) as norms, \
+                patch.object(torch, "isfinite", wraps=torch.isfinite) as finite:
+            self.assertEqual(swa.average_parameters_(averaged, source, 2), 3)
+        self.assertEqual(norms.call_count, 3)  # target, source, proposed output
+        self.assertEqual(finite.call_count, 3)
+        self.assertTrue(all(call.args[1] == float("inf") and len(call.args[0]) == 2 for call in norms.call_args_list))
+        for name, value in averaged.items(): self.assertTrue(torch.equal(value, expected[name]))
+        for name, value in source.items(): self.assertTrue(torch.equal(value, original_source[name]))
+
     def test_equal_parameter_mean_includes_bn_affine_but_never_buffers_or_gradients(self):
         source = torch.nn.Sequential(torch.nn.BatchNorm1d(2), torch.nn.Linear(2, 1))
         averaged = copy.deepcopy(source)
