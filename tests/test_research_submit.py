@@ -280,11 +280,94 @@ class ResearchSubmissionTests(unittest.TestCase):
             original = ModuleType("research.delivery")
             original.validate_delivery = Mock(side_effect=AssertionError("v1 validator cannot authorize v2"))
             with patch.dict(sys.modules, {"research.delivery_v2": versioned, "research.delivery": original}), \
-                    patch.object(submit, "SAMPLE_SHA", submit.sha256(sample)):
+                    patch.object(submit, "SAMPLE_SHA", submit.sha256(sample)), \
+                    patch.object(submit, "validate_v2_repeat_receipt", return_value={"repeat_receipt_schema": "guarded-test-fixture"}) as guard:
                 result = submit.validate_manifest(manifest, root)
                 self.assertEqual(result["delivery_schema"], "research_prediction_delivery_v2")
                 versioned.validate_delivery.assert_called_once_with(manifest, require_prediction=True)
                 original.validate_delivery.assert_not_called()
+                guard.assert_called_once_with(manifest, root)
+                self.assertFalse((root/"results/research/submission_intents").exists())
+
+    def native_repeat_fixture(self, root):
+        folder = root/"repeat_seed2027"
+        folder.mkdir()
+        checkpoint, benchmark, receipt = folder/"best.pt", folder/"benchmark.json", folder/"supervisor.json"
+        checkpoint.write_bytes(b"actual-repeat-checkpoint-fixture")
+        benchmark.write_text("{}")
+        (folder/"provenance.json").write_text(json.dumps({"code": {"source_sha256": {"train.py": "frozen"}}}))
+        data = {"run": folder.name, "status": "complete", "backend": "local", "trainer": "frozen", "precision": "bf16",
+            "benchmark_sha256": submit.sha256(benchmark), "config_sha256": "a"*64,
+            "confirmation_evaluated": False, "submitted": False, "pid": 11, "child_pid": 12, "watchdog_pid": 13,
+            "process_created_at": 1000., "child_created_at": 1001.}
+        receipt.write_text(json.dumps(data))
+        return checkpoint, benchmark, receipt, data
+
+    def test_native_v2_repeat_requires_original_local_training_identity_not_relabelled_cloud(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            checkpoint, benchmark, receipt, good = self.native_repeat_fixture(root)
+            result = submit.validate_native_repeat_receipt(checkpoint, benchmark, receipt, root)
+            self.assertEqual(result["repeat_receipt_schema"], "native_local_repeat_v1")
+            for change in ({"backend": "colab"}, {"composition": True}, {"schema": "unknown_composition"},
+                           {"session": "cloud-job"}, {"mode": "resizemix-benchmark"}, {"trainer": "unverified"},
+                           {"watchdog_pid": None}, {"benchmark_sha256": "e"*64}):
+                receipt.write_text(json.dumps({**good, **change}))
+                with self.assertRaises(ValueError):
+                    submit.validate_native_repeat_receipt(checkpoint, benchmark, receipt, root)
+            receipt.write_text(json.dumps(good))
+            renamed = root/"combined_receipt.json"
+            renamed.write_bytes(receipt.read_bytes())
+            with self.assertRaisesRegex(ValueError, "original native"):
+                submit.validate_native_repeat_receipt(checkpoint, benchmark, renamed, root)
+
+    def test_v2_cloud_attestation_is_revalidated_and_binds_exact_frozen_repeat_paths(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root/"research").mkdir()
+            helper = root/"research/repeat_attestation.py"
+            helper.write_text("pinned attestation verifier fixture")
+            checkpoint, benchmark, receipt, _ = self.native_repeat_fixture(root)
+            receipt.write_text(json.dumps({"schema": "research_cloud_repeat_attestation_v1"}))
+            frozen = root/"frozen.json"
+            frozen.write_text("{}")
+            manifest = root/"delivery.json"
+            manifest.write_text(json.dumps({"schema": "research_prediction_delivery_v2",
+                "frozen_manifest_path": str(frozen), "frozen_manifest_sha256": submit.sha256(frozen),
+                "repeat": {"checkpoint_path": str(checkpoint), "benchmark_path": str(benchmark), "receipt_path": str(receipt)}}))
+            result = {"schema": "research_cloud_repeat_attestation_v1", "attestation_path": str(receipt),
+                "attestation_sha256": submit.sha256(receipt), "checkpoint_path": str(checkpoint),
+                "checkpoint_sha256": submit.sha256(checkpoint), "benchmark_path": str(benchmark),
+                "benchmark_sha256": submit.sha256(benchmark), "frozen_manifest_path": str(frozen),
+                "frozen_manifest_sha256": submit.sha256(frozen)}
+            helper_module = ModuleType("research.repeat_attestation")
+            helper_module.validate_attestation = Mock(return_value=result)
+            with patch.dict(sys.modules, {"research.repeat_attestation": helper_module}):
+                checked = submit.validate_v2_repeat_receipt(manifest, root)
+                helper_module.validate_attestation.assert_called_once_with(receipt, manifest_path=frozen)
+                self.assertEqual(checked["repeat_validator_source_sha256"], submit.sha256(helper))
+                helper_module.validate_attestation.return_value = {**result, "checkpoint_sha256": "f"*64}
+                with self.assertRaisesRegex(ValueError, "actual delivery/repeat"):
+                    submit.validate_v2_repeat_receipt(manifest, root)
+
+    def test_unknown_combined_v2_receipt_fails_before_api_or_upload_intent(self):
+        for fake in ({"schema": "unverified_cloud_attestation", "backend": "local", "trainer": "frozen"},
+                     {"backend": "local", "trainer": "frozen", "composition": True},
+                     {"backend": "local", "trainer": "frozen", "session": "cloud-origin"}):
+            with self.subTest(fake=fake), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                manifest, details, api, _ = self.fixture(root)
+                checkpoint, benchmark, receipt, native = self.native_repeat_fixture(root)
+                receipt.write_text(json.dumps({**native, **fake}))
+                frozen = root/"frozen.json"; frozen.write_text("{}")
+                manifest.write_text(json.dumps({"schema": "research_prediction_delivery_v2", "frozen_manifest_path": str(frozen),
+                    "repeat": {"checkpoint_path": str(checkpoint), "benchmark_path": str(benchmark), "receipt_path": str(receipt)}}))
+                versioned = ModuleType("research.delivery_v2")
+                versioned.validate_delivery = Mock(return_value={**details, "manifest_sha256": submit.sha256(manifest)})
+                with patch.dict(sys.modules, {"research.delivery_v2": versioned}):
+                    with self.assertRaises(ValueError):
+                        submit.submit_once(manifest, api, root, timeout=0)
+                self.assertEqual(api.mock_calls, [])
                 self.assertFalse((root/"results/research/submission_intents").exists())
 
 

@@ -60,6 +60,76 @@ def submission_window(root):
     return policy
 
 
+def validate_native_repeat_receipt(checkpoint_path, benchmark_path, receipt_path, root=ROOT):
+    """Accept an original native training receipt, never a relabeled cloud job."""
+    checkpoint, benchmark, receipt_path = map(lambda value: Path(value).resolve(),
+                                             (checkpoint_path, benchmark_path, receipt_path))
+    receipt = read_json(receipt_path)
+    if (receipt_path != checkpoint.parent/"supervisor.json" or benchmark != checkpoint.parent/"benchmark.json" or
+            receipt.get("schema") is not None or receipt.get("composition") not in (None, False) or
+            any(key in receipt for key in ("session", "assignment_attempts", "cloud_run_path", "local_receipt_path", "mode")) or
+            receipt.get("backend") != "local" or receipt.get("role") not in (None, "development_repeat") or
+            receipt.get("status") != "complete" or receipt.get("run") != checkpoint.parent.name or
+            receipt.get("confirmation_evaluated") is not False or receipt.get("submitted") is not False or
+            receipt.get("hidden_images_loaded") not in (None, False) or
+            receipt.get("benchmark_sha256") != sha256(benchmark)):
+        raise ValueError("A complete original native local repeat receipt is required; cloud/composed receipts need attestation")
+    if (any(type(receipt.get(key)) is not int or receipt[key] <= 0 for key in ("pid", "child_pid", "watchdog_pid")) or
+            any(type(receipt.get(key)) not in (int, float) or not math.isfinite(receipt[key]) or receipt[key] <= 0
+                for key in ("process_created_at", "child_created_at"))):
+        raise ValueError("Native repeat process identity evidence is missing")
+    provenance = read_json(checkpoint.parent/"provenance.json")
+    marker = provenance.get("code", {}).get("research_training")
+    if marker is None:
+        expected = "frozen"
+    elif isinstance(marker, dict):
+        expected = {"research_shadow_training_v1": "shadow", "research_sam_training_v1": "sam",
+                    "research_resizemix_training_v1": "resizemix"}.get(marker.get("schema"))
+    else:
+        expected = None
+    if expected is None or receipt.get("trainer") != expected:
+        raise ValueError("Native repeat trainer differs from its actual audited method")
+    if (not isinstance(receipt.get("config_sha256"), str) or not SHA.fullmatch(receipt["config_sha256"]) or
+            (marker and receipt.get("precision") not in (marker.get("precision"), "auto")) or
+            (expected == "frozen" and receipt.get("precision") != "bf16")):
+        raise ValueError("Native repeat configuration/precision evidence differs")
+    if expected == "resizemix":
+        from research.run_resizemix_local import SOURCE_FILES
+        source = {name: sha256(root/name) for name in SOURCE_FILES}
+        raw_config = checkpoint.parent/"input_config.json"
+        if (receipt.get("precision") != marker.get("precision") or receipt.get("source_sha256") != source or
+                not raw_config.is_file() or sha256(raw_config) != receipt["config_sha256"]):
+            raise ValueError("Native ResizeMix repeat source or immutable input configuration differs")
+    return {"repeat_receipt_schema": "native_local_repeat_v1", "repeat_receipt_sha256": sha256(receipt_path)}
+
+
+def validate_v2_repeat_receipt(manifest_path, root=ROOT):
+    """Extend frozen v2 validation with an explicit, deeply audited receipt type."""
+    document = read_json(manifest_path)
+    repeat = document["repeat"]
+    checkpoint, benchmark, receipt_path = [Path(repeat[key]).resolve() for key in
+                                         ("checkpoint_path", "benchmark_path", "receipt_path")]
+    receipt = read_json(receipt_path)
+    if receipt.get("schema") == "research_cloud_repeat_attestation_v1":
+        from research.repeat_attestation import validate_attestation
+        frozen_path = Path(document["frozen_manifest_path"]).resolve()
+        attestation = validate_attestation(receipt_path, manifest_path=frozen_path)
+        if (attestation.get("schema") != "research_cloud_repeat_attestation_v1" or
+                Path(attestation["attestation_path"]).resolve() != receipt_path or
+                Path(attestation["checkpoint_path"]).resolve() != checkpoint or
+                Path(attestation["benchmark_path"]).resolve() != benchmark or
+                Path(attestation["frozen_manifest_path"]).resolve() != frozen_path or
+                attestation.get("attestation_sha256") != sha256(receipt_path) or
+                attestation.get("benchmark_sha256") != sha256(benchmark) or
+                attestation.get("checkpoint_sha256") != sha256(checkpoint) or
+                attestation.get("frozen_manifest_sha256") != sha256(frozen_path) or
+                document.get("frozen_manifest_sha256") != sha256(frozen_path)):
+            raise ValueError("Cloud repeat attestation does not bind this actual delivery/repeat")
+        return {"repeat_receipt_schema": attestation["schema"], "repeat_receipt_sha256": sha256(receipt_path),
+                "repeat_validator_source_sha256": sha256(root/"research/repeat_attestation.py")}
+    return validate_native_repeat_receipt(checkpoint, benchmark, receipt_path, root)
+
+
 def validate_manifest(path, root=ROOT):
     # Lazy import: the isolated Kaggle environment does not need torch.
     schema = read_json(path).get("schema")
@@ -75,6 +145,8 @@ def validate_manifest(path, root=ROOT):
     else:
         raise ValueError("Unsupported research delivery schema")
     result = dict(validator(Path(path), require_prediction=True))
+    if schema == "research_prediction_delivery_v2":
+        result.update(validate_v2_repeat_receipt(path, root))
     if (result.get("competition") != COMPETITION or result.get("training_examples") != examples or
             result.get("seed") != 2026 or result.get("policy") not in ("plain", "flip", "center80_shift20") or
             type(result.get("parameter_count")) is not int or not 0 < result["parameter_count"] <= 5000000 or
@@ -168,7 +240,8 @@ def poll_known(api, intent, intent_path, root, timeout=180, poll_seconds=7):
                         "policy", "seed", "training_examples", "manifest_sha256", "frozen_manifest_sha256")}
             receipt.update(competition=COMPETITION, team="Saber", status="complete", submission_ref=ref,
                            public_score=score, private_score=None, submitted_at=intent["submitted_at"], checked_at=now().isoformat())
-            for key in ("delivery_schema", "validation_examples", "development_accuracy", "independent_development_evaluated", "parent_delivery_sha256"):
+            for key in ("delivery_schema", "validation_examples", "development_accuracy", "independent_development_evaluated", "parent_delivery_sha256",
+                        "repeat_receipt_schema", "repeat_receipt_sha256", "repeat_validator_source_sha256"):
                 if key in intent: receipt[key] = intent[key]
             receipt_path = root/"results/research/submission_receipts"/f"{ref}.json"
             if receipt_path.exists():

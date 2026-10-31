@@ -19,16 +19,36 @@ if str(ROOT) not in sys.path:
 import psutil
 from research.run_local import acquire_lease, now, sha256, supervised_command, used_seconds
 from runtime import write_json
+from research.submit_candidate import validate_native_repeat_receipt
 
 MODES = ("sam-speed", "shadow-benchmark", "sam-benchmark", "resizemix-benchmark",
-         "paired", "paired-v2", "predict", "predict-v2", "refit-predict")
+         "paired", "paired-v2", "predict", "predict-v2", "refit-predict", "cloud-repeat-predict")
 POLICIES = ("plain", "flip", "center80_shift20")
 
 
 def build_command(args, folder, baseline):
     """Validate required files before acquiring a GPU lease or creating output."""
     inputs = []
-    if args.mode == "refit-predict":
+    if args.mode == "cloud-repeat-predict":
+        if not args.manifest or not getattr(args, "attestation", None):
+            raise ValueError("cloud-repeat-predict requires --manifest and --attestation")
+        from research.repeat_attestation import validate_attestation
+        manifest, attestation_path = args.manifest.resolve(), args.attestation.resolve()
+        attestation = validate_attestation(attestation_path, manifest_path=manifest)
+        if (attestation.get("schema") != "research_cloud_repeat_attestation_v1" or
+                Path(attestation["attestation_path"]).resolve() != attestation_path or
+                Path(attestation["frozen_manifest_path"]).resolve() != manifest or
+                attestation.get("attestation_sha256") != sha256(attestation_path) or
+                attestation.get("frozen_manifest_sha256") != sha256(manifest) or
+                not attestation.get("evidence_sha256")):
+            raise ValueError("Complete source-bound cloud repeat attestation is required")
+        inputs += [manifest, attestation_path, ROOT/"research/submit_candidate.py"]
+        inputs += [Path(path) for path in attestation["evidence_sha256"]]
+        inputs += [ROOT/name for name in attestation.get("source_sha256", {})]
+        output = folder/"delivery.json"
+        command = [sys.executable, "research/repeat_attestation.py", "--predict", "--manifest", str(manifest),
+                   "--attestation", str(attestation_path), "--output-dir", str(folder), "--device", "cuda"]
+    elif args.mode == "refit-predict":
         if args.plan is None:
             raise ValueError("refit-predict requires --plan")
         plan = args.plan.resolve()
@@ -46,6 +66,9 @@ def build_command(args, folder, baseline):
             raise ValueError("predict requires --manifest --repeat-checkpoint --repeat-benchmark --repeat-receipt")
         manifest, repeat, benchmark, receipt = [path.resolve() for path in
             (args.manifest, args.repeat_checkpoint, args.repeat_benchmark, args.repeat_receipt)]
+        if args.mode == "predict-v2":
+            validate_native_repeat_receipt(repeat, benchmark, receipt, ROOT)
+            inputs.append(ROOT/"research/submit_candidate.py")
         inputs += [manifest, repeat, benchmark, receipt]
         frozen = json.loads(manifest.read_text())
         inputs += [Path(path) for path in frozen.get("evidence_sha256", {})]
@@ -110,6 +133,7 @@ def main():
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--candidate-benchmark", type=Path)
     parser.add_argument("--plan", type=Path)
+    parser.add_argument("--attestation", type=Path)
     for name in ("manifest", "repeat-checkpoint", "repeat-benchmark", "repeat-receipt"):
         parser.add_argument("--"+name, type=Path)
     parser.add_argument("--policy", choices=POLICIES)
@@ -152,6 +176,8 @@ def main():
         if remaining < 1:
             raise TimeoutError("Diagnostic setup exhausted the remaining runtime")
         supervised_command(command, folder/"diagnostic.log", remaining, receipt_path, receipt)
+        if args.mode == "cloud-repeat-predict" and any(sha256(path) != digest for path, digest in receipt["input_sha256"].items()):
+            raise RuntimeError("Cloud repeat attestation or its original evidence changed during prediction")
         result = json.loads(output.read_text())
         if result.get("status") != "complete":
             raise ValueError("Diagnostic did not produce complete evidence")

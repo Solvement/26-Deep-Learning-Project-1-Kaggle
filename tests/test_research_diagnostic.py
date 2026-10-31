@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
+from types import ModuleType
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -44,7 +46,8 @@ class DiagnosticSupervisorTests(unittest.TestCase):
             "stops_at": "2099-01-01T00:00:00+00:00", "local_gpu_seconds_per_utc_day": daily,
             "local_job_timeout_seconds": 10800, "baseline_benchmark": "baseline.json"}))
         for name in ("train_sam.py", "benchmark_shadow.py", "benchmark_sam.py", "benchmark_resizemix.py",
-                     "paired_compare.py", "paired_compare_v2.py", "delivery.py", "delivery_v2.py"):
+                     "paired_compare.py", "paired_compare_v2.py", "delivery.py", "delivery_v2.py", "submit_candidate.py",
+                     "repeat_attestation.py"):
             (root/"research"/name).write_text("mock child entrypoint")
         for name in ("config.json", "baseline.json", "candidate.json", "frozen.json", "receipt.json",
                      "metrics.json", "history.json", "provenance.json", "environment.json"):
@@ -63,7 +66,8 @@ class DiagnosticSupervisorTests(unittest.TestCase):
                        "sam-benchmark": "research/benchmark_sam.py", "resizemix-benchmark": "research/benchmark_resizemix.py",
                        "paired": "research/paired_compare.py", "paired-v2": "research/paired_compare_v2.py",
                        "predict": "research/delivery.py", "predict-v2": "research/delivery_v2.py"}
-            with patch.object(diagnostic, "ROOT", root):
+            with patch.object(diagnostic, "ROOT", root), \
+                    patch.object(diagnostic, "validate_native_repeat_receipt", return_value={"repeat_receipt_schema": "native_local_repeat_v1"}):
                 for mode, entry in entries.items():
                     args.mode = mode
                     command, output, inputs = diagnostic.build_command(args, root/"new", root/"baseline.json")
@@ -84,6 +88,75 @@ class DiagnosticSupervisorTests(unittest.TestCase):
                         self.assertEqual(output.name, "delivery.json")
                         self.assertTrue({root/"frozen.json", root/"best.pt", root/"candidate.json", root/"receipt.json",
                                          root/"config.json", root/"metrics.json", root/"history.json", root/"provenance.json", root/"environment.json"} <= set(inputs))
+
+    def test_cloud_repeat_predict_deepchecks_attestation_and_hashes_all_original_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            attestation = root/"attestation.json"
+            attestation.write_text("{}")
+            evidence = root/"original_cloud_supervisor.json"
+            evidence.write_text("immutable original cloud evidence")
+            helper = root/"research/helper.py"
+            helper.write_text("pinned helper")
+            checked = {"schema": "research_cloud_repeat_attestation_v1", "attestation_path": str(attestation),
+                "attestation_sha256": diagnostic.sha256(attestation), "frozen_manifest_path": str(root/"frozen.json"),
+                "frozen_manifest_sha256": diagnostic.sha256(root/"frozen.json"),
+                "evidence_sha256": {str(evidence): diagnostic.sha256(evidence)},
+                "source_sha256": {"research/helper.py": diagnostic.sha256(helper)}}
+            module = ModuleType("research.repeat_attestation")
+            from unittest.mock import Mock
+            module.validate_attestation = Mock(return_value=checked)
+            args = SimpleNamespace(mode="cloud-repeat-predict", manifest=root/"frozen.json", attestation=attestation)
+            with patch.object(diagnostic, "ROOT", root), patch.dict(sys.modules, {"research.repeat_attestation": module}):
+                command, output, inputs = diagnostic.build_command(args, root/"new", root/"baseline.json")
+            module.validate_attestation.assert_called_once_with(attestation, manifest_path=root/"frozen.json")
+            self.assertEqual(command[1], "research/repeat_attestation.py")
+            self.assertEqual(command[command.index("--attestation")+1], str(attestation))
+            self.assertEqual(output.name, "delivery.json")
+            self.assertTrue({attestation, evidence, helper, root/"frozen.json", root/"research/repeat_attestation.py"} <= set(inputs))
+
+    def test_ordinary_v2_prediction_rejects_cloud_or_composed_receipts_before_a_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            for document in ({"schema": "research_cloud_repeat_attestation_v1"},
+                             {"backend": "local", "trainer": "resizemix", "composition": True},
+                             {"backend": "local", "trainer": "frozen", "session": "still-cloud"}):
+                (root/"receipt.json").write_text(json.dumps(document))
+                args = SimpleNamespace(mode="predict-v2", manifest=root/"frozen.json", repeat_checkpoint=root/"best.pt",
+                    repeat_benchmark=root/"candidate.json", repeat_receipt=root/"receipt.json")
+                with patch.object(diagnostic, "ROOT", root), patch.object(diagnostic, "acquire_lease") as lease:
+                    with self.assertRaisesRegex(ValueError, "original native"):
+                        diagnostic.build_command(args, root/"new", root/"baseline.json")
+                    lease.assert_not_called()
+
+    def test_cloud_repeat_prediction_rejects_original_evidence_change_during_child(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            attestation = root/"attestation.json"; attestation.write_text("{}")
+            evidence = root/"original_cloud_receipt.json"; evidence.write_text("original")
+            checked = {"schema": "research_cloud_repeat_attestation_v1", "attestation_path": str(attestation),
+                "attestation_sha256": diagnostic.sha256(attestation), "frozen_manifest_path": str(root/"frozen.json"),
+                "frozen_manifest_sha256": diagnostic.sha256(root/"frozen.json"),
+                "evidence_sha256": {str(evidence): diagnostic.sha256(evidence)}, "source_sha256": {}}
+            module = ModuleType("research.repeat_attestation")
+            from unittest.mock import Mock
+            module.validate_attestation = Mock(return_value=checked)
+            argv = ["run_diagnostic.py", "--run", "cloud_prediction", "--mode", "cloud-repeat-predict",
+                    "--manifest", str(root/"frozen.json"), "--attestation", str(attestation)]
+            def changed(command, log, timeout, receipt_path, receipt):
+                (receipt_path.parent/"delivery.json").write_text(json.dumps({"status": "complete"}))
+                evidence.write_text("changed during inference")
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                    patch.dict(sys.modules, {"research.repeat_attestation": module}), \
+                    patch.object(diagnostic, "supervised_command", side_effect=changed):
+                with self.assertRaisesRegex(RuntimeError, "evidence changed"):
+                    diagnostic.main()
+            receipt = json.loads((root/"results/research/cloud_prediction/supervisor.json").read_text())
+            self.assertEqual(receipt["status"], "failed")
+            self.assertFalse((root/"results/research/local_lease.json").exists())
 
     def test_missing_required_mode_inputs_rejected_before_a_lease(self):
         with tempfile.TemporaryDirectory() as tmp:
