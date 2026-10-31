@@ -23,10 +23,10 @@
   不充值，不新增其他 GPU 供应商或付费预算。
 - [run_local.py](run_local.py) 已提供本地进程监督、持久 GPU lease、超时和预算账本：
   本地并发 1 个任务、**每 UTC 日最多 6 小时、每个任务最多 3 小时**；训练和完整 benchmark
-  都计入任务耗时。该本地监督器不等于 Colab 的调度/预算桥接已经完成。
+  都计入任务耗时。Colab 由独立监督器及单独云端 lease 约束，不计入本地 GPU 时间。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
-  扩展回归由 CI 验证。`wrn22_wd1e4` 已完成并被拒绝晋级，`wrn34_3` 配置已准备；
-  SAM 已独立实现并通过 CPU 验证，尚待实际 BF16 测速和正式训练；SWA、SE 尚未实现。
+  扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
+  复测和真实预测均完成。SAM 已通过原生 BF16 测速并在训练；SWA、SE 尚未实现。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -45,9 +45,12 @@ GradScaler、有限梯度和真实参数更新通过。合成 batch256、dropout
 原主研究的四个核心文件不因新研究而修改。新实现、配置、日志和产物应单独保存，
 每次保留代码/配置/数据分割/检查点/benchmark 的 SHA-256。
 
-最新真实进度：WRN34-3 在本地训练；修正后的 Colab CutMix 任务已通过实际 CUDA
-GradScaler 更新/溢出检查并进入真实 40k 训练。T4 的完整 v3 基线为 clean96.28%、
-stress77.648%，原生 FP16，六个 case 各5,000张。候选尚未完成，不能报告提分。
+最新完整结果见 [research-followup-results.json](../docs/research-followup-results.json)。
+WRN34-3 主 seed2026 的加权 policy 为 clean96.32%、stress78.592%；预先固定相同 policy
+的 seed2027 复测为96.38%/79.652%，均通过门槛。主模型 clean 的配对区间跨零，
+不能声称 clean 显著提高。主模型2,000行CSV和实际离线交付核验完成；10月31日UTC队伍
+额度已用尽，等待下一UTC日真实配额。当前实际最佳公开成绩仍为0.874，尚无新增研究评分。
+CutMix 与 ResizeMix 均完成同 T4 FP16 的完整 benchmark，尚缺配对与独立复测；SAM 在训练。
 
 ## 已测结果：不因小幅波动而提交
 
@@ -161,7 +164,7 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
 
 仅在对应 GPU 空闲、已有任务结束并按监督/预算记录后运行；不能与持有 lease 的任务并行。
 云端 FP16 benchmark 不能直接与本地 BF16 混用；如改到本地复算，先在同一本地环境
-完整重测候选和可信原基线。工具的 CPU 合成检查已通过，尚无新候选的真实配对结论。
+完整重测候选和可信原基线。工具的 CPU 合成检查已通过；WRN34-3 的真实配对区间见上述聚合结果。
 
 1. **BN / TTA。** 作者的 [SWA BN 更新代码](https://github.com/timgaripov/swa/blob/master/utils.py)
    使用按 batch 样本数加权的统计更新。[Better Aggregation in Test-Time Augmentation](https://arxiv.org/abs/2011.11156)
@@ -185,7 +188,7 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
 | 结构候选 | 设计/CPU 核算参数量 | 核验依据与实现边界 |
 | --- | ---: | --- |
 | SE-WRN-22-4，r=16 | 4,332,654 | 每个残差支路末端、相加前加带 bias 双 FC 门；增加 33,684 参数。[SE 论文](https://arxiv.org/abs/1709.01507)、[作者实现](https://github.com/hujie-frank/SENet/blob/master/models/SE-ResNet-50.prototxt)。该精确组合尚未实现/训练。 |
-| WRN-34-3 | 4,166,298 | 现有模型 CPU 构造已计数，配置已准备；[WRN 论文](https://arxiv.org/abs/1605.07146)、[作者参数化代码](https://github.com/szagoruyko/wide-residual-networks/blob/master/pytorch/resnet.py)。该精确配置没有可移用的论文成绩。 |
+| WRN-34-3 | 4,166,298 | 实际40k训练、完整开发benchmark与独立seed复测完成；[WRN 论文](https://arxiv.org/abs/1605.07146)、[作者参数化代码](https://github.com/szagoruyko/wide-residual-networks/blob/master/pytorch/resnet.py)。该精确配置没有可移用的论文成绩。 |
 | CIFAR ResNeXt-29，4×24d | 4,845,002 | 按作者 CIFAR 模板核算：hidden 96/192/384，输出 256/512/1024。[论文](https://arxiv.org/abs/1611.05431)、[作者代码](https://github.com/facebookresearch/ResNeXt/blob/master/models/resnext.lua)。尚未实现；不同 baseWidth/expansion 约定须重新计数。 |
 | PyramidNet-110，α=84，basic | 3,904,446 | 作者 PyTorch 类 CPU 构造计数；论文近似写 3.8M。[论文](https://arxiv.org/abs/1610.02915)、[作者代码](https://github.com/dyhan0920/PyramidNet-PyTorch/blob/master/PyramidNet.py)。尚未移植；旧 CUDA padding 必须改为匹配 device/dtype，保留其 basic block 设计。 |
 
@@ -202,10 +205,11 @@ Cutout16/Mixup0.2，仅加入非自适应 SAM rho0.05。两次前后向复用同
 第二遍仍用批次 BN 归一化，但不重复累计运行统计；精确恢复原权重后只做一次 SGD。
 当前只验证 CPU FP32 与本地原生 BF16 路径，FP16/scaler 明确拒绝。
 
-SAM 的21项 CPU检查包含解析二次函数更新、扰动范数、失败恢复、BN只更新一次，
-以及实际小模型中断恢复后 model/EMA/SGD/RNG 一致。新增方法后全套108项 CPU检查通过。
-这些不构成真实 GPU 性能或比赛准确率。先在空闲 GPU 上运行受监督的
-`--benchmark-steps 20` 合成测速，再依据耗时和现有候选结果决定是否投入完整对照。
+SAM 的 CPU检查包含解析二次函数更新、扰动范数、失败恢复、BN只更新一次，
+以及实际小模型中断恢复后 model/EMA/SGD/RNG 一致。优化后真实原生 BF16 合成预检完成：
+23/23次更新，中位64.183ms，较旧实现107.145ms降低约40%；不含验证和I/O，不能当作完整训练耗时。
+160轮正式训练已启动，完整 benchmark 仍待完成。新增v2路径集成后全套214项 CPU检查通过；
+对应源码版本的CI结果见PR8，CPU fixture不等于真实候选配对或提交成功。
 本地监督器新增 `--trainer sam --precision bf16`，保存训练器/精度并禁止交叉恢复。
 云端与本地时间预算分开计数；活动 Colab 任务不会被误计为本地 GPU 时间。
 
@@ -224,8 +228,17 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 **bilinear、概率0.5**，属于待测的受控变体，不宣称复现作者配方或准确率。
 
 云监督器新增 `--trainer resizemix`，仅在实际方法的CUDA几何、FP16正常更新和测速预检通过后
-才运行完整基线与训练；原始训练源码和已冻结WRN34交付文件不改。当前配对/交付版本只支持
-已有类型；若本方法晋级，须另行提供兼容验证版本，不能绕过源码约束直接提交。
+才运行完整基线与训练；原始训练源码和已冻结WRN34交付文件不改。现已完成160轮及完整benchmark，
+加权policy clean96.20%/stress80.092%，同次T4基线96.28%/77.652%，通过点门槛。
+收益主要来自blur与resize，noise下降3.02个百分点；不把平均提升写成各case均改善。
+产物和运行时回收已核实。接下来使用独立v2配对/交付入口，保留旧WRN绑定源码，
+完整本地同环境重测后先冻结主模型，再进行独立seed；这些尚未完成。
+
+[paired_compare_v2.py](paired_compare_v2.py)保留原图聚类bootstrap协议，同时严格核验ResizeMix的
+训练来源、scaler和更新次数，并绑定新verifier与旧共享helper的两个SHA。
+[delivery_v2.py](delivery_v2.py)独立冻结/复测/预测，上传器按v2 schema深度验证。
+本地复测由[run_resizemix_local.py](run_resizemix_local.py)共享lease/预算/watchdog，
+显式FP16保持与主模型相同的训练precision，推理统一完整本地v3上下文；不支持隐式恢复。
 
 [run_diagnostic.py](run_diagnostic.py) 为测速、独立训练器重测与配对比较提供同一个
 本地 lease、预算和 watchdog，不用裸 GPU 命令绕过监督。SAM 实际测速入口为
@@ -270,7 +283,7 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 
 本地余量由实际账本计算。首次WRN34全量训练估计接近今日SAM后的剩余时间，
 计划在2026-11-01 00:00 UTC（10月31日20:00纽约）预算重置后，以至少3,000秒余量门槛启动。
-目前只有实现与CPU验证，不能把已准备的计划写成已完成全量训练或已提交。
+冻结计划已实际生成并重验父交付链，没有占GPU或创建训练回执；尚未启动全量训练或提交。
 
 每个任务记录实际设备/精度、配置、数据分割、起止时间、预算、训练历史、benchmark、gate 及失败原因。
 到停止时间保存现有证据并结束本轮，不以尚未分配的 Colab GPU、尚未运行的算法或未评分的提交宣布完成。

@@ -20,7 +20,8 @@ import psutil
 from research.run_local import acquire_lease, now, sha256, supervised_command, used_seconds
 from runtime import write_json
 
-MODES = ("sam-speed", "shadow-benchmark", "sam-benchmark", "paired", "predict", "refit-predict")
+MODES = ("sam-speed", "shadow-benchmark", "sam-benchmark", "resizemix-benchmark",
+         "paired", "paired-v2", "predict", "predict-v2", "refit-predict")
 POLICIES = ("plain", "flip", "center80_shift20")
 
 
@@ -40,7 +41,7 @@ def build_command(args, folder, baseline):
         output = folder/"delivery.json"
         command = [sys.executable, "research/refit_delivery.py", "--predict", "--plan", str(plan),
                    "--output-dir", str(folder), "--device", "cuda"]
-    elif args.mode == "predict":
+    elif args.mode in ("predict", "predict-v2"):
         if not all((args.manifest, args.repeat_checkpoint, args.repeat_benchmark, args.repeat_receipt)):
             raise ValueError("predict requires --manifest --repeat-checkpoint --repeat-benchmark --repeat-receipt")
         manifest, repeat, benchmark, receipt = [path.resolve() for path in
@@ -56,7 +57,8 @@ def build_command(args, folder, baseline):
             inputs += [data/name for name in ("sample_submission.csv", "test.csv", "official_test.npz", "official_test_source_manifest.json")]
             inputs += [data/name for name in json.loads((data/"training_manifest.json").read_text())["files_sha256"]]
         output = folder/"delivery.json"
-        command = [sys.executable, "research/delivery.py", "--predict", "--manifest", str(manifest),
+        entry = "research/delivery_v2.py" if args.mode == "predict-v2" else "research/delivery.py"
+        command = [sys.executable, entry, "--predict", "--manifest", str(manifest),
                    "--repeat-checkpoint", str(repeat), "--repeat-benchmark", str(benchmark), "--repeat-receipt", str(receipt),
                    "--output-dir", str(folder), "--device", "cuda"]
     elif args.mode == "sam-speed":
@@ -75,19 +77,22 @@ def build_command(args, folder, baseline):
         if "stability_seed2027" in checkpoint.parts:
             raise ValueError("The validation-only stability repeat is excluded")
         inputs += [checkpoint, baseline]
-        if args.mode == "paired":
+        if args.mode in ("paired", "paired-v2"):
             if args.candidate_benchmark is None or args.policy is None:
                 raise ValueError("paired requires --candidate-benchmark and --policy")
             candidate = args.candidate_benchmark.resolve()
             trusted = ROOT/"results/regularized/best.pt"
             inputs += [candidate, trusted]
             output = folder/"paired.json"
-            command = [sys.executable, "research/paired_compare.py", "--candidate-checkpoint", str(checkpoint),
+            entry = "research/paired_compare_v2.py" if args.mode == "paired-v2" else "research/paired_compare.py"
+            command = [sys.executable, entry, "--candidate-checkpoint", str(checkpoint),
                        "--candidate-benchmark", str(candidate), "--baseline-checkpoint", str(trusted),
                        "--baseline-benchmark", str(baseline), "--policy", args.policy, "--output", str(output),
                        "--device", "cuda"]
         else:
-            entry = "research/benchmark_shadow.py" if args.mode == "shadow-benchmark" else "research/benchmark_sam.py"
+            entry = {"shadow-benchmark": "research/benchmark_shadow.py",
+                     "sam-benchmark": "research/benchmark_sam.py",
+                     "resizemix-benchmark": "research/benchmark_resizemix.py"}[args.mode]
             output = folder/"benchmark.json"
             command = [sys.executable, entry, "--checkpoint", str(checkpoint), "--baseline", str(baseline),
                        "--output", str(output), "--device", "cuda"]

@@ -66,6 +66,9 @@ def validate_manifest(path, root=ROOT):
     if schema == "research_prediction_delivery_v1":
         from research.delivery import validate_delivery
         validator, examples, source = validate_delivery, 40000, root/"research/delivery.py"
+    elif schema == "research_prediction_delivery_v2":
+        from research.delivery_v2 import validate_delivery
+        validator, examples, source = validate_delivery, 40000, root/"research/delivery_v2.py"
     elif schema == "research_refit_delivery_v1":
         from research.refit_delivery import validate_refit_delivery
         validator, examples, source = validate_refit_delivery, 50000, root/"research/refit_delivery.py"

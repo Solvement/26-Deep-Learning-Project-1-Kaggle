@@ -43,7 +43,8 @@ class DiagnosticSupervisorTests(unittest.TestCase):
         (root/"research/campaign.json").write_text(json.dumps({
             "stops_at": "2099-01-01T00:00:00+00:00", "local_gpu_seconds_per_utc_day": daily,
             "local_job_timeout_seconds": 10800, "baseline_benchmark": "baseline.json"}))
-        for name in ("train_sam.py", "benchmark_shadow.py", "benchmark_sam.py", "paired_compare.py", "delivery.py"):
+        for name in ("train_sam.py", "benchmark_shadow.py", "benchmark_sam.py", "benchmark_resizemix.py",
+                     "paired_compare.py", "paired_compare_v2.py", "delivery.py", "delivery_v2.py"):
             (root/"research"/name).write_text("mock child entrypoint")
         for name in ("config.json", "baseline.json", "candidate.json", "frozen.json", "receipt.json",
                      "metrics.json", "history.json", "provenance.json", "environment.json"):
@@ -59,7 +60,9 @@ class DiagnosticSupervisorTests(unittest.TestCase):
                                    candidate_benchmark=root/"candidate.json", policy="flip", manifest=root/"frozen.json",
                                    repeat_checkpoint=root/"best.pt", repeat_benchmark=root/"candidate.json", repeat_receipt=root/"receipt.json")
             entries = {"sam-speed": "research/train_sam.py", "shadow-benchmark": "research/benchmark_shadow.py",
-                       "sam-benchmark": "research/benchmark_sam.py", "paired": "research/paired_compare.py", "predict": "research/delivery.py"}
+                       "sam-benchmark": "research/benchmark_sam.py", "resizemix-benchmark": "research/benchmark_resizemix.py",
+                       "paired": "research/paired_compare.py", "paired-v2": "research/paired_compare_v2.py",
+                       "predict": "research/delivery.py", "predict-v2": "research/delivery_v2.py"}
             with patch.object(diagnostic, "ROOT", root):
                 for mode, entry in entries.items():
                     args.mode = mode
@@ -71,10 +74,10 @@ class DiagnosticSupervisorTests(unittest.TestCase):
                         self.assertEqual(command[command.index("--benchmark-steps")+1], "20")
                         self.assertEqual(command[command.index("--precision")+1], "bf16")
                         self.assertEqual(output.name, "engineering_benchmark.json")
-                    elif mode == "paired":
+                    elif mode in ("paired", "paired-v2"):
                         self.assertEqual(command[command.index("--baseline-checkpoint")+1], str(root/"results/regularized/best.pt"))
                         self.assertEqual(output.name, "paired.json")
-                    elif mode == "predict":
+                    elif mode in ("predict", "predict-v2"):
                         self.assertIn("--predict", command)
                         self.assertEqual(command[command.index("--manifest")+1], str(root/"frozen.json"))
                         self.assertEqual(command[command.index("--output-dir")+1], str(root/"new"))

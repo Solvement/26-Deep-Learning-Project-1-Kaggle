@@ -266,5 +266,26 @@ class ResearchSubmissionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unsupported research delivery schema"):
                 submit.validate_manifest(manifest, root)
 
+    def test_v2_schema_dispatch_calls_versioned_validator_and_preserves_old_path(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            manifest, details, _, _ = self.fixture(root)
+            manifest.write_text(json.dumps({"schema": "research_prediction_delivery_v2"}))
+            (root/"data").mkdir()
+            sample = root/"data/sample_submission.csv"
+            sample.write_bytes(Path(details["csv_path"]).read_bytes())
+            (root/"research/delivery_v2.py").write_text("# source-bound v2 validator fixture")
+            versioned = ModuleType("research.delivery_v2")
+            versioned.validate_delivery = Mock(return_value={**details, "manifest_sha256": submit.sha256(manifest)})
+            original = ModuleType("research.delivery")
+            original.validate_delivery = Mock(side_effect=AssertionError("v1 validator cannot authorize v2"))
+            with patch.dict(sys.modules, {"research.delivery_v2": versioned, "research.delivery": original}), \
+                    patch.object(submit, "SAMPLE_SHA", submit.sha256(sample)):
+                result = submit.validate_manifest(manifest, root)
+                self.assertEqual(result["delivery_schema"], "research_prediction_delivery_v2")
+                versioned.validate_delivery.assert_called_once_with(manifest, require_prediction=True)
+                original.validate_delivery.assert_not_called()
+                self.assertFalse((root/"results/research/submission_intents").exists())
+
 
 if __name__ == "__main__": unittest.main()
