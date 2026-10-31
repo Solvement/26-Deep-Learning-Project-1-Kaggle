@@ -26,7 +26,7 @@ training scripts under ignored `results/` and `outputs/` paths.
 - Evaluate the selected recipe exactly once on the independent confirmation
   split. Do not use confirmation to revise the recipe or select a different run.
 - Retrain a fresh model on all 50,000 official training images using the frozen
-  recipe, epoch budget, EMA rule and inference rule. Do not report an overlapping
+  recipe, epoch budget, raw/EMA variant and inference rule. Do not report an overlapping
   development score for this full-data model.
 - Submit predictions for the 2,000 competition images through Kaggle. The
   public and private leaderboard each use 50% of those images. Record a public
@@ -41,6 +41,7 @@ training scripts under ignored `results/` and `outputs/` paths.
 | Architecture | Increase residual capacity | WRN-22-4, crop/flip | Same split, seed, schedule and optimizer as baseline |
 | Regularized | Test a regularization bundle | WRN-22-4, crop/flip + Cutout + MixUp | Same schedule and optimizer as architecture run |
 | Final full-data | Refit the selected fixed recipe | Fresh scratch model on all 50,000 images | No development or confirmation evaluation |
+| Seed stability | Repeat the regularized recipe with seed 2027 | Same recipe and fixed split seed 2026 | Excluded from recipe selection and confirmation |
 
 The planned aligned schedule uses 160 epochs, SGD (learning rate 0.1, Nesterov
 momentum 0.9, weight decay 0.0005), five warmup epochs and cosine decay. The
@@ -53,6 +54,23 @@ capacity configuration rather than isolated depth or width effects. The
 regularization comparison changes Cutout and MixUp together; it cannot isolate
 their individual contributions. A single seed/split does not establish
 statistical significance or seed stability.
+
+## User-directed official submission comparisons
+
+The user requested full use of the daily five-entry allowance. Submit the fixed
+`baseline`, `architecture`, `regularized`, `final_full`, and seed-2027 regularized
+models as five official benchmarks, subject to the actual remaining Kaggle quota.
+Use the existing frozen checkpoints and development-selected inference rules;
+do not use public feedback to alter the training recipe or repeat confirmation.
+
+Keep every receipt in `results/kaggle_submissions.json`, including the exact run,
+training sample count, parameters, score, submission reference, timestamp and
+prediction-file SHA-256. The independent study's primary full-data receipt stays
+in `results/kaggle_submission.json`. Public scores may select the official Kaggle
+entry, but the report must distinguish that choice from the already frozen
+development/confirmation protocol. Report the full-data result and best public
+benchmark separately when they differ. Private accuracy remains unknown, and
+selecting the largest public score among five can favor sampling noise.
 
 ## Records and delivery
 

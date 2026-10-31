@@ -33,7 +33,12 @@ the local three-page assignment PDF and [verified requirements](competition.md).
 - [ ] Validate `submission.csv`: exactly `id,label`, every sample ID once, correct
   sample ordering, and integer labels in `[0,9]`.
 - [ ] Upload the selected predictions and confirm Kaggle completed scoring.
+- [ ] Use the available five-entry daily allowance for the fixed baseline,
+  architecture, regularized, full-data and seed-repeat benchmark entries; retain
+  every scored receipt in `results/kaggle_submissions.json`.
 - [ ] Record public score, submission reference, code revision and file checksum.
+- [ ] Distinguish primary full-data public accuracy from the best public benchmark;
+  preserve the frozen recipe/confirmation study and leave private accuracy unknown.
 - [ ] **Human action:** confirm the course Google Form registration uses team Saber.
 - [ ] **Human action:** add the future teammate through official course/Kaggle
   procedures before the applicable team deadline.

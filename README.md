@@ -86,14 +86,25 @@ Laptop GPU. Library/hardware details for each actual run are saved in its
    submission checksum before uploading:
 
    ```bash
-   kaggle competitions submit -c cifar-10-res-net-architecture-challenge-dl -f results/final_full/submission.csv -m "Saber scratch residual model, frozen full-data recipe"
-   kaggle competitions submissions -c cifar-10-res-net-architecture-challenge-dl
+   kaggle competitions submit cifar-10-res-net-architecture-challenge-dl -f results/final_full/submission.csv -m "Saber scratch residual model, frozen full-data recipe"
+   kaggle competitions submissions cifar-10-res-net-architecture-challenge-dl
    ```
 
-   The team limit is five submissions per day. Record the returned reference,
-   completed public score, run name and file SHA-256 in
-   `results/kaggle_submission.json`. Private leaderboard accuracy remains unknown
-   until Kaggle releases it.
+   The team limit is five submissions per day; check the actual remaining quota.
+   At the user's request this delivery uses the allowance to benchmark five
+   fixed models: `baseline`, `architecture`, `regularized`, `final_full`, and the
+   seed-2027 regularized stability repeat. The first three and the repeat train
+   on 40,000 images; `final_full` trains on all 50,000. Checkpoints and inference
+   rules remain frozen. Store all scored receipts in
+   `results/kaggle_submissions.json`, including run, training size, parameter
+   count, reference, public score, file SHA-256 and timestamp. Keep the primary
+   full-data receipt separately in `results/kaggle_submission.json`.
+
+   Public benchmark scores may guide official Kaggle entry selection. They do
+   not revise the completed training recipe or confirmation study. Report both
+   the primary full-data score and the highest observed public benchmark if
+   they differ; the best of five on 1,000 public images can reflect sampling
+   noise. Private leaderboard accuracy remains unknown until Kaggle releases it.
 
 5. **Build the report and executed notebook from real evidence.**
 
@@ -138,6 +149,7 @@ test and does not establish the final private ranking.
 | `outputs/` | Generated PDF, executed notebook, plots and checksums | Ignored; submit through course channels |
 | `notebooks/Project1_Results_Executed.ipynb` | Audited final executed results, scalar metrics and plots only | Tracked only after the final output audit |
 | `results/kaggle_submission.json` | Actual submission reference/public score/checksum | Ignored, retained locally |
+| `results/kaggle_submissions.json` | Five fixed-model official benchmark receipts | Ignored; summarized in report/notebook |
 
 No model weights, prediction CSVs, credentials, raw competition images or full
 unreviewed runtime outputs are committed. The final curated results notebook

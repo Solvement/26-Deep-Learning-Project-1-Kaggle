@@ -106,10 +106,21 @@ def collect_evidence(results_dir: Path):
     confirmation = read_json(results_dir / "confirmation.json", {})
     selection = read_json(results_dir / "selection.json", {})
     stability = read_json(results_dir / "stability.json", {})
+    submissions = read_json(results_dir / "kaggle_submissions.json", [])
+    if isinstance(submissions, dict):
+        submissions = submissions.get("submissions", [])
+    if not isinstance(submissions, list):
+        raise ValueError("Kaggle benchmark receipts must be a list")
     runs.sort(key=lambda run: RUN_ORDER.index(run["name"]))
     return {"runs": runs, "submission": submission, "confirmation": confirmation,
-            "selection": selection, "stability": stability, "repository": REPOSITORY,
+            "selection": selection, "stability": stability, "submissions": submissions,
+            "repository": REPOSITORY,
             "team": "Saber", "author": "Kevin Yang", "netid": "ky2738"}
+
+
+def completed_benchmarks(evidence):
+    return [record for record in evidence.get("submissions", [])
+            if str(record.get("status", "")).lower() == "complete" and public_accuracy(record) is not None]
 
 
 def choose_run(evidence, requested=None):
@@ -382,6 +393,8 @@ def create_pdf(evidence, selected, plots, output_dir):
         parameter_count = 4298970
     parameter_text = f"{int(parameter_count):,}" if number(parameter_count) is not None else "Pending"
     score = public_accuracy(evidence["submission"])
+    benchmarks = completed_benchmarks(evidence)
+    best_benchmark = max(benchmarks, key=public_accuracy) if benchmarks else None
     val = recipe_accuracy
     run_name = selected["name"] if selected else "No measured run yet"
 
@@ -403,7 +416,7 @@ def create_pdf(evidence, selected, plots, output_dir):
            ["Selected checkpoint / inference", checkpoint_text],
            ["Model trainable parameters", parameter_text], ["Selected recipe development accuracy", accuracy(val)],
            ["One-time confirmation accuracy", accuracy(confirmation.get("accuracy"))],
-           ["Kaggle public leaderboard test accuracy", accuracy(score)],
+           ["Primary full-data public test accuracy", accuracy(score)],
            ["Private leaderboard test accuracy", "Not released / unavailable"]], [2.75*inch, 3.65*inch])
     h("Measured findings")
     if score is not None:
@@ -412,9 +425,8 @@ def create_pdf(evidence, selected, plots, output_dir):
         interval = wilson_interval(score, 1000)
         if interval:
             low, high, successes, total = interval
-            p(f"The public result corresponds to {successes:,}/{total:,} correct predictions. "
-              f"A descriptive Wilson 95% binomial interval is {accuracy(low)} to {accuracy(high)}. "
-              "It describes sampling uncertainty under a binomial approximation, not the private leaderboard outcome.", "SmallProject")
+            p(f"Public: {successes:,}/{total:,} correct; descriptive Wilson 95% interval "
+              f"{accuracy(low)} to {accuracy(high)} (binomial approximation; private outcome unknown).", "SmallProject")
     else:
         p("Kaggle public test accuracy is pending. This draft reports only measurements available in saved artifacts "
           "and does not substitute a target accuracy for an observed result.")
@@ -422,14 +434,18 @@ def create_pdf(evidence, selected, plots, output_dir):
         p(f"The selected recipe's best development accuracy is <b>{accuracy(val)}</b>. "
           "Development data choose the recipe and inference averaging; a separate confirmation split is evaluated once.")
     if number(confirmation.get("accuracy")) is not None:
-        p(f"The fixed selected recipe achieved <b>{accuracy(confirmation['accuracy'])}</b> on the "
-          f"{confirmation.get('examples', 5000):,}-image confirmation set. After this check, a fresh final "
-          "model is trained on all 50,000 official training images using the frozen recipe.")
+        p(f"The frozen selected recipe achieved <b>{accuracy(confirmation['accuracy'])}</b> on "
+          f"{confirmation.get('examples', 5000):,} confirmation images before refitting a fresh "
+          "model on all 50,000 official training images.")
         interval = wilson_interval(confirmation['accuracy'], confirmation.get('examples', 5000))
         if interval:
             low, high, successes, total = interval
             p(f"Confirmation: {successes:,}/{total:,} correct; descriptive Wilson 95% binomial "
-              f"interval {accuracy(low)} to {accuracy(high)}. This does not measure variation across training seeds.", "SmallProject")
+              f"interval {accuracy(low)} to {accuracy(high)}; this is not training-seed uncertainty.", "SmallProject")
+    if best_benchmark:
+        p(f"Highest observed public benchmark: <b>{escape(str(best_benchmark.get('run', 'unknown')))} "
+          f"at {accuracy(public_accuracy(best_benchmark))}</b> among {len(benchmarks)} completed entries. "
+          "The primary full-data result is separate; public ranking does not identify the private winner.", "SmallProject")
 
     story.append(PageBreak())
     p("Architecture and training method", "Heading1")
@@ -498,6 +514,21 @@ def create_pdf(evidence, selected, plots, output_dir):
     story.append(Image(str(plots["learning_curves"]), width=6.35*inch, height=3.91*inch))
     p("Figure 2. Curves are drawn only from saved epoch-level measurements. Training objectives with augmentation or mixed labels are not directly comparable to clean validation cross-entropy. No missing measurements are interpolated.", "CaptionProject")
     p("Checkpoint identifies the selected epoch and raw/EMA weights. Plain/flip columns use that same checkpoint; the last column gives the development-selected inference rule. Epoch curves show training-time raw and EMA scores. The fixed full-data refit has no development score.", "SmallProject")
+    if evidence.get("submissions"):
+        h("Official Kaggle benchmark entries")
+        benchmark_rows = [["Entry", "Train images", "Parameters", "Public score", "Submission ref", "Status"]]
+        for receipt in evidence["submissions"]:
+            count = receipt.get("parameter_count")
+            training = receipt.get("training_examples")
+            benchmark_rows.append([
+                receipt.get("run", "Pending"),
+                f"{int(training):,}" if number(training) is not None else "Pending",
+                f"{int(count):,}" if number(count) is not None else "Pending",
+                accuracy(public_accuracy(receipt)),
+                receipt.get("submission_ref", "Pending"),
+                receipt.get("status", "Pending")])
+        table(benchmark_rows, [1.35*inch,.85*inch,.85*inch,.8*inch,1.65*inch,.9*inch], compact=True)
+        p("Five daily entries benchmark the frozen baseline, architecture, regularized, full-data and seed-repeat models. Public scores may guide official Kaggle entry selection; they do not change the completed training/confirmation protocol. Private scores remain unavailable.", "SmallProject")
     story.append(PageBreak())
     p("Measured findings and limitations", "Heading1")
     findings = measured_interpretation(evidence)
@@ -510,6 +541,12 @@ def create_pdf(evidence, selected, plots, output_dir):
       "Each architecture comparison uses one fixed split and seed, so it does not establish statistical "
       "significance or isolate seed variation. The full-data refit has no held-out development metric; "
       "public and private leaderboard outcomes can differ.", "SmallProject")
+    if evidence.get("submissions"):
+        p("The user requested use of the five-entry daily allowance for official comparisons. Predictions use "
+          "existing fixed checkpoints and development-selected inference rules. Selecting the highest of "
+          "five public scores can favor sampling noise on the 1,000-image public subset. The benchmark "
+          "table and primary full-data result are both reported; no public-score-driven retraining, "
+          "post-confirmation recipe change or claim of a known private winner is made.", "SmallProject")
     if "confirmation" in plots:
         h("One-time confirmation error analysis")
         story.append(Image(str(plots["confirmation"]), width=5.0*inch, height=4.14*inch))
@@ -641,19 +678,31 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
             (f"display(Image(filename=str({portable_path(plots['confirmation'])})))" if "confirmation" in plots else "")),
         nbformat.v4.new_markdown_cell("## Final test accuracy\n"
             "The public leaderboard measures only half of the 2,000 hidden evaluation images. "
-            "Validation accuracy, public leaderboard test accuracy and unreleased private accuracy are distinct."),
+            "Development, confirmation, the primary full-data public score and the best observed official "
+            "benchmark score are distinct. Five daily submissions compare fixed models and may guide "
+            "official Kaggle entry selection; they do not retune the frozen training/confirmation protocol. "
+            "Private accuracy remains unknown."),
         nbformat.v4.new_code_cell(
             "metrics = selected['metrics'] if selected else {}\n"
             "if selected and selected['config'].get('train_all'):\n"
             "    print('Final full-data model validation accuracy: not evaluated (recipe already frozen)')\n"
             "else:\n    print('Development accuracy:', accuracy(checkpoint_details(selected)['development_accuracy']) if selected else 'Pending')\n"
             "print('One-time confirmation accuracy:', accuracy(evidence['confirmation'].get('accuracy')))\n"
-            "print('Final test accuracy (Kaggle PUBLIC leaderboard):', accuracy(public_accuracy(evidence['submission'])))\n"
+            "print('Primary full-data test accuracy (Kaggle PUBLIC leaderboard):', accuracy(public_accuracy(evidence['submission'])))\n"
             "print('Private leaderboard test accuracy: unavailable until released')\n"
             "print(f'Final model parameter count: {total:,}')\n"
             "safe_submission_keys = ('submission_ref','public_score','private_score','run','sha256','status','submitted_at','scored_at','commit','source_commit','checkpoint_sha256')\n"
             "submission_record = {k:evidence['submission'][k] for k in safe_submission_keys if k in evidence['submission']}\n"
-            "print('Submission record (scalar fields only):', json.dumps(submission_record, indent=2))"),
+            "print('Primary submission record (scalar fields only):', json.dumps(submission_record, indent=2))\n"
+            "benchmark_keys = ('run','public_score','private_score','submission_ref','submission_sha256','submitted_at','training_examples','parameter_count','flip_tta','status')\n"
+            "print('Official benchmark receipts (scalar fields only):')\n"
+            "for receipt in evidence['submissions']:\n"
+            "    print(json.dumps({k:receipt[k] for k in benchmark_keys if k in receipt}, indent=2))\n"
+            "completed = [r for r in evidence['submissions'] if str(r.get('status','')).lower() == 'complete' and public_accuracy(r) is not None]\n"
+            "if completed:\n"
+            "    best = max(completed,key=public_accuracy)\n"
+            "    print('Highest observed public benchmark:', best.get('run'), accuracy(public_accuracy(best)))\n"
+            "    print('Best public benchmark is not evidence of the unknown private winner.')"),
         nbformat.v4.new_markdown_cell("## Reproduction and artifact policy\n"
             "Follow the repository README to prepare official competition data, train the chosen configuration, "
             "validate predictions, and generate this report. Data, weights and prediction files stay private and "

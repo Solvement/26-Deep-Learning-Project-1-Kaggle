@@ -43,6 +43,14 @@ Label indices: `0 airplane`, `1 automobile`, `2 bird`, `3 cat`, `4 deer`,
 | ID/order | One prediction per image, same IDs and order as sample | Rules section 7 |
 | Daily limit | 5 submissions per entire team | Rules section 8; submission-limits API |
 
+The user requested using the five-entry allowance for fixed-model official
+comparisons: baseline, architecture, regularized, the 50,000-image full-data
+refit, and the seed-2027 regularized repeat. Official public scores may inform
+Kaggle entry selection; they do not alter the frozen development/confirmation
+study or its primary full-data result. Record all receipts and distinguish the
+highest public benchmark from the primary refit if they differ. The 1,000-image
+public portion does not reveal private accuracy or guarantee private ranking.
+
 The bulk competition ZIP endpoint returned HTTP 404. Individual downloads and
 the official Kaggle competition mount work. `download_kaggle.py` uses bounded
 individual downloads. The export helper can package the official mounted
