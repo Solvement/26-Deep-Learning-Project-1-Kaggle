@@ -356,9 +356,16 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 [se_model.py](se_model.py)只实现新单模型，[se-plan.md](se-plan.md)在其GPU实验前固定160轮SAM对照与门槛。
 9个带bias门、隐藏4/8/16，共4,332,654总/可训练参数。先完整初始化原WRN再附新门，
 同seed共享state keys/初始张量逐项一致，shortcut不门控；8项模型/数学/序列化CPU检查通过，
-加入WRN300独立证明后，当前全套310项检查通过。该组合没有trainer、nativeGPU预检或准确率结果。
+独立trainer、完整双参照benchmark与监督器已实现，21项新CPU检查和独立审查通过；尚无nativeGPU预检或准确率结果。
 未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
 通过完整配对后才冻结并新scratch seed2027。优先完成现有SAM/ResizeMix复测。
+
+SE入口为[train_se_sam.py](train_se_sam.py)、[benchmark_se_sam.py](benchmark_se_sam.py)、
+[run_se_sam.py](run_se_sam.py)，配置固定在[wrn22_se_sam.json](configs/wrn22_se_sam.json)。
+新typed来源核验9个门、完整50,080更新/100,160两遍、模型/EMA/SGD/RNG及原基线/固定SAM双门槛。
+监督器共享原lease/预算/watchdog，只有nativeBF16合成23步的全部9门真实梯度/更新及固定吞吐guard通过，
+才允许未来primary2026正式160轮；seed2027须等新配对/冻结路径，没有现成隐藏预测或提交入口。
+计时包括增强、SAM两遍和SGD，但不含EMA/逐轮dev/checkpoint I/O，故保留1.5倍率和300秒最终化预算。
 
 WRN34-300现已同本地v3完整重测：weighted96.54%/79.716%，相对本地基线+0.26/+2.088pp；
 10,000次原图聚类bootstrap clean条件95%区间[-0.18,+0.72]pp跨0、stress[+1.6719,+2.488]pp为正。

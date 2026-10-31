@@ -75,3 +75,15 @@ SE 门会改变残差尺度，窄 bottleneck 可能抑制有用通道；与 SAM�
 不保证收益可加。池化、小矩阵运算和通道乘法会增加实际 kernel 开销；原论文小 FLOPs 增量不是本机吞吐承诺。
 自生成 stress 的改善或退化也不说明隐藏测试集的 corruption 类型或 public score 方向。
 [SAM 原论文](https://arxiv.org/abs/2010.01412)、[作者代码](https://github.com/google-research/sam)仅提供方法依据。
+
+## 2026-10-31 实现准入状态
+
+新增独立 `train_se_sam.py`、`benchmark_se_sam.py`、`run_se_sam.py` 和固定primary配置，
+不改原SAM、核心、已绑定的监督器/证明/提交源码。21项新CPU检查通过，集成共372项通过。
+新配置仅在SAM160配方上增加SE架构元数据；raw与effective配置、全部相关源码和固定两个参照均绑定。
+真实CPU检查覆盖门梯度/更新、两遍BN、异常恢复、RNG/SGD逐位重放、完整状态形状及双gate。
+第二次独立审查允许在共享lease/watchdog下做不超过180秒的原生BF16合成预检，尚无任何GPU结果。
+预检逐步证明全部9门的有限正梯度和真实变化，3步预热/20步计时；不加载训练图像，不能当成准确率。
+正式准入须满足 `1.5 × median × 313 × 160 + 300` 秒，且不超过实际当日余量/3小时/研究截止。
+它未计入EMA、逐轮dev与保存I/O，余量不能取消。当前正式入口只接受primary seed2026；
+repeat须等完整主benchmark、配对和冻结之后另建可信路径。没有配对、隐藏预测或上传入口。

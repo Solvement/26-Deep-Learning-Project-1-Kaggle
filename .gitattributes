@@ -2,3 +2,8 @@
 notebooks/Project1_Research_Executed.ipynb text eol=lf
 docs/research-followup-results.json text eol=lf
 docs/research-report-preview.json text eol=lf
+research/train_se_sam.py text eol=lf
+research/benchmark_se_sam.py text eol=lf
+research/run_se_sam.py text eol=lf
+research/configs/wrn22_se_sam.json text eol=lf
+tests/test_se_sam.py text eol=lf
