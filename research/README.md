@@ -247,12 +247,30 @@ Kaggle 每 **UTC 日、整个队伍合计最多 5 次**。提交前读取实际 
 权重/推理 policy 与配对证据，要求选择决定早于独立 seed 复测，复测同一 recipe 和 policy
 也须通过完整门槛，才可生成官方2,000行预测。预测使用
 `run_diagnostic.py --mode predict` 监督，不占用正在训练的 GPU。
-当前仅支持有独立开发证据的40k候选；不能把full50k模型伪装成独立验证模型。
+此入口支持有独立开发证据的40k候选；不能把full50k模型伪装成独立验证模型。
 
 [submit_candidate.py](submit_candidate.py) 的 `--prepare` 仅作真实文件校验、不创建上传意图；
 `--submit` 重新校验交付链、实际团队配额与 CSV，先持久记录意图再调用官方 CLI/API。
 未知上传结果不重传，已知 reference 可用 `--check REF` 只读查询；原五次记录和旧 allowlist 不改。
-交付与上传路径已有 CPU 检查，但真实新提交仍待复测和配额；不把 fake API 测试称为评分成功。
+WRN34 的独立复测、真实2,000行预测和 `--prepare` 已完成，目前等待真实 API 配额。
+尚未有新评分；不把 fake API 测试或已生成CSV称为提交成功。
+
+### 按冻结配方全量重训
+
+[run_refit.py](run_refit.py) 为已合格的原始核心 WRN 提供独立50k路径。默认 `--prepare`
+只重验已完成的40k交付链、生成不可覆盖的计划与输入配置，不占GPU或预算；显式 `--launch`
+才在共享lease/日预算/watchdog内从零训练。只改变 `train_all` 和预先选中的最终权重变体，
+其余配方与训练时长继承合格父模型。首次WRN34为160轮。
+
+完整检查50,000训练/0验证、每轮开发指标为null、固定最终轮次/变体、最终权重与last状态完全一致。
+[refit_delivery.py](refit_delivery.py) 及 `run_diagnostic.py --mode refit-predict --plan <plan>`
+做固定策略推理；上传器只接受经父链和真实full记录深度核验的独立schema。
+full模型没有新的独立开发准确率；其依据来自已冻结父配方，不复用重叠dev冒充验证。
+该初始全量路径不支持SAM/CutMix/ResizeMix等独立训练器，不能将其强行交给冻结BF16核心。
+
+本地余量由实际账本计算。首次WRN34全量训练估计接近今日SAM后的剩余时间，
+计划在2026-11-01 00:00 UTC（10月31日20:00纽约）预算重置后，以至少3,000秒余量门槛启动。
+目前只有实现与CPU验证，不能把已准备的计划写成已完成全量训练或已提交。
 
 每个任务记录实际设备/精度、配置、数据分割、起止时间、预算、训练历史、benchmark、gate 及失败原因。
 到停止时间保存现有证据并结束本轮，不以尚未分配的 Colab GPU、尚未运行的算法或未评分的提交宣布完成。

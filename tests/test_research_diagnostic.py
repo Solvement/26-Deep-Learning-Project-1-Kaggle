@@ -13,6 +13,29 @@ from research.run_local import used_seconds
 
 
 class DiagnosticSupervisorTests(unittest.TestCase):
+    def test_refit_prediction_requires_plan_and_hashes_completed_refit_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            (root/"research/refit_delivery.py").write_text("mock refit delivery entrypoint")
+            job = root/"refit"
+            job.mkdir()
+            for name in ("best.pt", "last.pt", "input_config.json", "config.json", "metrics.json", "history.json",
+                         "provenance.json", "environment.json", "supervisor.json"):
+                (job/name).write_text("mock complete artifact")
+            plan = job/"refit_plan.json"
+            plan.write_text(json.dumps({"parent_delivery_path": str(root/"frozen.json"), "source_sha256": {}}))
+            with patch.object(diagnostic, "ROOT", root):
+                args = SimpleNamespace(mode="refit-predict", plan=None)
+                with self.assertRaisesRegex(ValueError, "requires --plan"):
+                    diagnostic.build_command(args, root/"new", root/"baseline.json")
+                args.plan = plan
+                command, output, inputs = diagnostic.build_command(args, root/"new", root/"baseline.json")
+                self.assertEqual(command[1], "research/refit_delivery.py")
+                self.assertEqual(command[command.index("--plan")+1], str(plan))
+                self.assertEqual(output.name, "delivery.json")
+                self.assertTrue({plan, job/"best.pt", job/"last.pt", job/"supervisor.json", root/"frozen.json"} <= set(inputs))
+
     def setup_root(self, root, daily=21600):
         (root/"research").mkdir()
         (root/"results/regularized").mkdir(parents=True)

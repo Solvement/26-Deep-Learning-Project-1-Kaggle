@@ -62,14 +62,26 @@ def submission_window(root):
 
 def validate_manifest(path, root=ROOT):
     # Lazy import: the isolated Kaggle environment does not need torch.
-    from research.delivery import validate_delivery
-    result = dict(validate_delivery(Path(path), require_prediction=True))
-    if (result.get("competition") != COMPETITION or result.get("training_examples") != 40000 or
+    schema = read_json(path).get("schema")
+    if schema == "research_prediction_delivery_v1":
+        from research.delivery import validate_delivery
+        validator, examples, source = validate_delivery, 40000, root/"research/delivery.py"
+    elif schema == "research_refit_delivery_v1":
+        from research.refit_delivery import validate_refit_delivery
+        validator, examples, source = validate_refit_delivery, 50000, root/"research/refit_delivery.py"
+    else:
+        raise ValueError("Unsupported research delivery schema")
+    result = dict(validator(Path(path), require_prediction=True))
+    if (result.get("competition") != COMPETITION or result.get("training_examples") != examples or
             result.get("seed") != 2026 or result.get("policy") not in ("plain", "flip", "center80_shift20") or
             type(result.get("parameter_count")) is not int or not 0 < result["parameter_count"] <= 5000000 or
             not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_]{0,70}", result.get("run", "")) or
             result["run"].startswith("stability")):
-        raise ValueError("Delivery is not an audited primary 40k research candidate")
+        raise ValueError("Delivery is not an audited supported research candidate")
+    if examples == 50000 and (result.get("validation_examples") != 0 or result.get("development_accuracy") is not None or
+            result.get("independent_development_evaluated") is not False or
+            not isinstance(result.get("parent_delivery_sha256"), str) or not SHA.fullmatch(result["parent_delivery_sha256"])):
+        raise ValueError("Full refit requires its qualified parent and zero independent development examples")
     for key in ("submission_sha256", "checkpoint_sha256", "manifest_sha256", "frozen_manifest_sha256"):
         if not isinstance(result.get(key), str) or not SHA.fullmatch(result[key]):
             raise ValueError("Missing validated delivery fingerprint")
@@ -78,8 +90,9 @@ def validate_manifest(path, root=ROOT):
             sha256(path) != result["manifest_sha256"]):
         raise ValueError("Actual prediction CSV or delivery manifest changed")
     result["csv_path"] = str(csv_path)
+    result["delivery_schema"] = schema
     result["uploader_source_sha256"] = sha256(Path(__file__))
-    result["delivery_validator_source_sha256"] = sha256(root/"research/delivery.py")
+    result["delivery_validator_source_sha256"] = sha256(source)
     return result
 
 
@@ -152,6 +165,8 @@ def poll_known(api, intent, intent_path, root, timeout=180, poll_seconds=7):
                         "policy", "seed", "training_examples", "manifest_sha256", "frozen_manifest_sha256")}
             receipt.update(competition=COMPETITION, team="Saber", status="complete", submission_ref=ref,
                            public_score=score, private_score=None, submitted_at=intent["submitted_at"], checked_at=now().isoformat())
+            for key in ("delivery_schema", "validation_examples", "development_accuracy", "independent_development_evaluated", "parent_delivery_sha256"):
+                if key in intent: receipt[key] = intent[key]
             receipt_path = root/"results/research/submission_receipts"/f"{ref}.json"
             if receipt_path.exists():
                 old = read_json(receipt_path)
