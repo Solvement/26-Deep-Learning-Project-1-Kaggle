@@ -26,6 +26,23 @@ class ColabRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "could not be verified"):
             runner.parse_usage("balance 0 active 0")
 
+    def test_existing_t4_accepts_positive_cu_rate_at_zero_balance(self):
+        usage = runner.parse_usage("Current balance: 0.00 compute units\nUsage rate: 1.15/hr\nActive assignments: 1")
+        runner.validate_resource_usage(usage, expected_assignments=1)
+        self.assertEqual(usage["balance_compute_units"], 0)
+        self.assertEqual(usage["rate_compute_units_per_hour"], 1.15)
+
+    def test_resource_usage_rejects_nonfinite_negative_and_multiple_assignments(self):
+        valid = {"balance_compute_units": 0.0, "rate_compute_units_per_hour": 1.15,
+                 "active_assignments": 1}
+        for key in ("balance_compute_units", "rate_compute_units_per_hour"):
+            for value in (float("nan"), float("inf"), -1.0, True):
+                with self.assertRaisesRegex(ValueError, "finite and nonnegative"):
+                    runner.validate_resource_usage({**valid, key: value}, expected_assignments=1)
+        for count in (0, 2, True, 1.0):
+            with self.assertRaisesRegex(RuntimeError, "active Colab assignments"):
+                runner.validate_resource_usage({**valid, "active_assignments": count}, expected_assignments=1)
+
     def test_cloud_lease_never_silently_reclaims_dead_owner(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "lease.json"

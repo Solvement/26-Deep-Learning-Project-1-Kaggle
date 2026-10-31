@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import getpass
 import hashlib
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -85,6 +86,16 @@ def parse_usage(output):
     return dict(balance_compute_units=float(matches[0][1]),
                 rate_compute_units_per_hour=float(matches[1][1]),
                 active_assignments=int(matches[2][1]))
+
+
+def validate_resource_usage(usage, expected_assignments):
+    for key in ("balance_compute_units", "rate_compute_units_per_hour"):
+        value = usage.get(key)
+        if type(value) not in (float, int) or not math.isfinite(value) or value < 0:
+            raise ValueError("Colab resource balance/rate must be finite and nonnegative")
+    if (type(usage.get("active_assignments")) is not int or
+            usage["active_assignments"] != expected_assignments):
+        raise RuntimeError("Unexpected number of active Colab assignments")
 
 
 def wsl_path(path):
@@ -379,6 +390,7 @@ def launch(folder, distro):
                "pid": os.getpid(), "process_created_at": psutil.Process().create_time(),
                "started_at": now().isoformat(), "deadline_unix": deadline,
                "assignment_attempts": 0, "no_new_purchases": True, "precision": "fp16",
+               "resource_policy": "existing_Colab_entitlement_only_no_purchases",
                "allocation_returned_success": False, "remote_guard_verified": False,
                "confirmation_evaluated": False, "submitted": False,
                "input_bundle_sha256": manifest["bundle_sha256"]}
@@ -388,7 +400,8 @@ def launch(folder, distro):
     guard = None
     try:
         before = parse_usage(cli.require(["usage"], 30))
-        if before["active_assignments"] != 0 or before["rate_compute_units_per_hour"] != 0:
+        validate_resource_usage(before, expected_assignments=0)
+        if before["rate_compute_units_per_hour"] != 0:
             raise RuntimeError("Existing cloud allocation or nonzero consumption requires reconciliation")
         receipt.update(status="allocating", assignment_attempts=1, usage_before=before)
         write_json(receipt_path, receipt)
@@ -415,8 +428,11 @@ def launch(folder, distro):
         receipt["remote_guard_verified"] = True
         write_json(receipt_path, receipt)
         usage = parse_usage(cli.require(["usage"], 30))
-        if usage["rate_compute_units_per_hour"] != 0:
-            raise RuntimeError("Free runtime expected; refusing compute-unit consumption")
+        validate_resource_usage(usage, expected_assignments=1)
+        # CLI reports backend CU/h, not a USD charge. Existing entitlement is
+        # authorized; FAQ says exhausted balances revert to free-tier policies:
+        # https://research.google.com/colaboratory/faq.html
+        # A positive rate alone cannot establish a new purchase or dollar cost.
         receipt.update(status="uploading", usage_after_assignment=usage)
         write_json(receipt_path, receipt)
         for part in manifest["chunks"]:

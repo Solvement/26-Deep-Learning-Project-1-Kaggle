@@ -132,11 +132,17 @@ WD5e-4 不变，用 CutMix alpha1、概率0.5 替换 Mixup 和 Cutout。
 论文的大模型/训练时长不同，不能移用其准确率。该比较属于配方替换，不是单因素因果消融。
 
 [run_colab.py](run_colab.py) 默认仅准备私有白名单输入包；显式 `--launch` 才申请一次
-现有免费 T4，不充值。它先测真实 GradScaler 正常更新和溢出跳步，再在同一 T4 上重测
+现有 Colab T4，不充值。它先测真实 GradScaler 正常更新和溢出跳步，再在同一 T4 上重测
 可信原始基线，训练候选并运行完整 benchmark，下载核验产物后停止 runtime。
 本地父进程 watchdog 与远端官方 `runtime.unassign()` 截止保护约束最长三小时任务；
 不确定清理时保留 cloud lease，禁止盲目再申请。
 实际长训练、传输和评分须以回执为准；CPU 测试通过不代表这些云端步骤已完成。
+
+首次正式尝试已分配 T4 并建立远端截止保护，但旧资源检查因 0 CU 余额、1.15 CU/h
+而提前停止，未上传数据或启动训练，终止和 active=0 已核实。
+CLI 的速率来自 `consumptionRateHourly`，不是美元账单字段；[官方 FAQ](https://research.google.com/colaboratory/faq.html)
+说明 CU 用完后回到免费层限制。该组合不证明发生新购买；现有权益可继续使用，
+仍禁止充值/订阅/外部 GPU。修正后记录实际余额、速率及单个运行时，不因正 CU/h 自动拒绝。
 
 当前扩展回归含实际训练中断恢复后 model/EMA 完全一致、
 CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，以及本地恢复归档失败不覆盖旧回执。
