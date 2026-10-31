@@ -1,6 +1,6 @@
 # 五天探索研究：先 benchmark，再晋级
 
-先完成已有 Colab 的连接和实际 GPU 预检，再运行通过预算检查的候选。
+已有 Colab 已通过真实 T4 工程预检；首个本地 WD 对照训练正在运行。
 目前测过的 BN 校准和加权平移 TTA 均未通过晋级门槛。
 
 **材料护照：** `mode=quick` · `sources=verified primary papers/author code + measured local JSON` · `status=exploratory`。记录日期：2026-10-31。
@@ -32,6 +32,13 @@ Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 en
 同权限的强制刷新和实际 scope 核验；代码不含任何凭据。Windows 不在官方 CLI 支持范围内，
 本机采用现有 Ubuntu WSL；复现安装版本见 [requirements/colab.txt](../requirements/colab.txt)。
 运行时分配、真实 GPU 和训练吞吐仍须单独预检，余额为零不代表已获得免费 GPU。
+
+2026-10-31 已实测一台免费 Tesla T4：WRN22-4 为 4,298,970 参数，native FP16、
+GradScaler、有限梯度和真实参数更新通过。合成 batch256、dropout0.2、15 步预热和
+40 步计时得到 3,760.64 图/秒、中位 68.042ms、P90 68.433ms、峰值 1,024.4MiB。
+这不是正式配方的准确率或训练时长估计。预检后 runtime 已停止，active assignments=0，
+余额和费率仍为 0；实际缓存过期后的自动 refresh 也通过。公开标量证据见
+[research-initial-results.json](../docs/research-initial-results.json)。
 
 原主研究的四个核心文件不因新研究而修改。新实现、配置、日志和产物应单独保存，
 每次保留代码/配置/数据分割/检查点/benchmark 的 SHA-256。

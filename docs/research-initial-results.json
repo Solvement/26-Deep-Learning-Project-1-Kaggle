@@ -581,5 +581,76 @@
       "hidden_images_loaded": false
     }
   ],
-  "interpretation": "Reused official development and synthetic stress proxies, not CIFAR-C or hidden accuracy; original study unchanged; none of these inference/BN changes qualified."
+  "interpretation": "Reused official development and synthetic stress proxies, not CIFAR-C or hidden accuracy; original study unchanged; none of these inference/BN changes qualified.",
+  "colab_engineering_preflight": {
+    "status": "complete",
+    "purpose": "synthetic_engineering_preflight_only",
+    "no_new_purchases": true,
+    "real_data_used": false,
+    "hidden_images_used": false,
+    "model_source_sha256": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+    "wrapper_source_sha256": "093586513c10e1f3c2a8471ec0f1a4b7ae72994ef81f85ea88849b157933831e",
+    "elapsed_seconds": 33.333,
+    "runtime_stop_verified": true,
+    "usage_before": {
+      "balance_compute_units": 0.0,
+      "rate_compute_units_per_hour": 0.0,
+      "active_assignments": 0
+    },
+    "usage_after": {
+      "balance_compute_units": 0.0,
+      "rate_compute_units_per_hour": 0.0,
+      "active_assignments": 0
+    },
+    "benchmark": {
+      "amp_dtype": "float16",
+      "batch_size": 256,
+      "channels_last": true,
+      "compute_capability": [
+        7,
+        5
+      ],
+      "cuda_available": true,
+      "device_name": "Tesla T4",
+      "elapsed_seconds": 18.14,
+      "final_grad_scaler_scale": 256.0,
+      "finite_backward_verified": true,
+      "gpu_memory_mib": 14912.7,
+      "grad_scaler_enabled": true,
+      "hidden_images_used": false,
+      "measured_steps": 40,
+      "median_step_seconds": 0.068042,
+      "model_config": {
+        "depth": 22,
+        "dropout": 0.2,
+        "num_classes": 10,
+        "widen_factor": 4
+      },
+      "model_source_sha256": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+      "native_fp16_forward_verified": true,
+      "optimizer_update_verified": true,
+      "p90_step_seconds": 0.068433,
+      "parameter_count": 4298970,
+      "peak_allocated_memory_mib": 1024.4,
+      "purpose": "synthetic_engineering_preflight_only",
+      "real_data_used": false,
+      "status": "complete",
+      "throughput_images_per_second": 3760.64,
+      "torch_cuda_version": "13.0",
+      "torch_version": "2.11.0+cu130",
+      "warmup_steps": 15
+    },
+    "auth_durability": {
+      "official_cli_expired_cache_auto_refresh_verified": true,
+      "exit_code": 0,
+      "persisted_scope_names": [
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/colaboratory"
+      ],
+      "token_mode": "0o600",
+      "oauth_prompt_seen": false
+    }
+  }
 }
