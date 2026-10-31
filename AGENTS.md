@@ -29,7 +29,7 @@
 - Read `docs/cloud-development.md` for the CPU development environment and the selectable GPU training backends.
 - Run `python -m pip check` and `python scripts/smoke_environment.py --output-dir /tmp/kaggle-dl-smoke` after changes to the environment smoke workflow.
 - This smoke check validates dependencies and CPU training only. It is not a competition baseline or evidence of competition compliance. Add focused tests when actual data and model code is introduced.
-- Keep datasets, checkpoints, credentials, notebook outputs, and submission files out of Git. Use ignored paths and private artifacts consistent with competition rules.
+- Keep datasets, checkpoints, credentials and submission files out of Git. Full generated outputs stay ignored. The user requested completion of the course PDF, which requires an executed results notebook: a curated notebook containing only actual summary metrics, configurations and plots may be committed after inspecting every cell/output for data, weights, prediction rows and credentials. Do not publish raw artifacts inside notebook cells or image outputs.
 - Do not print environment or credential values. Reuse existing authentication, checking names/presence and the required operation before requesting more credentials.
 
 ## PR review and merging

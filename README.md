@@ -136,18 +136,22 @@ test and does not establish the final private ranking.
 | `results/<run>/` | Actual metrics, configuration, environment, provenance, history and checkpoints | Ignored, retained locally |
 | `data/` | Official competition files, manifests and split caches | Ignored, kept private |
 | `outputs/` | Generated PDF, executed notebook, plots and checksums | Ignored; submit through course channels |
+| `notebooks/Project1_Results_Executed.ipynb` | Audited final executed results, scalar metrics and plots only | Tracked only after the final output audit |
 | `results/kaggle_submission.json` | Actual submission reference/public score/checksum | Ignored, retained locally |
 
-No model weights, prediction CSVs, credentials, raw competition data or complete
-notebook outputs are committed. Publicly shared code must also be shared through
-a competition-associated Kaggle notebook or discussion under the competition's
-foundational rules. Original code is licensed under [MIT](LICENSE).
+No model weights, prediction CSVs, credentials, raw competition images or full
+unreviewed runtime outputs are committed. The final curated results notebook
+may be tracked after verifying that its outputs contain only scalar metrics,
+configurations, architecture/learning-curve plots and aggregate confusion counts.
+Original code is licensed under [MIT](LICENSE).
 
-`scripts/build_public_notebook.py` builds a CPU-only, self-contained source
-notebook. Publication URL/status are pending confirmation. If Kaggle rejects a
-public notebook with restricted competition inputs attached, `--standalone`
-omits the data attachment while retaining the explicit competition reference.
-The notebook carries no competition data, weights, predictions or credentials.
+The source has been shared with all participants in the verified
+[competition discussion](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/discussion/754332),
+satisfying the associated public-code-sharing step. The discussion links the
+actual implementation branch and source revision. No competition data, weights
+or prediction files are included. The optional `scripts/build_public_notebook.py`
+can package a CPU-only source notebook; publishing such a notebook is unnecessary
+for this delivery because the competition-associated discussion is already live.
 
 ## Course delivery and collaboration
 

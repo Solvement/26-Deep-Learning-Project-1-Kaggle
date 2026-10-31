@@ -63,6 +63,8 @@ This observed platform behavior does not change the data restrictions.
   rules section 6 also requires publicly shared code to be shared in a
   competition-associated Kaggle discussion or notebook under an OSI-approved
   license. Original code in this repository uses MIT.
+- The source-sharing step is complete: the code branch and source revision are
+  linked in the verified [competition discussion](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/discussion/754332).
 - GitHub permissions and Kaggle team membership are separate. A later teammate
   must complete the official registration and team-join process.
 
@@ -80,6 +82,9 @@ Course staff may request checkpoints, logs and reproduction. Preserve these in
 controlled local artifacts; do not publish them across teams. Full generated
 notebooks and reports are built under ignored `outputs/`, while their generator,
 source code and summarized evidence are reviewable in Git.
+A curated executed results notebook may be tracked only after auditing its
+outputs for scalar metrics, configurations, plots and aggregate confusion
+counts; raw competition images, trained weights and prediction rows are excluded.
 
 ## Deadlines and course actions
 

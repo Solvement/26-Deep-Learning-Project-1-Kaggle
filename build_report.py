@@ -23,7 +23,8 @@ REFERENCES = [
     ("DeVries and Taylor (2017). Improved Regularization of Convolutional Neural Networks with Cutout.", "https://arxiv.org/abs/1708.04552"),
     ("Loshchilov and Hutter (2017). SGDR: Stochastic Gradient Descent with Warm Restarts. Cosine schedule reference; this project need not use restarts.", "https://arxiv.org/abs/1608.03983"),
 ]
-RUN_NAMES = {"baseline", "architecture", "regularized", "final_full"}
+RUN_ORDER = ("baseline", "architecture", "regularized", "final_full")
+RUN_NAMES = set(RUN_ORDER)
 
 
 def read_json(path: Path, default=None):
@@ -104,8 +105,10 @@ def collect_evidence(results_dir: Path):
     submission = read_json(results_dir / "kaggle_submission.json", {})
     confirmation = read_json(results_dir / "confirmation.json", {})
     selection = read_json(results_dir / "selection.json", {})
+    stability = read_json(results_dir / "stability.json", {})
+    runs.sort(key=lambda run: RUN_ORDER.index(run["name"]))
     return {"runs": runs, "submission": submission, "confirmation": confirmation,
-            "selection": selection, "repository": REPOSITORY,
+            "selection": selection, "stability": stability, "repository": REPOSITORY,
             "team": "Saber", "author": "Kevin Yang", "netid": "ky2738"}
 
 
@@ -123,7 +126,84 @@ def choose_run(evidence, requested=None):
     return runs[-1] if runs else None
 
 
-def make_plots(evidence, output_dir: Path):
+def architecture_config(run):
+    config = run["config"] if run else {}
+    nested = first(config, ("model", "model_config", "architecture"), {})
+    nested = nested if isinstance(nested, dict) else {}
+    return {"depth": config.get("depth", nested.get("depth", 22)),
+            "widen_factor": config.get("widen_factor", nested.get("widen_factor", 4))}
+
+
+def variant_label(value):
+    return {"model": "raw", "ema": "EMA"}.get(value, str(value) if value is not None else "Pending")
+
+
+def checkpoint_details(run):
+    evaluation = run.get("evaluation", {})
+    config, metrics = run["config"], run["metrics"]
+    full = config.get("train_all", False)
+    epoch = evaluation.get("epoch", metrics.get("epochs_completed") if full else None)
+    variant = evaluation.get("variant", config.get("final_variant") if full else None)
+    flip = evaluation.get("flip_tta", config.get("fixed_flip_tta") if full else None)
+    return {"epoch": epoch, "variant": variant_label(variant),
+            "inference": "flip average" if flip is True else "plain" if flip is False else "Pending",
+            "plain_accuracy": evaluation.get("plain_validation_accuracy"),
+            "flip_accuracy": evaluation.get("flip_validation_accuracy"),
+            "development_accuracy": evaluation.get("validation_accuracy", val_accuracy(metrics)),
+            "full_data": full}
+
+
+def measured_interpretation(evidence):
+    """Describe completed matched runs without claiming seed-level significance."""
+    runs = {run["name"]: run for run in evidence["runs"]}
+    findings = []
+    comparisons = [
+        ("baseline", "architecture", {"depth", "widen_factor"}, "Architecture configuration", "depth and width jointly"),
+        ("architecture", "regularized", {"cutout", "mixup_alpha", "mixup_probability"}, "Regularization bundle", "Cutout and MixUp jointly"),
+    ]
+    for left_name, right_name, permitted, label, changed in comparisons:
+        left, right = runs.get(left_name), runs.get(right_name)
+        if not left or not right or any(run["metrics"].get("status") != "complete" for run in (left,right)):
+            continue
+        ld, rd = checkpoint_details(left), checkpoint_details(right)
+        la, ra = number(ld["plain_accuracy"]), number(rd["plain_accuracy"])
+        if la is None or ra is None:
+            continue
+        delta = 100 * (ra-la)
+        differing = {key for key in set(left["config"]) | set(right["config"])
+                     if left["config"].get(key) != right["config"].get(key)}
+        left_split, right_split = left.get("evaluation", {}).get("data_signature"), right.get("evaluation", {}).get("data_signature")
+        equal_split = bool(left_split and right_split) and left_split == right_split
+        matched = differing <= permitted and equal_split and left["config"].get("epochs") == right["config"].get("epochs")
+        sentence = (f"{label}: using plain inference for both checkpoints, {right_name} achieved "
+                    f"{accuracy(ra)} versus {accuracy(la)} for {left_name} ({delta:+.2f} percentage points). ")
+        if matched:
+            sentence += (f"Both runs used the same {left['config'].get('epochs')}-epoch budget, split, seed, "
+                         f"optimizer and selection protocol; the changed factors were {changed}. ")
+        else:
+            sentence += "Saved configurations or split records differ beyond the intended comparison; treat this as descriptive. "
+        if label == "Regularization bundle":
+            sentence += "This comparison does not separate the individual effects of Cutout and MixUp."
+        else:
+            sentence += "This measures the joint architecture configuration, not an isolated depth or width effect."
+        findings.append(sentence)
+    stability = evidence.get("stability", {})
+    comparison = runs.get(stability.get("comparison_run", "regularized"))
+    if stability.get("status") == "complete" and stability.get("used_for_selection") is False and comparison:
+        original = number(checkpoint_details(comparison)["development_accuracy"])
+        repeated = number(stability.get("validation_accuracy"))
+        if original is not None and repeated is not None:
+            findings.append(
+                f"Seed stability check: the regularized recipe obtained {accuracy(original)} with seed "
+                f"{comparison['config'].get('seed', 2026)} and {accuracy(repeated)} with seed "
+                f"{stability.get('seed', 2027)} on the same fixed development partition "
+                f"({100*(repeated-original):+.2f} percentage points). The repeat was excluded from recipe "
+                "selection and confirmation. These two observations do not support a formal seed-variance "
+                "estimate, confidence interval or significance claim.")
+    return findings
+
+
+def make_plots(evidence, output_dir: Path, selected=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -172,9 +252,15 @@ def make_plots(evidence, output_dir: Path):
     fig, axis = plt.subplots(figsize=(10.4, 1.7), layout="constrained")
     axis.set(xlim=(0, 12), ylim=(0, 1.8))
     axis.axis("off")
+    selected = selected or choose_run(evidence)
+    config = architecture_config(selected)
+    width = config["widen_factor"]
+    blocks = (config["depth"] - 4) // 6
     boxes = [("RGB input\n32 x 32", "#e8eef5"), ("3x3 stem\n16 channels", "#dceceb"),
-             ("Stage 1\n64 channels", "#c6e3df"), ("Stage 2\n128 channels", "#9fd0c9"),
-             ("Stage 3\n256 channels", "#70b7ad"), ("Pool + linear\n10 logits", "#dceceb")]
+             (f"Stage 1\n{16*width} channels\n{blocks} blocks", "#c6e3df"),
+             (f"Stage 2\n{32*width} channels\n{blocks} blocks", "#9fd0c9"),
+             (f"Stage 3\n{64*width} channels\n{blocks} blocks", "#70b7ad"),
+             ("Pool + linear\n10 logits", "#dceceb")]
     from matplotlib.patches import FancyBboxPatch
     for index, (label, color) in enumerate(boxes):
         x = index * 2.0
@@ -188,14 +274,40 @@ def make_plots(evidence, output_dir: Path):
     diagram = output_dir / "architecture.png"
     fig.savefig(diagram, dpi=180, bbox_inches="tight")
     plt.close(fig)
-    return {"learning_curves": figure_path, "architecture": diagram, "has_measurements": any_data}
+    result = {"learning_curves": figure_path, "architecture": diagram, "has_measurements": any_data}
+    confusion = evidence.get("confirmation", {}).get("confusion_matrix")
+    if confusion is not None:
+        import numpy as np
+        counts = np.asarray(confusion)
+        if counts.shape != (10,10) or np.any(counts < 0):
+            raise ValueError("Confirmation confusion matrix must be nonnegative and 10 by 10")
+        names = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+        fig, axis = plt.subplots(figsize=(7.0, 5.8), layout="constrained")
+        proportions = counts / counts.sum(axis=1, keepdims=True).clip(min=1)
+        image = axis.imshow(proportions, cmap="Blues", vmin=0, vmax=1)
+        for row in range(10):
+            for column in range(10):
+                axis.text(column,row,str(counts[row,column]),ha="center",va="center",fontsize=7.5,
+                          color="white" if proportions[row,column] > .55 else "#173346")
+        axis.set(xticks=range(10),yticks=range(10),xticklabels=names,yticklabels=names,
+                 xlabel="Predicted class",ylabel="True class",title="One-time confirmation errors")
+        axis.tick_params(axis="x",labelrotation=40)
+        axis.grid(False)
+        fig.colorbar(image, ax=axis, shrink=.8, label="Fraction of true class")
+        target = output_dir / "confirmation_confusion.png"
+        fig.savefig(target,dpi=180)
+        plt.close(fig)
+        result["confirmation"] = target
+    return result
 
 
 def compact_config(config):
     preferred = ["epochs", "batch_size", "lr", "learning_rate", "weight_decay", "momentum",
                  "warmup_epochs", "mixup_alpha", "mixup_probability", "cutout", "cutout_size",
-                 "ema_decay", "label_smoothing", "seed", "precision", "device"]
-    rows = [(key, config[key]) for key in preferred if key in config]
+                 "ema_decay", "final_variant", "fixed_flip_tta", "train_all", "seed",
+                 "label_smoothing", "precision", "device"]
+    rows = [(key, config[key]) for key in preferred if key in config and
+            (config.get("train_all") or key not in {"final_variant", "fixed_flip_tta"})]
     if not rows:
         rows = list(config.items())[:12]
     return rows[:16]
@@ -237,14 +349,14 @@ def create_pdf(evidence, selected, plots, output_dir):
         story.append(Paragraph(text, styles[style]))
     def h(text):
         p(text, "Heading2")
-    def table(rows, widths=None):
+    def table(rows, widths=None, compact=False):
         wrapped = [[Paragraph(escape(str(value)), styles["TableProject"]) for value in row] for row in rows]
         obj = Table(wrapped, colWidths=widths, hAlign="LEFT", repeatRows=1)
         obj.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#e8f1f2")),
                                 ("TEXTCOLOR", (0,0), (-1,0), navy),
                                 ("VALIGN", (0,0), (-1,-1), "TOP"),
-                                ("BOTTOMPADDING", (0,0), (-1,-1), 7),
-                                ("TOPPADDING", (0,0), (-1,-1), 7),
+                                ("BOTTOMPADDING", (0,0), (-1,-1), 3 if compact else 7),
+                                ("TOPPADDING", (0,0), (-1,-1), 3 if compact else 7),
                                 ("LINEBELOW", (0,0), (-1,0), .6, colors.HexColor("#b9cccf")),
                                 ("LINEBELOW", (0,1), (-1,-1), .3, colors.HexColor("#e0e8ed"))]))
         story.append(obj)
@@ -265,11 +377,7 @@ def create_pdf(evidence, selected, plots, output_dir):
     parameter_count = first(metrics, ("trainable_parameters", "parameters", "parameter_count", "total_parameters"))
     if isinstance(parameter_count, dict):
         parameter_count = first(parameter_count, ("trainable", "total"))
-    model_config = first(config, ("model", "model_config", "architecture"), {})
-    if not isinstance(model_config, dict):
-        model_config = {}
-    model_config = {"depth": config.get("depth", model_config.get("depth", 22)),
-                    "widen_factor": config.get("widen_factor", model_config.get("widen_factor", 4))}
+    model_config = architecture_config(selected)
     if parameter_count is None and model_config.get("depth", 22) == 22 and model_config.get("widen_factor", 4) == 4:
         parameter_count = 4298970
     parameter_text = f"{int(parameter_count):,}" if number(parameter_count) is not None else "Pending"
@@ -280,7 +388,6 @@ def create_pdf(evidence, selected, plots, output_dir):
     p("Efficient residual learning<br/>for CIFAR-10", "TitleProject")
     p("Deep Learning Project 1 | Team Saber<br/>Kevin Yang (ky2738)", "SubtitleProject")
     p(f'<b>Public code:</b> <link href="{REPOSITORY}" color="#167e75">{REPOSITORY}</link>')
-    p("Additional team members will be listed only after official registration and team membership are confirmed.", "SmallProject")
     story.append(Spacer(1, 10))
     h("Overview")
     p("This project designs a convolutional residual classifier for the course's CIFAR-10 competition. "
@@ -288,8 +395,12 @@ def create_pdf(evidence, selected, plots, output_dir):
       "five-million-parameter limit at model construction. The final prediction pipeline uses one model, "
       "with preprocessing and any inference averaging documented in the saved run artifacts.")
     architecture_name = f"WRN-{model_config['depth']}-{model_config['widen_factor']}"
+    details = checkpoint_details(selected) if selected else {}
+    checkpoint_text = (f"Epoch {details['epoch']}; {details['variant']}; {details['inference']}"
+                       if details.get("epoch") is not None else "Pending")
     table([["Evidence", "Recorded value"], ["Selected local run", run_name],
            ["Selected architecture", architecture_name],
+           ["Selected checkpoint / inference", checkpoint_text],
            ["Model trainable parameters", parameter_text], ["Selected recipe development accuracy", accuracy(val)],
            ["One-time confirmation accuracy", accuracy(confirmation.get("accuracy"))],
            ["Kaggle public leaderboard test accuracy", accuracy(score)],
@@ -319,21 +430,21 @@ def create_pdf(evidence, selected, plots, output_dir):
             low, high, successes, total = interval
             p(f"Confirmation: {successes:,}/{total:,} correct; descriptive Wilson 95% binomial "
               f"interval {accuracy(low)} to {accuracy(high)}. This does not measure variation across training seeds.", "SmallProject")
-    p("Official evaluation images remain outside optimization and local checkpoint selection. "
-      "The final full-data retrain has no development score: its raw/EMA variant and inference rule are fixed "
-      "by the preceding development protocol, and Kaggle supplies its hidden-test measurement.")
 
     story.append(PageBreak())
     p("Architecture and training method", "Heading1")
-    h("A wider CIFAR residual network")
-    p("The main WRN-22-4 [1,2] replaces an ImageNet-style large stem with a stride-one 3x3 convolution. "
-      "Three residual stages use widths 64, 128 and 256, with three two-convolution blocks per stage. "
+    h("The selected CIFAR residual network")
+    width = model_config["widen_factor"]
+    blocks = (model_config["depth"]-4)//6
+    p(f"The selected {architecture_name} [1,2] uses a stride-one 3x3 CIFAR stem. "
+      f"Its three residual stages use widths {16*width}, {32*width} and {64*width}, "
+      f"with {blocks} two-convolution residual blocks per stage. "
       "Pre-activation batch normalization and ReLU precede convolutions; a learned 1x1 shortcut handles "
       "channel or spatial changes. Spatial downsampling occurs at the second and third stages. "
       "Global average pooling and a ten-class linear head complete the network.")
     story.append(Image(str(plots["architecture"]), width=6.35*inch, height=1.10*inch))
-    p("Figure 1. Main-model data flow. Residual shortcuts operate inside each stage. The diagram describes WRN-22-4; smaller baseline widths are recorded in its configuration.", "CaptionProject")
-    p("The default main model contains exactly <b>4,298,970 parameters</b>, including normalization and the classifier. "
+    p(f"Figure 1. Selected {architecture_name} data flow. Residual shortcuts operate inside each stage; widths and block counts are derived from the selected run's saved configuration.", "CaptionProject")
+    p(f"The selected architecture contains <b>{parameter_text} parameters</b>, including normalization and the classifier. "
       "Every parameter is trainable. The constructor rejects a total parameter count over 5,000,000, a stronger "
       "check than counting only trainable parameters. No pretrained weights or external teacher models are used.")
     h("Official data and validation isolation")
@@ -358,13 +469,13 @@ def create_pdf(evidence, selected, plots, output_dir):
         packed = [pairs[i] + (pairs[i+1] if i+1 < len(pairs) else ["", ""])
                   for i in range(0, len(pairs), 2)]
         table([["Configuration", "Saved value", "Configuration", "Saved value"]] + packed,
-              [1.3*inch,1.9*inch,1.3*inch,1.9*inch])
+              [1.3*inch,1.9*inch,1.3*inch,1.9*inch], compact=True)
     else:
         p("No final training configuration is recorded yet.", "SmallProject")
 
     story.append(PageBreak())
     p("Experimental evidence", "Heading1")
-    rows = [["Run", "Params", "Epochs recorded", "Development"]]
+    rows = [["Run", "Params", "Trained epochs", "Checkpoint", "Dev plain / flip", "Chosen inference"]]
     for run in evidence["runs"][:8]:
         m = run["metrics"]
         count = first(m, ("trainable_parameters", "parameters", "parameter_count", "total_parameters"), "Pending")
@@ -372,26 +483,44 @@ def create_pdf(evidence, selected, plots, output_dir):
             count = first(count, ("trainable", "total"), "Pending")
         if number(count) is not None:
             count = f"{int(count):,}"
-        dev = run.get("evaluation", {}).get("validation_accuracy")
-        if dev is None:
-            dev = val_accuracy(m)
-        rows.append([run["name"], count, len(run["history"]),
-                     "Not evaluated" if run["config"].get("train_all") else accuracy(dev)])
+        detail = checkpoint_details(run)
+        checkpoint = (f"e{detail['epoch']} {detail['variant']}" if detail['epoch'] is not None else "Pending")
+        dev_text = ("Not evaluated" if detail['full_data'] else
+                    f"{accuracy(detail['plain_accuracy'])} / {accuracy(detail['flip_accuracy'])}")
+        chosen = detail['inference']
+        if not detail['full_data'] and detail['development_accuracy'] is not None:
+            chosen += f" ({accuracy(detail['development_accuracy'])})"
+        rows.append([run["name"], count, m.get("epochs_completed", len(run["history"])),
+                     checkpoint, dev_text, chosen])
     if len(rows) == 1:
-        rows.append(["Pending", "Pending", "0", "Pending"])
-    table(rows, [2.7*inch,1.0*inch,1.25*inch,1.45*inch])
+        rows.append(["Pending", "Pending", "0", "Pending", "Pending", "Pending"])
+    table(rows, [1.05*inch,.75*inch,.65*inch,1.05*inch,1.4*inch,1.5*inch])
     story.append(Image(str(plots["learning_curves"]), width=6.35*inch, height=3.91*inch))
     p("Figure 2. Curves are drawn only from saved epoch-level measurements. Training objectives with augmentation or mixed labels are not directly comparable to clean validation cross-entropy. No missing measurements are interpolated.", "CaptionProject")
-    p("The table uses each candidate's development evaluation with its selected inference averaging when available; epoch curves show the raw and EMA scores recorded during training. The final full-data refit has no development score.", "SmallProject")
-    h("Interpretation and limits")
-    p("The planned aligned comparisons use the same split, seed, optimizer and 160-epoch budget: "
-      "a small WRN-16-2 baseline with crop/flip; a WRN-22-4 architecture comparison with crop/flip; "
-      "and WRN-22-4 with the Cutout-plus-MixUp regularization bundle. Saved configurations show actual "
-      "settings and any deviations. The regularization comparison changes a bundle and cannot attribute "
-      "its effect separately to Cutout or MixUp. Development is reused for selection; the independent "
-      "confirmation check is performed only after choosing the recipe. A single split and seed do not "
-      "quantify seed variation, and no statistical significance is claimed. Final full-data training has "
-      "no held-out validation metric; public and private leaderboard results may differ.")
+    p("Checkpoint identifies the selected epoch and raw/EMA weights. Plain/flip columns use that same checkpoint; the last column gives the development-selected inference rule. Epoch curves show training-time raw and EMA scores. The fixed full-data refit has no development score.", "SmallProject")
+    story.append(PageBreak())
+    p("Measured findings and limitations", "Heading1")
+    findings = measured_interpretation(evidence)
+    if findings:
+        for finding in findings:
+            p(escape(finding))
+    else:
+        p("Matched architecture and regularization comparisons are pending completion; no effect size is reported yet.")
+    p("Development is reused for model selection; confirmation is checked once after the recipe is frozen. "
+      "Each architecture comparison uses one fixed split and seed, so it does not establish statistical "
+      "significance or isolate seed variation. The full-data refit has no held-out development metric; "
+      "public and private leaderboard outcomes can differ.", "SmallProject")
+    if "confirmation" in plots:
+        h("One-time confirmation error analysis")
+        story.append(Image(str(plots["confirmation"]), width=5.0*inch, height=4.14*inch))
+        p("Figure 3. Counts from the independent confirmation split; colors are normalized within the true class. This analysis is descriptive and is not used to revise the frozen recipe.", "CaptionProject")
+        confusion = evidence["confirmation"]["confusion_matrix"]
+        class_names = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+        per_class = [(confusion[i][i]/sum(row), class_names[i]) for i,row in enumerate(confusion) if sum(row)]
+        weakest = sorted(per_class)[:2]
+        if weakest:
+            p("The lowest confirmation recalls were " + " and ".join(f"{name} ({accuracy(value)})" for value,name in weakest) +
+              ". These are measured error patterns, not evidence that a later intervention would improve the hidden test score.", "SmallProject")
 
     story.append(PageBreak())
     p("Reproduction, delivery and references", "Heading1")
@@ -407,8 +536,9 @@ def create_pdf(evidence, selected, plots, output_dir):
            ["Submission reference", first(evidence["submission"], ("ref", "submission_ref", "submission_id", "id"), "Pending")]], [1.55*inch,4.85*inch])
     p("The repository supplies model, data preparation, training, inference, submission validation and report "
       "generation code. Each completed run keeps its full configuration, split/data fingerprints, environment, "
-      "metrics, learning history and selected checkpoint locally. Generated weights, raw images, prediction "
-      "files and full notebook outputs are excluded from Git and retained for course-staff verification. "
+      "metrics, learning history and selected checkpoint locally. Weights, raw images, prediction files and "
+      "full unreviewed runtime outputs stay outside Git. An audited executed results notebook may contain "
+      "scalar metrics, configurations, plots and aggregate confusion counts for review. "
       "Artifact checksums should be checked before reusing a checkpoint or prediction file.")
     h("Design lessons and remaining work")
     p("The parameter budget favors widening a moderate-depth network rather than using an unmodified "
@@ -451,6 +581,12 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
     nb.metadata["kernelspec"] = {"display_name": "Python 3", "language": "python", "name": "python3"}
     nb.metadata["language_info"] = {"name": "python", "version": sys.version.split()[0]}
     chosen_name = selected["name"] if selected else None
+    def portable_path(path):
+        path = Path(path).resolve()
+        try:
+            return "ROOT / " + repr(path.relative_to(ROOT).as_posix())
+        except ValueError:
+            return "Path(" + repr(str(path)) + ")"
     nb.cells = [
         nbformat.v4.new_markdown_cell("# Project 1: executed experiment evidence\n\n**Kevin Yang (ky2738), Team Saber**\n\n"
             f"[Public GitHub source]({REPOSITORY})\n\n"
@@ -459,18 +595,20 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
             "Private leaderboard accuracy is not yet available."),
         nbformat.v4.new_code_cell(
             "from pathlib import Path\nimport json, sys\n"
-            f"ROOT = Path({str(ROOT)!r})\n"
+            "ROOT = next((p for p in (Path.cwd(), *Path.cwd().parents) if (p / 'model.py').is_file()), None)\n"
+            "if ROOT is None:\n    raise FileNotFoundError('Run this notebook from the cloned project or its notebooks directory.')\n"
             "sys.path.insert(0, str(ROOT))\n"
             "from runtime import configure_runtime\nconfigure_runtime()\n"
-            "from build_report import collect_evidence, choose_run, accuracy, public_accuracy, val_accuracy\n"
-            f"evidence = collect_evidence(Path({str(Path(evidence.get('results_dir', ROOT / 'results')))!r}))\n"
+            "from build_report import collect_evidence, choose_run, accuracy, public_accuracy, val_accuracy, checkpoint_details, measured_interpretation\n"
+            f"evidence = collect_evidence({portable_path(evidence.get('results_dir', ROOT / 'results'))})\n"
             f"selected = choose_run(evidence, {chosen_name!r})\n"
             "print('Team: Saber | Kevin Yang | ky2738')\n"
             "print('Recorded runs:', [run['name'] for run in evidence['runs']])\n"
             "print('Selected run:', selected['name'] if selected else 'Pending')"),
         nbformat.v4.new_markdown_cell("## Architecture and parameter-budget check\n"
-            "The main model is WRN-22-4, initialized from scratch. A fresh CPU construction independently "
-            "checks its parameter count; it does not load a pretrained or external model."),
+            "A fresh CPU construction matches the selected saved architecture configuration (default WRN-22-4 "
+            "until a selection is available) and independently checks its parameter count. It does not load "
+            "a pretrained or external model."),
         nbformat.v4.new_code_cell(
             "from model import build_model, count_parameters\n"
             "config = selected['config'] if selected else {}\n"
@@ -484,29 +622,38 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
             "if model_config['depth'] == 22 and model_config['widen_factor'] == 4:\n    assert total == 4_298_970\n"
             "assert total <= 5_000_000\ndel model"),
         nbformat.v4.new_markdown_cell("## Actual experimental configurations and results\n"
-            "Configurations and epoch budgets may differ. The comparison is descriptive, not a causal ablation."),
+            "The matched protocol fixes the split, seed, schedule and optimizer. The architecture comparison "
+            "changes depth and width jointly; the regularization comparison changes Cutout and MixUp jointly. "
+            "The measured effects below do not establish statistical significance or separate the bundled factors."),
         nbformat.v4.new_code_cell(
             "for run in evidence['runs']:\n"
             "    print('\\nRUN:', run['name'])\n"
             "    print('CONFIGURATION:', json.dumps(run['config'], indent=2))\n"
             "    print('METRICS:', json.dumps(run['metrics'], indent=2))\n"
+            "    print('CHECKPOINT AND INFERENCE:', json.dumps(checkpoint_details(run), indent=2))\n"
             "    print('Epochs recorded:', len(run['history']))\n"
-            "if not evidence['runs']:\n    print('Training artifacts are pending.')"),
+            "if not evidence['runs']:\n    print('Training artifacts are pending.')\n"
+            "for finding in measured_interpretation(evidence):\n    print('\\nMEASURED FINDING:', finding)"),
         nbformat.v4.new_code_cell(
             "from IPython.display import Image, display\n"
-            f"display(Image(filename={str(plots['learning_curves'])!r}))\n"
-            f"display(Image(filename={str(plots['architecture'])!r}))"),
+            f"display(Image(filename=str({portable_path(plots['learning_curves'])})))\n"
+            f"display(Image(filename=str({portable_path(plots['architecture'])})))\n" +
+            (f"display(Image(filename=str({portable_path(plots['confirmation'])})))" if "confirmation" in plots else "")),
         nbformat.v4.new_markdown_cell("## Final test accuracy\n"
             "The public leaderboard measures only half of the 2,000 hidden evaluation images. "
             "Validation accuracy, public leaderboard test accuracy and unreleased private accuracy are distinct."),
         nbformat.v4.new_code_cell(
             "metrics = selected['metrics'] if selected else {}\n"
-            "print('Final full-data model validation accuracy: not evaluated (recipe already frozen)')\n"
+            "if selected and selected['config'].get('train_all'):\n"
+            "    print('Final full-data model validation accuracy: not evaluated (recipe already frozen)')\n"
+            "else:\n    print('Development accuracy:', accuracy(checkpoint_details(selected)['development_accuracy']) if selected else 'Pending')\n"
             "print('One-time confirmation accuracy:', accuracy(evidence['confirmation'].get('accuracy')))\n"
             "print('Final test accuracy (Kaggle PUBLIC leaderboard):', accuracy(public_accuracy(evidence['submission'])))\n"
             "print('Private leaderboard test accuracy: unavailable until released')\n"
             "print(f'Final model parameter count: {total:,}')\n"
-            "print('Submission record:', json.dumps(evidence['submission'], indent=2))"),
+            "safe_submission_keys = ('submission_ref','public_score','private_score','run','sha256','status','submitted_at','scored_at','commit','source_commit','checkpoint_sha256')\n"
+            "submission_record = {k:evidence['submission'][k] for k in safe_submission_keys if k in evidence['submission']}\n"
+            "print('Submission record (scalar fields only):', json.dumps(submission_record, indent=2))"),
         nbformat.v4.new_markdown_cell("## Reproduction and artifact policy\n"
             "Follow the repository README to prepare official competition data, train the chosen configuration, "
             "validate predictions, and generate this report. Data, weights and prediction files stay private and "
@@ -533,7 +680,7 @@ def main():
     evidence = collect_evidence(args.results_dir)
     evidence["results_dir"] = str(args.results_dir.resolve())
     selected = choose_run(evidence, args.final_run)
-    plots = make_plots(evidence, args.output_dir)
+    plots = make_plots(evidence, args.output_dir, selected)
     pdf, pages = create_pdf(evidence, selected, plots, args.output_dir)
     notebook = create_notebook(evidence, selected, plots, args.output_dir, execute=not args.no_execute)
     artifacts = {"report": str(pdf), "report_pages": pages, "notebook": str(notebook),

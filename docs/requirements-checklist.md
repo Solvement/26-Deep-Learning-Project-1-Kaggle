@@ -18,14 +18,15 @@ the local three-page assignment PDF and [verified requirements](competition.md).
 - [ ] Push reproducible source, configuration and tests through a feature-branch PR.
 - [x] Confirm the GitHub repository is publicly accessible; implemented source is
   on `feat/cifar10-resnet-submission` / PR 6, awaiting human review before merge.
-- [ ] Publish the shared code in a competition-associated Kaggle notebook or forum,
+- [x] Share the code in the verified [competition discussion](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/discussion/754332),
   as required by the Kaggle foundational public-code-sharing rule.
 - [ ] Generate and visually verify a PDF of at most 8 pages, including references.
 - [ ] Put the public GitHub link, Kevin Yang / ky2738 and team Saber on page one.
 - [ ] Include architecture, parameter count, actual experiments, design decisions,
   public test accuracy, limitations and citations.
 - [ ] Generate an executed notebook with plots and printed test accuracy and
-  parameter count. Full outputs stay in the ignored local `outputs/` directory.
+  parameter count. Full outputs stay in ignored `outputs/`; only the audited,
+  non-sensitive final results notebook is copied into tracked `notebooks/`.
 
 ## Kaggle and course submission
 
