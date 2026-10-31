@@ -1,41 +1,127 @@
-# 比赛要求与证据
+# Verified competition and assignment requirements
 
-比赛链接：https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/overview
+Verified on **2026-10-30** from the authenticated Kaggle API, official manifests,
+the local three-page `project1.pdf`, and prior verified research on
+`origin/docs/verified-competition-rules`. Full fetched page text remains local
+under ignored `data/competition_pages.json`. No credentials are stored in Git.
 
-## 当前状态
+Competition: [CIFAR-10 ResNet Architecture Challenge](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl).
 
-截至 2026-10-29，尚未成功读取比赛页面。当前云环境访问 `www.kaggle.com` 时代理返回 403；Kaggle CLI 未配置认证。不能把比赛名称中的 CIFAR-10 或 ResNet 当作已确认的数据集、模型或训练限制。
+## Model and permitted data
 
-已安装 Kaggle CLI 2.2.5。其 `competitions pages --help` 支持 `--content` 导出页面正文（使用显式 `--competition` 参数，规避 2.2.5 的可选位置参数与子命令解析歧义），但本比赛的页面列表和权限尚未验证。API 不一定覆盖网页全部栏目、公告、讨论或课程附件。
-
-## 访问恢复后核对
-
-| 来源 | 需要记录的要求 | 状态 |
+| Requirement | Evidence | Implementation consequence |
 | --- | --- | --- |
-| Overview / Description | 任务目标、作业要求、提交材料 | 待读取 |
-| Evaluation | 评分指标、公开/私有榜划分、提交样例与字段 | 待读取 |
-| Rules | 模型结构、预训练权重、外部数据、集成、代码公开限制 | 待读取 |
-| Data | 文件列表、规模、标签映射、训练/验证/测试划分、数据许可 | 待读取 |
-| Timeline | 报名、组队、提交截止时间及原始时区 | 待读取 |
-| Team / Submission limits | 是否允许两人组队、成员上限、每日提交次数 | 待读取 |
-| Discussion / Announcements / 附件 | 主办方补充或修订规则、课程报告要求 | 待读取 |
-| Notebook / GPU | 是否限定平台、运行时长、GPU、网络及输出方式 | 待读取 |
+| CNN with residual/skip connections | Description; rules sections 1 and 4; PDF pp. 1-2 | CIFAR WideResNet with projection shortcuts |
+| At most 5,000,000 trainable parameters | Description; rules section 4; PDF pp. 1-2 | Also enforce total parameters; WRN-22-4 = 4,298,970 |
+| Train every model from scratch | Rules section 5; PDF pp. 1-2 | Random initialization, no external checkpoints |
+| Only official permitted training data | Data description; rules section 3 | Load official Kaggle train images and labels |
+| No external datasets or pretrained weights | Rules sections 3 and 5 | No ImageNet, CIFAR-100, pretrained encoders or external teachers |
+| No hidden-label reconstruction or manual labeling | Data description; rules section 12 | Hidden evaluation images used only for inference |
 
-每条确认结果应记录：原文要求、来源链接/栏目、读取时间和实现影响。规则改变时在 PR 中解释影响。
+The official competition has **50,000** `train_images/` images and
+`train_labels.csv` (`id,filename,label`), **2,000** `test_images/` images,
+`test.csv` (`id,filename`), and `sample_submission.csv` (`id,label`). The prior
+verified file inventory contains 52,003 unique files. Each training class has
+5,000 images. Training inputs are 32 by 32 RGB.
 
-## 获取路径
+Use the official competition mount or a fingerprinted export of those exact
+files. An original Toronto CIFAR-10 archive downloaded during setup is unused;
+it is not a training source. No official CIFAR test labels are loaded.
 
-1. 两名成员分别登录自己的 Kaggle 账号，确认比赛可访问、报名并接受规则；邀请成员加入同一个队伍前核对人数上限。GitHub 协作权限和 Kaggle 队伍权限分别管理。
-2. 在云环境设置中保存 Kaggle 网络域名，并安全填写个人 `KAGGLE_API_TOKEN`。不要在聊天、Git、脚本或 Notebook 中粘贴令牌。
-3. 激活云环境后执行只读请求：
+Label indices: `0 airplane`, `1 automobile`, `2 bird`, `3 cat`, `4 deer`,
+`5 dog`, `6 frog`, `7 horse`, `8 ship`, `9 truck`.
 
-   ```bash
-   source /workspace/.setup/kaggle-dl/activate.sh
-   kaggle competitions pages --competition cifar-10-res-net-architecture-challenge-dl --content --format json
-   kaggle competitions files cifar-10-res-net-architecture-challenge-dl
-   ```
+## Evaluation and submission
 
-4. 逐项检查网页 Rules、Data、Evaluation 和 Timeline；API 导出的页面不能自动证明已经取得“所有内容”。受课程邀请或登录限制的附件，需要有权限的成员提供正文或导出文件，再进行核对。
-5. 在规则明确前，不下载大数据、不启动 GPU 训练、不自动提交比赛。
+| Item | Verified value | Source |
+| --- | --- | --- |
+| Metric | Classification accuracy, higher is better | Description; rules section 10 |
+| Public/private split | 50% / 50%; private score determines final ranking | Data description; rules section 11 |
+| Evaluation rows | 2,000 | Official test and sample manifests |
+| Submission | `submission.csv`, columns exactly `id,label` | Data description; rules section 7 |
+| Label domain | Integers 0 through 9 | Rules section 7 |
+| ID/order | One prediction per image, same IDs and order as sample | Rules section 7 |
+| Daily limit | 5 submissions per entire team | Rules section 8; submission-limits API |
 
-网络放行或凭据配置不保证比赛授权；403、参赛条款未接受、邀请限制和已结束比赛等情况应分别诊断。
+The user requested using the five-entry allowance for fixed-model official
+comparisons: baseline, architecture, regularized, the primary 50,000-image refit,
+and a separately labeled exploratory robust_full variant. The seed repeat stays
+validation-only. Official public feedback may motivate this separate exploration
+and inform Kaggle entry selection; it does not alter the frozen 160-epoch
+development/confirmation study or its primary full-data result. Record all receipts and distinguish the
+highest public benchmark from the primary refit if they differ. The 1,000-image
+public portion does not reveal private accuracy or guarantee private ranking.
+
+The bulk competition ZIP endpoint returned HTTP 404. Individual downloads and
+the official Kaggle competition mount work. `download_kaggle.py` uses bounded
+individual downloads. The export helper can package the official mounted
+training files into a private, fingerprinted artifact for local GPU training.
+This observed platform behavior does not change the data restrictions.
+
+## Team and public code
+
+- Maximum team size is three. Each participant may belong to one team.
+- The Kaggle team UI displays a platform capacity of five, but the written
+  competition rules and assignment cap this project at **three**; enforce three.
+- Course Google Form registration is mandatory; the registered team name must
+  match Kaggle. The browser verified team **Saber**, with `Kevin_1220` as its sole
+  current leader/member. The report identifies Kevin Yang (`ky2738`). Google
+  Form registration is a separate course action and has not been verified.
+- Sharing trained weights, predictions or private solutions across teams is forbidden.
+- Public reference code is permitted with attribution. Kaggle foundational
+  rules section 6 also requires publicly shared code to be shared in a
+  competition-associated Kaggle discussion or notebook under an OSI-approved
+  license. Original code in this repository uses MIT.
+- The source-sharing step is complete: the code branch and source revision are
+  linked in the verified [competition discussion](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/discussion/754332).
+- GitHub permissions and Kaggle team membership are separate. A later teammate
+  must complete the official registration and team-join process.
+
+## Required deliverables
+
+The PDF awards ten points for the report and ten for the GitHub code repository.
+The report must be at most **eight pages including references**, name every
+member, describe design choices and experiments, report architecture, parameter
+count and test accuracy, and include citations. A publicly accessible GitHub
+link must appear on page one. The repository must support reproduction. The PDF
+also asks for notebooks with visible execution results, clear plots, and printed
+final test accuracy and parameter count.
+
+Course staff may request checkpoints, logs and reproduction. Preserve these in
+controlled local artifacts; do not publish them across teams. Full generated
+notebooks and reports are built under ignored `outputs/`, while their generator,
+source code and summarized evidence are reviewable in Git.
+A curated executed results notebook may be tracked only after auditing its
+outputs for scalar metrics, configurations, plots and aggregate confusion
+counts; raw competition images, trained weights and prediction rows are excluded.
+
+## Deadlines and course actions
+
+The authenticated Kaggle header tooltip was read in the browser and states
+**Friday 2026-11-06 23:59:59 GMT-0500 (Eastern Standard Time)**. This is
+**2026-11-07 04:59:59 UTC**. The PDF's competition date is consistent with that
+deadline. The assignment gives **2026-11-09 at 23:59** for the report, without a
+timezone; confirm the report timezone through the course announcements.
+Competition rules section 16 still contains TBA text, so distinguish that stale
+written placeholder from the verified live Kaggle deadline.
+
+The GitHub repository is now publicly accessible. The implemented pipeline is
+on [the feature branch](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/cifar10-resnet-submission)
+and PR 6; `main` remains the earlier harness pending human review. Report links
+therefore point directly to the code branch rather than implying it was merged.
+
+The PDF itself states no AI-use prohibition. Kaggle rules require university
+academic-integrity compliance; this file does not infer unseen course policies.
+Brightspace upload, Google Form registration, team membership and human PR
+review remain human/course actions unless separately completed and recorded.
+
+## Sources
+
+- [Competition overview](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/overview)
+- [Competition rules](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/rules)
+- [Competition data](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl/data)
+- Local `project1.pdf`, pages 1-3 (course assignment, intentionally not republished)
+- API pages `Description`, `data-description`, `rules`, `abstract`,
+  `foundational-rules`; official CSV manifests and submission limits
+- Earlier verified inventory: branch `docs/verified-competition-rules`,
+  `docs/data-audit.json`; its separate T4 training results are not local WRN results
