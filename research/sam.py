@@ -20,22 +20,63 @@ import runtime  # noqa: F401
 import torch
 
 
+def _tensor_groups(tensors):
+    """Group by device/dtype so mixed BN counters do not disable foreach fusion."""
+    groups = {}
+    for index, tensor in enumerate(tensors):
+        groups.setdefault((tensor.device, tensor.dtype), []).append((index, tensor))
+    return groups.values()
+
+
+@torch.no_grad()
+def _clone_tensors(tensors):
+    tensors = list(tensors)
+    saved = [None]*len(tensors)
+    for group in _tensor_groups(tensors):
+        # empty_like allocates without a fill kernel; foreach_copy_ batches the
+        # actual copies and exists in the repository's PyTorch2.9 CI version.
+        copies = [torch.empty_like(tensor, memory_format=torch.preserve_format) for _, tensor in group]
+        torch._foreach_copy_(copies, [tensor.detach() for _, tensor in group])
+        for (index, _), value in zip(group, copies):
+            saved[index] = value
+    return saved
+
+
+@torch.no_grad()
+def _copy_tensors(destinations, sources):
+    for group in _tensor_groups(destinations):
+        torch._foreach_copy_([tensor for _, tensor in group], [sources[index] for index, _ in group])
+
+
 def _bn_snapshot(model):
-    return [(module, module.training, module.momentum, module.track_running_stats,
-             {name: None if getattr(module, name) is None else getattr(module, name).detach().clone()
-              for name in ("running_mean", "running_var", "num_batches_tracked")})
-            for module in model.modules() if isinstance(module, torch.nn.modules.batchnorm._BatchNorm)]
+    states, locations, tensors = [], [], []
+    for module in model.modules():
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            buffers = {}
+            states.append((module, module.training, module.momentum, module.track_running_stats, buffers))
+            for name in ("running_mean", "running_var", "num_batches_tracked"):
+                value = getattr(module, name)
+                buffers[name] = None
+                if value is not None:
+                    locations.append((buffers, name))
+                    tensors.append(value)
+    for (buffers, name), saved in zip(locations, _clone_tensors(tensors)):
+        buffers[name] = saved
+    return states
 
 
 @torch.no_grad()
 def _restore_bn(states):
+    destinations, sources = [], []
     for module, training, momentum, tracking, buffers in states:
         module.training, module.momentum, module.track_running_stats = training, momentum, tracking
         for name, saved in buffers.items():
             if saved is None:
                 setattr(module, name, None)
             else:
-                getattr(module, name).copy_(saved)
+                destinations.append(getattr(module, name))
+                sources.append(saved)
+    _copy_tensors(destinations, sources)
 
 
 @contextmanager
@@ -58,10 +99,12 @@ def _global_l2(tensors, stage):
         raise ValueError(f"SAM {stage}: no optimizer parameter has a gradient")
     if any(value.is_sparse for value in values):
         raise ValueError("SAM requires dense gradients")
-    norm = torch.linalg.vector_norm(torch.stack([torch.linalg.vector_norm(value.detach().float()) for value in values]))
-    if not torch.isfinite(norm):
+    # Same global L2 formula as individual norms, using multi-tensor kernels.
+    norm = torch.linalg.vector_norm(torch.stack(torch._foreach_norm([value.detach().float() for value in values], 2)))
+    scalar = float(norm.item())
+    if not math.isfinite(scalar):
         raise FloatingPointError(f"SAM {stage}: nonfinite gradient or global L2 norm")
-    return float(norm.item())
+    return scalar
 
 
 def _backward(closure, stage):
@@ -69,10 +112,11 @@ def _backward(closure, stage):
         loss = closure()
         if not isinstance(loss, torch.Tensor) or loss.ndim != 0 or not loss.is_floating_point() or not loss.requires_grad:
             raise ValueError("SAM closure must return a differentiable scalar loss without calling backward")
-        if not torch.isfinite(loss):
+        scalar = float(loss.detach().item())
+        if not math.isfinite(scalar):
             raise FloatingPointError(f"SAM {stage}: nonfinite loss")
         loss.backward()
-    return float(loss.detach().item())
+    return scalar
 
 
 def _parameters(model, optimizer, precision, scaler):
@@ -95,7 +139,10 @@ def _parameters(model, optimizer, precision, scaler):
         raise ValueError("SAM FP32 supports CPU or CUDA only")
     if precision == "bf16" and (device.type != "cuda" or not torch.cuda.is_bf16_supported(including_emulation=False)):
         raise ValueError("SAM BF16 requires a natively supported CUDA GPU")
-    if not torch.stack([torch.isfinite(parameter).all() for parameter in parameters]).all():
+    # Linf cannot overflow for finite FP32 weights and propagates NaN/Inf.
+    nonempty = [parameter.detach() for parameter in parameters if parameter.numel()]
+    maximum = float(torch.stack(torch._foreach_norm(nonempty, float("inf"))).amax().item()) if nonempty else 0.0
+    if not math.isfinite(maximum):
         raise FloatingPointError("SAM model contains a nonfinite parameter before the update")
     return parameters
 
@@ -121,7 +168,7 @@ def sam_step(model, optimizer, closure, *, rho=.05, precision="fp32", scaler=Non
     if isinstance(rho, bool) or not isinstance(rho, (int, float)) or not math.isfinite(rho) or rho <= 0:
         raise ValueError("SAM rho must be positive and finite")
     parameters = _parameters(model, optimizer, precision, scaler)
-    originals = [parameter.detach().clone(memory_format=torch.preserve_format) for parameter in parameters]
+    originals = _clone_tensors(parameters)
     original_bn = _bn_snapshot(model)
     updated = False
     try:
@@ -130,18 +177,15 @@ def sam_step(model, optimizer, closure, *, rho=.05, precision="fp32", scaler=Non
         grad_norm = _global_l2((parameter.grad for parameter in parameters if parameter.grad is not None), "first pass")
         with torch.no_grad():
             if grad_norm > 0:
-                for parameter in parameters:
-                    if parameter.grad is not None:
-                        parameter.add_(parameter.grad, alpha=rho/grad_norm)
-        perturbation_norm = _global_l2((parameter.detach()-saved for parameter, saved in zip(parameters, originals)), "perturbation")
+                active = [parameter for parameter in parameters if parameter.grad is not None]
+                torch._foreach_add_(active, [parameter.grad for parameter in active], alpha=rho/grad_norm)
+        perturbation_norm = _global_l2(torch._foreach_sub([parameter.detach() for parameter in parameters], originals), "perturbation")
         with _second_pass_bn(model):
             model.zero_grad(set_to_none=True)
             second_loss = _backward(closure, "second pass")
             second_grad_norm = _global_l2((parameter.grad for parameter in parameters if parameter.grad is not None), "second pass")
-        with torch.no_grad():
-            # Copying saved originals avoids subtractive floating point drift.
-            for parameter, saved in zip(parameters, originals):
-                parameter.copy_(saved)
+        # Copying saved originals avoids subtractive floating point drift.
+        _copy_tensors(parameters, originals)
         evidence = {"first_loss": first_loss, "second_loss": second_loss, "grad_norm": grad_norm,
                     "second_grad_norm": second_grad_norm, "perturbation_norm": perturbation_norm,
                     "rho": float(rho), "updated": True, "forward_backward_passes": 2}
@@ -150,8 +194,6 @@ def sam_step(model, optimizer, closure, *, rho=.05, precision="fp32", scaler=Non
         return evidence
     finally:
         if not updated:
-            with torch.no_grad():
-                for parameter, saved in zip(parameters, originals):
-                    parameter.copy_(saved)
+            _copy_tensors(parameters, originals)
             _restore_bn(original_bn)
         model.zero_grad(set_to_none=True)

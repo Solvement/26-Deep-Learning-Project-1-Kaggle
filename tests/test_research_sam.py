@@ -211,6 +211,48 @@ class ResearchSAMTests(unittest.TestCase):
         sam_step(model, optimizer, lambda: model(torch.ones(4, 3)).square().mean())
         self.assertEqual(before, [(id(parameter), parameter.numel()) for parameter in model.parameters()])
 
+    def test_multitensor_update_matches_independent_scalar_reference_with_momentum(self):
+        torch.manual_seed(71)
+        model = torch.nn.Sequential(torch.nn.Linear(5, 7), torch.nn.Tanh(), torch.nn.Linear(7, 3))
+        reference = copy.deepcopy(model)
+        optimizer = torch.optim.SGD(model.parameters(), lr=.03, momentum=.9, weight_decay=.01, nesterov=True)
+        reference_optimizer = torch.optim.SGD(reference.parameters(), lr=.03, momentum=.9, weight_decay=.01, nesterov=True)
+        x, target = torch.randn(8, 5), torch.randn(8, 3)
+        for _ in range(3):
+            sam_step(model, optimizer, lambda: (model(x)-target).square().mean(), rho=.05)
+            reference_optimizer.zero_grad(set_to_none=True)
+            (reference(x)-target).square().mean().backward()
+            parameters = list(reference.parameters())
+            originals = [parameter.detach().clone() for parameter in parameters]
+            norm = torch.linalg.vector_norm(torch.stack([parameter.grad.norm() for parameter in parameters]))
+            with torch.no_grad():
+                for parameter in parameters:
+                    parameter.add_(parameter.grad, alpha=.05/norm.item())
+            reference_optimizer.zero_grad(set_to_none=True)
+            (reference(x)-target).square().mean().backward()
+            with torch.no_grad():
+                for parameter, original in zip(parameters, originals):
+                    parameter.copy_(original)
+            reference_optimizer.step()
+        for actual, expected in zip(model.parameters(), reference.parameters()):
+            self.assertTrue(torch.allclose(actual, expected, rtol=1e-6, atol=1e-7))
+            self.assertTrue(torch.allclose(optimizer.state[actual]["momentum_buffer"],
+                                           reference_optimizer.state[expected]["momentum_buffer"], rtol=1e-6, atol=1e-7))
+
+    def test_nonfinite_unused_parameter_is_rejected_before_closure_or_sgd(self):
+        for invalid in (float("nan"), float("inf")):
+            model = torch.nn.ParameterList([torch.nn.Parameter(torch.tensor([1.])),
+                                            torch.nn.Parameter(torch.tensor([invalid]))])
+            optimizer = torch.optim.SGD(model.parameters(), lr=.1)
+            calls = []
+            def closure():
+                calls.append(True)
+                return model[0].square().sum()
+            with self.assertRaisesRegex(FloatingPointError, "nonfinite parameter"):
+                sam_step(model, optimizer, closure)
+            self.assertEqual(calls, [])
+            self.assertEqual(model[0].item(), 1.)
+
 
 if __name__ == "__main__":
     unittest.main()
