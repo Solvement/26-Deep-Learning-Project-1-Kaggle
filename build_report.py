@@ -449,6 +449,8 @@ def create_pdf(evidence, selected, plots, output_dir):
            ["Model trainable parameters", parameter_text], ["Selected recipe development accuracy", accuracy(val)],
            ["One-time confirmation accuracy", accuracy(confirmation.get("accuracy"))],
            ["Primary full-data public test accuracy", accuracy(score)],
+           ["Highest completed official public benchmark",
+            f"{accuracy(public_accuracy(best_benchmark))} ({best_benchmark.get('run', 'unknown')})" if best_benchmark else "Pending"],
            ["Private leaderboard test accuracy", "Not released / unavailable"]], [2.75*inch, 3.65*inch])
     h("Measured findings")
     if score is not None:
@@ -574,7 +576,7 @@ def create_pdf(evidence, selected, plots, output_dir):
       "significance or isolate seed variation. The full-data refit has no held-out development metric; "
       "public and private leaderboard outcomes can differ.", "SmallProject")
     if evidence.get("submissions"):
-        p("The user requested use of the five-entry daily allowance. The primary 160-epoch recipe and "
+        p("We allocated the five permitted daily submissions to official benchmark comparisons. The primary 160-epoch recipe and "
           "confirmation remain frozen; public feedback additionally motivated a separately labeled "
           "robust_full exploration. Selecting the highest of "
           "five public scores can favor sampling noise on the 1,000-image public subset. The benchmark "
