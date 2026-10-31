@@ -445,3 +445,11 @@ POSIX自有session及独立watchdog。12项实际Windows CPU测试覆盖无pool�
 loss的CPU范围会等待此前异步forward，不能把162.6ms直接解释为JSD算术开销。
 该测量不含worker内部PIL，也不准入正式训练；下一对照仅研究BN后端，保持FP16/B128/单3B和目标不变。
 可公开核验的聚合见[augmix-profile-results.json](../docs/augmix-profile-results.json)。
+
+随后固定FP16/B128/单3B的两臂合成对照中，只在BN.forward内禁用cuDNN，卷积保持cuDNN：
+原后端单步中位394.780ms，native BN为86.722ms，观测比率4.552倍。
+两臂均23次真实更新、19层BN单次计数/有限正梯度/参数变化验证通过，实际autograd后端也不同；
+输出/梯度/BN缓冲存在已记录的小幅浮点差异，不能声称逐位等价。监督18.02秒且进程树回收核实。
+这省略数据流水线与传输，仍不准入正式训练。新[数值协议计划](augmix-nativebn-plan.md)
+固定仅训练BN用native、eval保留原后端；独立typed入口准备中，须重新测实际图像流水线。
+聚合见[augmix-bn-engineering-results.json](../docs/augmix-bn-engineering-results.json)。

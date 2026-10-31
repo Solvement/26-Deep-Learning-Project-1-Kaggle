@@ -848,12 +848,10 @@
     "latest_local_integration_CPU_tests": 458,
     "integration_note": "All458 integrated CPU checks passed locally and in real LinuxCI, including12 actualWindows and12 actualPOSIX process-tree tests without skips on their respective platforms. Actuallocal AugMix FP16 train-image preflight passed23 updates plus overflow and completecleanup, but its fixed31101.54s guard exceeds3h: no formal local admission. See separate augmix-native-results.json; no AugMix accuracy exists.",
     "latest_verified_committed_CI": {
-      "commit": "f906ae87d98be5da060f17f0350444e16ae01675",
-      "CPU_tests": 458,
+      "commit": "2f77886c867e34083dbe14fcf9d967d3e99cdc3d",
+      "CPU_tests": 497,
       "result": "SUCCESS",
-      "POSIX_actual_guard_tests": 12,
-      "POSIX_guard_skipped": 0,
-      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41250717270"
+      "url": "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/actions/runs/41253318762"
     },
     "cloud_attestation_note": "ResizeMix160 and shadowWRN300 actual independentcloudrepeat attestations were built/rederived after complete training,officialcleanup andmatchedlocalv3. Both frozenprimaries2000rowpredictions and strictprepare pass. No uploads/intent or researchscores exist."
   },
