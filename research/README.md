@@ -1,6 +1,8 @@
 # 五天探索研究：先 benchmark，再晋级
 
-已有 Colab 已通过真实 T4 工程预检；首个本地 WD 对照训练正在运行。
+已有 Colab 已通过真实 T4 工程预检；首个本地 WD 对照训练中断在第 119 轮，
+已核对源码/数据/检查点并从第 120 轮恢复。中断原因未知，旧回执及环境记录已保留，
+该次中断按预留上限保守计入本地预算。
 目前测过的 BN 校准和加权平移 TTA 均未通过晋级门槛。
 
 **材料护照：** `mode=quick` · `sources=verified primary papers/author code + measured local JSON` · `status=exploratory`。记录日期：2026-10-31。
@@ -106,6 +108,30 @@ flip 为 clean **96.28%** / stress **77.628%**；加权平移为 **96.32% / 77.7
 本地实验 ID 和输出路径必须唯一，既有目录、日志和回执不能静默覆盖。
 
 ## 方法证据与待验证假设
+
+### 新增可执行路径：FP16 与 CutMix
+
+[train_shadow.py](train_shadow.py) 是独立的探索训练入口，复用冻结核心函数，
+仅允许 40k/5k。T4 使用 native FP16 与 GradScaler；溢出跳步不更新 EMA，
+检查点保存 scaler、更新次数和全部 RNG，恢复要求源码/精度/配置相同。
+额外训练源码由 [benchmark_shadow.py](benchmark_shadow.py) 核验，随后调用未修改的
+v2 benchmark；新候选不能只凭兼容核心的字段绕过独立训练源码检查。
+
+[wrn22_cutmix.json](configs/wrn22_cutmix.json) 实现待测 recipe：WRN22-4、160 epoch、
+WD5e-4 不变，用 CutMix alpha1、概率0.5 替换 Mixup 和 Cutout。
+[实现](augmentations.py) 按实际裁剪面积重新计算标签权重，供体取自未修改的 batch。
+依据为 [CutMix 论文](https://arxiv.org/abs/1905.04899)及[作者代码](https://github.com/clovaai/CutMix-PyTorch)；
+论文的大模型/训练时长不同，不能移用其准确率。该比较属于配方替换，不是单因素因果消融。
+
+[run_colab.py](run_colab.py) 默认仅准备私有白名单输入包；显式 `--launch` 才申请一次
+现有免费 T4，不充值。它先测真实 GradScaler 正常更新和溢出跳步，再在同一 T4 上重测
+可信原始基线，训练候选并运行完整 benchmark，下载核验产物后停止 runtime。
+本地父进程 watchdog 与远端官方 `runtime.unassign()` 截止保护约束最长三小时任务；
+不确定清理时保留 cloud lease，禁止盲目再申请。
+实际长训练、传输和评分须以回执为准；CPU 测试通过不代表这些云端步骤已完成。
+
+当前扩展后全套 68 项 CPU 测试通过，含实际训练中断恢复后 model/EMA 完全一致、
+CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，以及本地恢复归档失败不覆盖旧回执。
 
 1. **BN / TTA。** 作者的 [SWA BN 更新代码](https://github.com/timgaripov/swa/blob/master/utils.py)
    使用按 batch 样本数加权的统计更新。[Better Aggregation in Test-Time Augmentation](https://arxiv.org/abs/2011.11156)
