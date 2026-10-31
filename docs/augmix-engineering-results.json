@@ -1,0 +1,41 @@
+{
+  "schema": "augmix_synthetic_CPU_diagnostic_v1",
+  "source_sha256": "9786de01bcbe170d99f40d7681220732946348e933297b7bd600be8932e04f5f",
+  "synthetic_only": true,
+  "source_batch": 128,
+  "views": 384,
+  "timed_batches": 5,
+  "CPU_augmentation_stack_seconds": [
+    0.194948000000295,
+    0.1696416999984649,
+    0.14527279999674647,
+    0.14870410000003176,
+    0.14578130000154488
+  ],
+  "median": 0.14870410000003176,
+  "previous_median": 0.31396569999924395,
+  "previous_source_sha256": "a87df630a82d976279ebd18ef2f1012608df1dad36e72a45a4e1551083d3d2c1",
+  "CPU_speed_ratio": 2.1113452823370498,
+  "same32_pre_opt_trace_RNG_output_bytes": true,
+  "no_GPU_or_transfer_or_training_measured": true,
+  "not_formal_admission_evidence": true,
+  "context": {
+    "CPU": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+    "OS": "Windows",
+    "torch": "2.12.0+cu130",
+    "numpy": "2.3.4",
+    "pillow": "12.0.0",
+    "torch_CPU_threads": 1,
+    "warmup_images": 8,
+    "synthetic_uniform_uint8": true
+  },
+  "original_source_preserved_and_hash_reverified": true,
+  "equivalence": {
+    "synthetic_views": 32,
+    "raw_trace_and_parent_RNG_equal": true,
+    "all_output_elements_bitwise_equal": true,
+    "max_absolute_error": 0.0,
+    "new_cross_implementation_CPU_regression_test": true
+  },
+  "interpretation": "Synthetic CPU augmentation/stack diagnostic only. No official images, transfer, GPU, training, complete pipeline budget admission or accuracy measured. The observed speed ratio is specific to these five batches and context."
+}

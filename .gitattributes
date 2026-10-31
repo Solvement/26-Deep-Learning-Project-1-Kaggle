@@ -8,3 +8,6 @@ research/run_se_sam.py text eol=lf
 research/configs/wrn22_se_sam.json text eol=lf
 tests/test_se_sam.py text eol=lf
 docs/se-engineering-results.json text eol=lf
+research/augmix.py text eol=lf
+tests/test_augmix.py text eol=lf
+docs/augmix-engineering-results.json text eol=lf

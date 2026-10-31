@@ -27,7 +27,7 @@
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
   复测和真实预测均完成。SAM 的160轮、完整benchmark和配对已完成，待正式seed复测；
-  SWA独立实现与278项全套CPU检查/CI已完成，新源码原生GPU预检通过，固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立模型和CPU检查已实现，尚无trainer/GPU结果。
+  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix已完成独立CPU变换/损失实现与等价热路径优化，完整流水线仍待预检。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -409,3 +409,14 @@ policy、训练范围及参数量；准备完成、CSV或intent均不算官方�
 不在CI启动Notebook kernel。重建时指定未存在的新目录：
 `python build_report.py --research-summary docs/research-followup-results.json --output-dir outputs/my_research_preview`。
 这是有日期的探索快照，最终报告仍须在截止时按实际评分回执刷新。
+
+## AugMix 独立增强与一致性损失
+
+已按[预登记计划](augmix-plan.md)独立实现[augmix.py](augmix.py)，固定九种PIL操作、三分支、
+两独立view与clean-only CE加12倍三分布JSD；未叠加Mixup、SAM或SE。21项CPU检查通过，
+包括极端FP16/BF16输入的有限梯度、父随机状态重放、两view随机流隔离及像素/几何边界。
+[实现说明](augmix-implementation-notes.md)记录作者精确commit、随机流/归一化/预处理差异和数值设计。
+实测合成CPU增强+stack由0.314s/sourcebatch降至0.149s，32组图像/随机trace/output逐位相同；
+这是工程诊断，未测传输、GPU、训练或准确率。公开聚合见[augmix-engineering-results.json](../docs/augmix-engineering-results.json)。
+完整typed trainer和独立云监督入口正在CPU实现，必须先测真实训练图像/并行CPU增强/传输/单3B/更新的
+端到端native流水线，再按实际预算准入；旧run_colab及所有已绑定源码保持冻结。
