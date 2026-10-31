@@ -1,0 +1,31 @@
+{
+  "issue": 7,
+  "team": "Saber",
+  "status": "active_exploration",
+  "starts_at": "2026-10-31T00:00:00-04:00",
+  "stops_at": "2026-11-05T00:00:00-05:00",
+  "primary_study_frozen": true,
+  "confirmation_may_be_reused": false,
+  "official_training_only": true,
+  "parameter_limit": 5000000,
+  "concurrent_local_gpu_jobs": 1,
+  "concurrent_cloud_gpu_jobs": 1,
+  "local_gpu_seconds_per_utc_day": 21600,
+  "local_job_timeout_seconds": 10800,
+  "kaggle_additional_gpu_hours_cap": 25,
+  "cloud_preference": "existing_Colab_then_existing_Kaggle",
+  "colab_additional_purchases_authorized": false,
+  "other_paid_providers_authorized": false,
+  "new_paid_budget_usd": null,
+  "submission_limit_per_team_utc_day": 5,
+  "benchmark_schema": "official_development_stress_v2",
+  "baseline_benchmark": "results/research/baseline_v2.json",
+  "benchmark_clean_improvement": 0.001,
+  "benchmark_stress_noninferiority": -0.002,
+  "benchmark_stress_improvement": 0.005,
+  "benchmark_clean_noninferiority": -0.002,
+  "first_experiments": [
+    {"id":"wrn22_wd1e4_s2026", "config":"research/configs/wrn22_wd1e4.json", "changes_from_regularized":["weight_decay"]},
+    {"id":"wrn34_3_s2026", "config":"research/configs/wrn34_3.json", "changes_from_regularized":["depth", "widen_factor"]}
+  ]
+}

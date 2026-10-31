@@ -24,16 +24,17 @@ from data import load_training_arrays
 from model import build_model, count_parameters
 from train import code_provenance, normalize, tensor_images, training_source
 
-SCHEMA = "official_development_stress_v1"
+SCHEMA = "official_development_stress_v2"
 CASES = ("clean", "noise_004", "boxblur3", "contrast065", "brightness080", "resize24")
 POLICIES = ("plain", "flip", "center80_shift20")
+BASELINE_CHECKPOINT_SHA = "502979bc03301aa2f0273a7414f86799302b908a3abada622a88e4578c4b734f"
 
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def validate_checkpoint(checkpoint, train_ids, val_ids, signature):
+def validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics=None, current_source=None):
     config = checkpoint["config"]
     if config.get("train_all") is not False:
         raise ValueError("Held-out benchmark rejects full-data checkpoints")
@@ -43,6 +44,13 @@ def validate_checkpoint(checkpoint, train_ids, val_ids, signature):
         raise ValueError("Training and benchmark examples overlap")
     if checkpoint.get("data_signature") != signature:
         raise ValueError("Checkpoint official source/split mismatch")
+    if (not metrics or metrics.get("status") != "complete" or metrics.get("config") != config
+        or metrics.get("epochs_completed") != config.get("epochs")
+        or metrics.get("training_examples") != 40000 or metrics.get("validation_examples") != 5000):
+        raise ValueError("Promotion benchmark requires completed training with verified counts/configuration")
+    recorded = checkpoint.get("provenance", {}).get("source_sha256", {})
+    if not current_source or any(recorded.get(key) != value for key, value in current_source.items()):
+        raise ValueError("Checkpoint training source differs from frozen current core")
 
 
 def stress(batch, case, offset=0):
@@ -50,8 +58,8 @@ def stress(batch, case, offset=0):
         raise ValueError("Expected RGB uint8 NHWC benchmark inputs")
     x = batch.permute(0, 3, 1, 2).float() / 255
     if case == "noise_004":
-        generator = torch.Generator(device=batch.device).manual_seed(99173 + offset)
-        x = x + torch.randn(x.shape, generator=generator, device=x.device) * .04
+        generator = torch.Generator(device="cpu").manual_seed(99173 + offset)
+        x = x + torch.randn(x.shape, generator=generator, device="cpu").to(x.device) * .04
     elif case == "boxblur3":
         x = F.avg_pool2d(F.pad(x, (1, 1, 1, 1), mode="reflect"), 3, 1)
     elif case == "contrast065":
@@ -116,9 +124,11 @@ def score(model, images, labels, device, policy, batch_size, limit=None):
         for case in CASES:
             correct = 0
             loss = 0.0
+            pixels_sha = hashlib.sha256()
             started = time.perf_counter()
             for start in range(0, examples, batch_size):
                 batch = stress(images[start:min(start+batch_size, examples)], case, start)
+                pixels_sha.update(batch.cpu().numpy().tobytes())
                 target = labels[start:start+len(batch)]
                 with torch.autocast(device.type, dtype=dtype, enabled=device.type == "cuda"):
                     logits = infer(model, batch, policy)
@@ -129,7 +139,8 @@ def score(model, images, labels, device, policy, batch_size, limit=None):
             if device.type == "cuda":
                 torch.cuda.synchronize()
             reports[case] = {"accuracy": correct/examples, "loss": loss/examples,
-                             "examples": examples, "seconds": time.perf_counter()-started}
+                             "examples": examples, "seconds": time.perf_counter()-started,
+                             "input_pixel_sha256": pixels_sha.hexdigest()}
     return {"cases": reports, "clean_accuracy": reports["clean"]["accuracy"],
             "clean_loss": reports["clean"]["loss"],
             "stress_accuracy": sum(reports[c]["accuracy"] for c in CASES[1:])/(len(CASES)-1)}
@@ -144,6 +155,24 @@ def promotion_gate(candidate, baseline):
     return {"passed": passed, "clean_delta": clean, "stress_delta": robust,
             "thresholds": {"clean_improvement": .001, "stress_noninferiority": -.002,
                            "stress_improvement": .005, "clean_noninferiority": -.002}}
+
+
+def validate_baseline(baseline, reports, signature, batch_size, context, source_hash):
+    if (baseline.get("schema") != SCHEMA or baseline.get("status") != "complete"
+        or baseline.get("data_signature") != signature or baseline.get("examples") != 5000
+        or baseline.get("stress_cases") != list(CASES) or baseline.get("bn_recalibrated") is not False
+        or baseline.get("checkpoint_sha256") != BASELINE_CHECKPOINT_SHA
+        or baseline.get("batch_size") != batch_size or baseline.get("evaluation_context") != context
+        or baseline.get("benchmark_source_sha256") != source_hash):
+        raise ValueError("Baseline must be complete and use the identical suite, source, precision and batch size")
+    reference = baseline.get("policies", {}).get("flip", {}).get("cases", {})
+    for case in CASES:
+        expected = reference.get(case, {})
+        if expected.get("examples") != 5000 or not expected.get("input_pixel_sha256"):
+            raise ValueError("Baseline case is incomplete")
+        for report in reports.values():
+            if report["cases"][case]["examples"] != 5000 or report["cases"][case]["input_pixel_sha256"] != expected["input_pixel_sha256"]:
+                raise ValueError("Benchmark cases must use identical development pixels")
 
 
 def main():
@@ -170,12 +199,16 @@ def main():
     device = torch.device(args.device)
     started = time.perf_counter()
     checkpoint_sha = sha256(args.checkpoint)
+    if not args.baseline and (checkpoint_sha != BASELINE_CHECKPOINT_SHA or args.recalibrate_bn):
+        raise ValueError("New candidates require the established original-BN baseline")
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     images, labels, train_ids, val_ids = load_training_arrays(args.data_dir)
     manifest = json.loads((args.data_dir/"training_manifest.json").read_text())
     signature = {"archive_sha256": training_source(args.data_dir)["archive_sha256"],
                  "split_sha256": manifest["split"]["indices_sha256"]}
-    validate_checkpoint(checkpoint, train_ids, val_ids, signature)
+    metrics = json.loads((args.checkpoint.parent/"metrics.json").read_text())
+    current_source = code_provenance()["source_sha256"]
+    validate_checkpoint(checkpoint, train_ids, val_ids, signature, metrics, current_source)
     model = build_model(checkpoint["model_config"]).to(device=device, memory_format=torch.channels_last)
     model.load_state_dict(checkpoint["model"], strict=True)
     model.eval()
@@ -190,10 +223,11 @@ def main():
         reports[policy] = score(model, val_images, val_labels, device, policy, args.batch_size, args.limit)
         print(json.dumps({"policy": policy, **reports[policy]}), flush=True)
     baseline_doc = json.loads(args.baseline.read_text()) if args.baseline else None
-    if baseline_doc and (baseline_doc.get("schema") != SCHEMA or baseline_doc.get("data_signature") != signature
-                         or baseline_doc.get("examples") != 5000 or baseline_doc.get("stress_cases") != list(CASES)
-                         or baseline_doc.get("bn_recalibrated") or baseline_doc.get("batch_size") != args.batch_size):
-        raise ValueError("Baseline must be a complete, identical-suite original-BN benchmark")
+    dtype = "torch.bfloat16" if device.type == "cuda" and torch.cuda.is_bf16_supported() else "torch.float16" if device.type == "cuda" else "torch.float32"
+    context = {"device_type": device.type, "amp_dtype": dtype, "torch_version": torch.__version__,
+               "training_core_sha256": current_source}
+    if baseline_doc:
+        validate_baseline(baseline_doc, reports, signature, args.batch_size, context, sha256(Path(__file__)))
     baseline = (baseline_doc["policies"]["flip"] if baseline_doc else reports.get("flip"))
     gates = {p: promotion_gate(report, baseline) for p, report in reports.items()} if baseline else {}
     if args.limit:
@@ -207,6 +241,7 @@ def main():
               "checkpoint_variant": checkpoint["variant"], "model_config": checkpoint["model_config"],
               "config": checkpoint["config"], "data_signature": signature,
               "stress_cases": list(CASES), "batch_size": args.batch_size,
+              "evaluation_context": context,
               "bn_recalibrated": args.recalibrate_bn, "policies": reports, "promotion": gates,
               "baseline_sha256": sha256(args.baseline) if args.baseline else None,
               "elapsed_seconds": time.perf_counter()-started, "source": code_provenance(),

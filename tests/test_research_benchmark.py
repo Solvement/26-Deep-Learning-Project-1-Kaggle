@@ -1,5 +1,6 @@
 """Safety boundaries for exploratory development benchmarks (synthetic inputs)."""
 from pathlib import Path
+import copy
 import sys
 import unittest
 
@@ -9,7 +10,8 @@ if str(ROOT) not in sys.path:
 import runtime
 import numpy as np
 import torch
-from research.benchmark import promotion_gate, stress, validate_checkpoint, recalibrate_training_bn
+from research.benchmark import (promotion_gate, stress, validate_checkpoint, recalibrate_training_bn,
+                                validate_baseline, SCHEMA, CASES, BASELINE_CHECKPOINT_SHA)
 from train import normalize
 from scripts.submit_verified import ALLOWED_RUNS as UPLOAD_RUNS, validate_run
 from scripts.make_benchmark_submissions import ALLOWED_RUNS as PREDICTION_RUNS
@@ -23,12 +25,40 @@ class ResearchBenchmarkTests(unittest.TestCase):
     def test_overlap_and_fingerprint_mismatch_are_rejected(self):
         train = np.arange(40000)
         dev = np.arange(40000, 45000)
-        checkpoint = {"config": {"train_all": False}, "data_signature": {"split": "a"}}
-        validate_checkpoint(checkpoint, train, dev, {"split": "a"})
+        checkpoint = {"config": {"train_all": False, "epochs":160}, "data_signature": {"split": "a"},
+                      "provenance":{"source_sha256":{"train.py":"original"}}}
+        metrics = {"status":"complete","config":checkpoint["config"],"epochs_completed":160,
+                   "training_examples":40000,"validation_examples":5000}
+        validate_checkpoint(checkpoint, train, dev, {"split": "a"}, metrics, {"train.py":"original"})
         with self.assertRaisesRegex(ValueError, "source/split"):
             validate_checkpoint(checkpoint, train, dev, {"split": "b"})
         with self.assertRaisesRegex(ValueError, "overlap"):
             validate_checkpoint(checkpoint, train, np.arange(5000), {"split": "a"})
+        with self.assertRaisesRegex(ValueError, "completed training"):
+            validate_checkpoint(checkpoint, train, dev, {"split":"a"}, {**metrics,"status":"running"}, {"train.py":"original"})
+        with self.assertRaisesRegex(ValueError, "training source"):
+            validate_checkpoint(checkpoint, train, dev, {"split":"a"}, metrics, {"train.py":"changed"})
+
+    def test_partial_or_different_suite_cannot_be_a_promotion_baseline(self):
+        cases = {case:{"examples":5000,"input_pixel_sha256":case} for case in CASES}
+        reports = {"flip":{"cases":cases}}
+        baseline = {"schema":SCHEMA,"status":"complete","data_signature":{},"examples":5000,
+                    "stress_cases":list(CASES),"bn_recalibrated":False,"batch_size":128,
+                    "evaluation_context":{},"benchmark_source_sha256":"current",
+                    "checkpoint_sha256":BASELINE_CHECKPOINT_SHA,"policies":reports}
+        validate_baseline(baseline,reports,{},128,{},"current")
+        for changes in ({"status":"smoke"},{"benchmark_source_sha256":"old"},
+                        {"checkpoint_sha256":"another_model"}):
+            with self.assertRaises(ValueError):
+                validate_baseline({**baseline,**changes},reports,{},128,{},"current")
+        truncated = copy.deepcopy(baseline)
+        truncated["policies"]["flip"]["cases"]["clean"]["examples"] = 1
+        with self.assertRaisesRegex(ValueError,"case is incomplete"):
+            validate_baseline(truncated,reports,{},128,{},"current")
+        changed_pixels = copy.deepcopy(reports)
+        changed_pixels["flip"]["cases"]["noise_004"]["input_pixel_sha256"]="different"
+        with self.assertRaisesRegex(ValueError,"identical development pixels"):
+            validate_baseline(baseline,changed_pixels,{},128,{},"current")
 
     def test_noise_is_paired_and_clean_is_exact(self):
         images = torch.arange(2*3*32*32).remainder(256).to(torch.uint8).reshape(2, 32, 32, 3)
