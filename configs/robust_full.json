@@ -1,0 +1,14 @@
+{
+  "depth": 22, "widen_factor": 4, "dropout": 0.0, "num_classes": 10,
+  "epochs": 300, "batch_size": 128, "lr": 0.1, "min_lr": 0.0001,
+  "warmup_epochs": 5, "momentum": 0.9, "weight_decay": 0.0005,
+  "label_smoothing": 0.0, "cutout": 16, "mixup_alpha": 0.2,
+  "mixup_probability": 0.5, "ema_decay": 0.999, "seed": 3031,
+  "split_seed": 2026, "train_all": true, "final_variant": "ema",
+  "randaugment_n": 2, "randaugment_m": 9,
+  "randaugment_interpolation": "bilinear", "randaugment_fill": [125, 123, 114],
+  "checkpoint_interval": 10,
+  "tta_mode": "reflectpad4_five_crops_plus_horizontal_flip_mean_logits",
+  "exploratory_after_public_feedback": true,
+  "confirmation_endorsement": false
+}
