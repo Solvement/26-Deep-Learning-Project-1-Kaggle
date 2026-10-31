@@ -438,3 +438,10 @@ POSIX自有session及独立watchdog。12项实际Windows CPU测试覆盖无pool�
 固定guard为31,101.54秒（约8.6小时），超过三小时上限，故不启动本地正式训练。
 这仅是本地工程与吞吐结果；不能据此推断T4速度或准确率，同T4仍需独立实测。
 聚合证据见[augmix-native-results.json](../docs/augmix-native-results.json)，原始回执和数据保持私有。
+
+独立[性能诊断](profile_augmix.py)随后保持原函数/配置运行23次正常更新和单独overflow，
+监督33.70秒、实际CUDA活动及完整进程树清理通过。20个timed批次的queue中位等待0.329ms，
+三个具体BatchNorm CUDA叶内核在全部24遍中累计7,894.91ms；不能再与其父算子或CPU同步时间相加。
+loss的CPU范围会等待此前异步forward，不能把162.6ms直接解释为JSD算术开销。
+该测量不含worker内部PIL，也不准入正式训练；下一对照仅研究BN后端，保持FP16/B128/单3B和目标不变。
+可公开核验的聚合见[augmix-profile-results.json](../docs/augmix-profile-results.json)。

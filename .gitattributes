@@ -24,3 +24,4 @@ docs/augmix-native-results.json text eol=lf
 research/profile_augmix.py text eol=lf
 tests/test_augmix_profile.py text eol=lf
 research/trivialaugment-plan.md text eol=lf
+docs/augmix-profile-results.json text eol=lf
