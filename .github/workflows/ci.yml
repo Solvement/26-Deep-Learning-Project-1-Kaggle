@@ -20,8 +20,6 @@ jobs:
     timeout-minutes: 15
     env:
       MPLBACKEND: Agg
-      MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
-      XDG_CACHE_HOME: ${{ runner.temp }}/cache
     steps:
       - name: Check out the requested revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -37,6 +35,12 @@ jobs:
           python -m pip install -r requirements/ci.txt
           python -m pip check
       - name: Train and validate the environment smoke model
+        env:
+          MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
+          XDG_CACHE_HOME: ${{ runner.temp }}/cache
         run: python scripts/smoke_environment.py --output-dir "$RUNNER_TEMP/smoke-output"
       - name: Validate the official-data training pipeline
+        env:
+          MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
+          XDG_CACHE_HOME: ${{ runner.temp }}/cache
         run: python -m unittest discover -s tests -v
