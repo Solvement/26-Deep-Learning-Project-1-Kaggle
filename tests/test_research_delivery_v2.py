@@ -127,11 +127,25 @@ class ResearchDeliveryV2Tests(unittest.TestCase):
         self.assertIn(delivery.ROOT/"research/benchmark_resizemix.py", paths)
         self.assertIn(self.benchmark_path.with_name("benchmark.core.json"), paths)
         for name in marker["source_sha256"]: self.assertIn(delivery.ROOT/name, paths)
-        with patch.object(delivery, "data_context", return_value=self.bundle["data"]), \
-                patch.object(delivery, "audit_experiment", side_effect=[(self.checkpoint, self.baseline), (checkpoint, self.benchmark)]), \
+        # The trusted baseline is private and absent from fresh checkouts/CI.
+        # Exercise its real fingerprint check against a temporary fixture only.
+        trusted = self.root/"results/regularized/best.pt"
+        trusted.parent.mkdir(parents=True)
+        trusted.write_bytes(b"temporary trusted baseline fixture")
+        trusted_sha = delivery.suite.sha256(trusted)
+        with patch.object(delivery, "ROOT", self.root), \
+                patch.object(delivery.suite, "BASELINE_CHECKPOINT_SHA", trusted_sha), \
+                patch.object(delivery, "data_context", return_value=self.bundle["data"]), \
+                patch.object(delivery, "audit_experiment", side_effect=[(self.checkpoint, self.baseline), (checkpoint, self.benchmark)]) as audit, \
                 patch.object(delivery, "validate_pair"), patch.object(delivery, "artifact_paths", return_value=[]):
             actual = delivery.primary_bundle(self.primary, self.benchmark_path, self.baseline_path,
                                             self.paired_path, "center80_shift20", self.data)
+            self.assertEqual(audit.call_args_list[0].args[0], trusted)
+            trusted.write_bytes(b"changed fixture baseline")
+            with self.assertRaisesRegex(ValueError, "Trusted original baseline changed"):
+                delivery.primary_bundle(self.primary, self.benchmark_path, self.baseline_path,
+                                        self.paired_path, "center80_shift20", self.data)
+            self.assertEqual(audit.call_count, 2)
         self.assertIn(Path(delivery.paired.__file__), actual["paths"])
         self.assertIn(delivery.paired.PAIRED_HELPER_SOURCE_PATH, actual["paths"])
 
