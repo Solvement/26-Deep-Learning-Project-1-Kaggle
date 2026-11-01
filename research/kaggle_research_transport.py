@@ -45,15 +45,77 @@ def dataset_view(api,value):
     return {'ref':result.ref,'is_private':result.is_private,'version':result.current_version_number}
 
 
-def kernel_view(api,value,pinned=False):
+def kernel_response(api,value,pinned=False):
     from kagglesdk.kernels.types.kernels_api_service import ApiGetKernelRequest
     pieces=ref(value,pinned); request=ApiGetKernelRequest(); request.user_name=pieces[0]; request.kernel_slug=pieces[1]
     if pinned: request.version_label='v'+pieces[2]
     with api.build_kaggle_client() as client: result=client.kernels.kernels_api_client.get_kernel(request)
-    metadata=result.metadata
+    return result
+
+
+def kernel_view(api,value,pinned=False):
+    result=kernel_response(api,value,pinned); metadata=result.metadata
     return {'ref':metadata.ref,'version':metadata.current_version_number,'is_private':metadata.is_private,
         'internet_enabled':metadata.enable_internet,'datasets':metadata.dataset_data_sources,'kernels':metadata.kernel_data_sources,
         'competitions':metadata.competition_data_sources,'source_sha256':hashlib.sha256(result.blob.source.encode('utf-8')).hexdigest()}
+
+
+class KernelIdentityAmbiguous(ValueError):
+    code='visible_identity_ambiguous'
+
+
+def kernel_inventory(api,target,max_pages=5,slugifier=None):
+    """Prove absence only in complete authenticated inventory with an anchor.
+
+    SaveKernel is an upsert. An inaccessible exact GET (403 or 404) is never
+    absence evidence here. Reference-free rows require successful positive
+    identity resolution; their title or a random target cannot substitute.
+    """
+    owner,_=ref(target); anchor='kevin1220/saber-official-data-export-20261030'
+    control=kernel_response(api,anchor+'/1',True).metadata
+    if control.ref!=anchor or control.is_private is not True or control.current_version_number!=1:
+        raise KernelIdentityAmbiguous('Known private owner/visibility control differs')
+    rows=[]; pages=[]; seen=set(); token=None; complete=False
+    for _ in range(max_pages):
+        response=api.kernels_list_with_response(mine=True,user=None,page_size=100,page_token=token)
+        if response is None or not isinstance(response.kernels,list) or any(row is None for row in response.kernels):
+            raise KernelIdentityAmbiguous('Incomplete authenticated inventory response')
+        rows.extend(response.kernels); nxt=response.next_page_token
+        if not isinstance(nxt,str): raise KernelIdentityAmbiguous('Missing pagination token contract')
+        pages.append({'rows':len(response.kernels),'has_next':bool(nxt)})
+        if not nxt: complete=True; break
+        if nxt in seen: raise KernelIdentityAmbiguous('Repeated authenticated inventory cursor')
+        seen.add(nxt); token=nxt
+    if not complete: raise KernelIdentityAmbiguous('Authenticated inventory pagination did not end')
+    resolved=[]; positive=[]
+    for row in rows:
+        if row.ref:
+            if not row.ref.startswith(owner+'/') or len(row.ref.split('/'))!=2: raise KernelIdentityAmbiguous('Authenticated inventory owner differs')
+            resolved.append(row.ref); continue
+        if set(row.to_dict())!={'title','lastRunTime'} or not row.title or row.last_run_time is None or row.id or row.slug or row.author:
+            raise KernelIdentityAmbiguous('Unidentified inventory row cannot prove absence')
+        if slugifier is None:
+            from slugify import slugify
+            slugifier=slugify
+        candidate=slugifier(row.title)
+        if not candidate or '/' in candidate: raise KernelIdentityAmbiguous('Reference-free title cannot identify an owned kernel')
+        try: actual=kernel_response(api,owner+'/'+candidate).metadata
+        except Exception: raise KernelIdentityAmbiguous('Reference-free kernel GET did not positively resolve identity') from None
+        if actual.ref!=owner+'/'+candidate or actual.id<=0 or actual.title!=row.title or actual.last_run_time!=row.last_run_time:
+            raise KernelIdentityAmbiguous('Reference-free kernel identity did not match its inventory row')
+        resolved.append(actual.ref); positive.append({'ref':actual.ref,'id':actual.id,'title_sha256':hashlib.sha256(row.title.encode()).hexdigest()})
+    if anchor not in resolved or len(set(resolved))!=len(resolved): raise KernelIdentityAmbiguous('Owner visibility anchor missing or inventory identities duplicated')
+    return {'exists':target in resolved,'inventory_complete':True,'authenticated_owner':owner,'known_private_anchor':{'ref':anchor,'version':1,'is_private':True},
+        'pages':pages,'addressable_count':len(resolved),'positive_resolutions':positive,'no_search_or_user_filter':True}
+
+
+def object_exists(api,value,view):
+    """Read-only diagnostic, never permission to infer absence from 403."""
+    try: return {'exists':True,**view(api,value)}
+    except Exception as error:
+        status=getattr(error,'status',None) or getattr(getattr(error,'response',None),'status_code',None)
+        if status==404: return {'exists':False}
+        raise
 
 
 def verify_dataset(api,document,version):
@@ -93,17 +155,11 @@ def execute(action,payload):
         return {**values,'pay_to_scale_enabled':gpu.is_pay_to_scale_enabled,
             'remaining_seconds':values['total_time_allowed']-values['time_used'],'reserved_seconds':values['time_reserved']}
     if action=='dataset-exists':
-        try: return {'exists':True,**dataset_view(api,payload['ref'])}
-        except Exception as error:
-            status=getattr(error,'status',None) or getattr(getattr(error,'response',None),'status_code',None)
-            if status==404: return {'exists':False}
-            raise
+        return object_exists(api,payload['ref'],dataset_view)
     if action=='kernel-exists':
-        try: return {'exists':True,**kernel_view(api,payload['ref'])}
-        except Exception as error:
-            status=getattr(error,'status',None) or getattr(getattr(error,'response',None),'status_code',None)
-            if status==404: return {'exists':False}
-            raise
+        return object_exists(api,payload['ref'],kernel_view)
+    if action=='kernel-inventory':
+        return kernel_inventory(api,payload['ref'])
     if action=='verify-train':
         result=kernel_view(api,payload['ref'])
         if result['ref']!=payload['ref'] or result['is_private'] is not True or type(result['version']) is not int or result['version']<=0: raise ValueError('Private official training export identity differs')
@@ -111,13 +167,16 @@ def execute(action,payload):
     if action in ('stage','verify-baseline'):
         document=intent(payload,'baseline_stage',require_lease=action=='stage')
         if action=='verify-baseline': return verify_dataset(api,document,int(payload['version']))
+        if kernel_inventory(api,document['kernel_ref'])['exists'] is not False:
+            raise ValueError('Baseline staging cannot precede an already existing target kernel')
         from kaggle.api.kaggle_api_extended import ResumableUploadContext
         from kagglesdk.blobs.types.blob_api_service import ApiBlobType
         from kagglesdk.datasets.types.dataset_api_service import ApiCreateDatasetRequest
         folder=Path(document['upload_folder']); expected=set(document['payload_sha256'])|{'dataset-metadata.json'}
         if {p.name for p in folder.iterdir()}!=expected or any(not p.is_file() or p.is_symlink() for p in folder.iterdir()): raise ValueError('Private upload folder exact members differ')
         metadata=json.loads((folder/'dataset-metadata.json').read_text()); owner,slug=ref(document['dataset_ref'])
-        request=ApiCreateDatasetRequest(); request.owner_slug=owner; request.slug=slug; request.title=metadata['title']; request.license_name=metadata['licenses'][0]['name']
+        if document.get('creation_policy')!='create_new_only_no_update' or re.fullmatch(r'[0-9a-f]{12}',str(document.get('object_nonce',''))) is None or not slug.endswith('-'+document['object_nonce']): raise ValueError('Fresh create-only dataset identity differs')
+        request=ApiCreateDatasetRequest(); request.id=None; request.owner_slug=owner; request.slug=slug; request.title=metadata['title']; request.license_name=metadata['licenses'][0]['name']
         request.subtitle=''; request.description='Private own scratch baseline; no images or predictions.'; request.files=[]; request.is_private=True; request.category_ids=[]
         # Blob-start/upload operations may resume their own byte transport.
         # The durable intent predates them. Metadata create itself is ONCE;
@@ -132,6 +191,8 @@ def execute(action,payload):
         return progress
     if action=='push':
         document=intent(payload,'kernel_push'); folder=Path(document['kernel_folder'])
+        absence=kernel_inventory(api,document['kernel_ref'])
+        if absence['exists'] is not False: raise ValueError('Existing kernel cannot be updated by this create-only campaign path')
         ledger=json.loads(Path(document['ledger_path']).read_text())
         charges=ledger.get('opening_charge_seconds',0)+sum(row['reserved_seconds'] for row in ledger.get('entries',[]))
         matching=[row for row in ledger.get('entries',[]) if row.get('run')==document['run'] and row.get('intent_sha256')==payload['intent_sha256']]
@@ -169,7 +230,7 @@ def main():
         with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()): result=execute(action,payload)
         print(json.dumps({'ok':True,'result':result}))
     except BaseException as error:
-        print(json.dumps({'ok':False,'error_type':type(error).__name__})); raise SystemExit(1) from None
+        print(json.dumps({'ok':False,'error_type':type(error).__name__,'error_code':getattr(error,'code',None)})); raise SystemExit(1) from None
 
 
 if __name__=='__main__': main()

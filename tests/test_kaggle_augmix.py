@@ -23,6 +23,7 @@ class FakeAccount:
     def call(self,action,payload=None):
         self.calls.append(action); plan=json.loads((self.folder/'kaggle_plan.json').read_text())
         if action in ('dataset-exists','kernel-exists'): return {'exists':False}
+        if action=='kernel-inventory': return {'exists':False,'inventory_complete':True,'authenticated_owner':'kevin1220'}
         if action=='quota': return {'remaining_seconds':90000.,'reserved_seconds':0.,'pay_to_scale_enabled':False}
         if action=='verify-train': return {'ref':runner.TRAIN_EXPORT,'version':2,'is_private':True}
         if action in ('stage','verify-baseline'):
@@ -242,6 +243,7 @@ class KaggleAugMixTests(unittest.TestCase):
         self.assertFalse((self.root/'results/research/cloud_lease.json').exists())
         with self.assertRaisesRegex(ValueError,'forbids metadata retry'): runner.stage_baseline(self.root,self.output,client)
         self.assertEqual(client.calls.count('stage'),1)
+        self.assertNotIn('dataset-exists',client.calls)
 
     def test_unknown_staging_retains_lease_and_never_uploads_again(self):
         self.prepare(); client=FakeAccount(self.output,stage_unknown=True)
@@ -331,6 +333,88 @@ class KaggleAugMixTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'25-GPU-hour'): runner.launch(self.output,self.root,client,ledger,self.output/'baseline_receipt.json')
         self.assertNotIn('push',client.calls); self.assertEqual(len(json.loads(ledger.read_text())['entries']),3)
         self.assertFalse((self.root/'results/research/cloud_lease.json').exists())
+
+    def test_fresh_preparations_bind_unique_owned_refs_and_omit_403_existence_guess(self):
+        first=self.prepare(); second=runner.prepare(self.root,self.root/'results/research/fresh_second','offline_augmix')
+        self.assertNotEqual(first['baseline_dataset_id'],second['baseline_dataset_id'])
+        self.assertNotEqual(first['kernel_id'],second['kernel_id'])
+        self.assertTrue(first['baseline_dataset_id'].endswith('-'+first['object_nonce']))
+        client=FakeAccount(self.output); original=client.call
+        def call(action,payload=None):
+            if action=='dataset-exists': raise AssertionError('403 must never be treated as evidence of absence')
+            return original(action,payload)
+        client.call=call
+        self.assertEqual(runner.stage_baseline(self.root,self.output,client)['status'],'complete')
+        document=json.loads((self.output/'baseline_stage_intent.json').read_text())
+        self.assertEqual(document['creation_policy'],'create_new_only_no_update')
+        self.assertEqual(document['object_nonce'],first['object_nonce'])
+
+    def test_readonly_403_and_other_errors_never_mean_object_absent(self):
+        class HTTPError(Exception): pass
+        for status in (403,500):
+            error=HTTPError(); error.response=SimpleNamespace(status_code=status)
+            def view(*_,error=error): raise error
+            with self.assertRaises(HTTPError): transport.object_exists(None,'kevin1220/saber-synthetic',view)
+        missing=HTTPError(); missing.response=SimpleNamespace(status_code=404)
+        def missing_view(*_): raise missing
+        self.assertEqual(transport.object_exists(None,'kevin1220/saber-synthetic',missing_view),{'exists':False})
+
+    def test_kernel_inventory_complete_pagination_owner_anchor_and_target(self):
+        anchor='kevin1220/saber-official-data-export-20261030'; target='kevin1220/saber-synthetic-target'
+        control=SimpleNamespace(ref=anchor,is_private=True,current_version_number=1,id=123)
+        rows=[SimpleNamespace(ref=anchor),SimpleNamespace(ref='kevin1220/saber-another-one')]
+        calls=[]
+        class API:
+            def kernels_list_with_response(self,**kwargs):
+                calls.append(kwargs)
+                return SimpleNamespace(kernels=rows[:1],next_page_token='next') if kwargs['page_token'] is None else SimpleNamespace(kernels=rows[1:],next_page_token='')
+        with patch.object(transport,'kernel_response',return_value=SimpleNamespace(metadata=control)):
+            result=transport.kernel_inventory(API(),target)
+        self.assertFalse(result['exists']); self.assertTrue(result['inventory_complete']); self.assertEqual(len(calls),2)
+        self.assertTrue(all(c['mine'] is True and c['user'] is None and 'search' not in c for c in calls))
+        rows[1]=SimpleNamespace(ref=target)
+        with patch.object(transport,'kernel_response',return_value=SimpleNamespace(metadata=control)):
+            self.assertTrue(transport.kernel_inventory(API(),target)['exists'])
+
+    def test_kernel_inventory_rejects_wrong_account_partial_or_repeating_cursor(self):
+        anchor='kevin1220/saber-official-data-export-20261030'; control=SimpleNamespace(ref=anchor,is_private=True,current_version_number=1,id=123)
+        class API:
+            def kernels_list_with_response(self,**kwargs): return SimpleNamespace(kernels=[SimpleNamespace(ref='another/saber-not-owned')],next_page_token='')
+        with patch.object(transport,'kernel_response',return_value=SimpleNamespace(metadata=control)):
+            with self.assertRaises(transport.KernelIdentityAmbiguous): transport.kernel_inventory(API(),'kevin1220/saber-synthetic-target')
+        class Loop:
+            def kernels_list_with_response(self,**kwargs): return SimpleNamespace(kernels=[SimpleNamespace(ref=anchor)],next_page_token='repeat')
+        with patch.object(transport,'kernel_response',return_value=SimpleNamespace(metadata=control)):
+            with self.assertRaises(transport.KernelIdentityAmbiguous): transport.kernel_inventory(Loop(),'kevin1220/saber-synthetic-target')
+
+    def test_skeleton_403_is_identity_ambiguity_not_absence_or_stage_permission(self):
+        anchor='kevin1220/saber-official-data-export-20261030'; control=SimpleNamespace(ref=anchor,is_private=True,current_version_number=1,id=123)
+        row=SimpleNamespace(ref='',title='Reference free title',last_run_time='time',id=0,slug='',author='',to_dict=lambda:{'title':'Reference free title','lastRunTime':'time'})
+        class API:
+            def kernels_list_with_response(self,**kwargs): return SimpleNamespace(kernels=[SimpleNamespace(ref=anchor),row],next_page_token='')
+        with patch.object(transport,'kernel_response',side_effect=[SimpleNamespace(metadata=control),ValueError('403')]):
+            with self.assertRaisesRegex(transport.KernelIdentityAmbiguous,'positively resolve'): transport.kernel_inventory(API(),'kevin1220/saber-synthetic-target',slugifier=lambda _: 'reference-free-title')
+        self.prepare(); client=FakeAccount(self.output); original=client.call
+        def call(action,payload=None):
+            if action=='kernel-inventory': raise RuntimeError('visible_identity_ambiguous')
+            return original(action,payload)
+        client.call=call
+        with self.assertRaisesRegex(RuntimeError,'visible_identity_ambiguous'): runner.stage_baseline(self.root,self.output,client)
+        self.assertNotIn('stage',client.calls); self.assertFalse((self.output/'baseline_stage_intent.json').exists()); self.assertFalse((self.output/'baseline_transport_claim.json').exists())
+        self.assertFalse((self.root/'results/research/cloud_lease.json').exists())
+
+    def test_skeleton_must_resolve_positive_ref_id_title_and_time(self):
+        anchor='kevin1220/saber-official-data-export-20261030'; control=SimpleNamespace(ref=anchor,is_private=True,current_version_number=1,id=123)
+        row=SimpleNamespace(ref='',title='A title',last_run_time='time',id=0,slug='',author='',to_dict=lambda:{'title':'A title','lastRunTime':'time'})
+        actual=SimpleNamespace(ref='kevin1220/a-title',id=456,title='A title',last_run_time='time')
+        class API:
+            def kernels_list_with_response(self,**kwargs): return SimpleNamespace(kernels=[SimpleNamespace(ref=anchor),row],next_page_token='')
+        with patch.object(transport,'kernel_response',side_effect=[SimpleNamespace(metadata=control),SimpleNamespace(metadata=actual)]):
+            result=transport.kernel_inventory(API(),'kevin1220/saber-synthetic-target',slugifier=lambda _: 'a-title')
+        self.assertFalse(result['exists']); self.assertEqual(result['positive_resolutions'][0]['id'],456)
+        actual.title='Changed title'
+        with patch.object(transport,'kernel_response',side_effect=[SimpleNamespace(metadata=control),SimpleNamespace(metadata=actual)]):
+            with self.assertRaises(transport.KernelIdentityAmbiguous): transport.kernel_inventory(API(),'kevin1220/saber-synthetic-target',slugifier=lambda _: 'a-title')
 
 
 if __name__=='__main__': unittest.main()

@@ -469,3 +469,9 @@ loss的CPU范围会等待此前异步forward，不能把162.6ms直接解释为JS
 相同冻结源码/数值环境和足够的实际日预算。该测量不替代同T4准入，也没有开发准确率、配对或交付资格。
 原4.552倍是独立合成BN对照；此处为含真实CPU/PIL/传输/损失/SGD/EMA的完整流水线。
 公开标量与源码证据见[augmix-nativebn-preflight-results.json](../docs/augmix-nativebn-preflight-results.json)。
+
+Kaggle fallback 的实际首个 baseline staging 在只读精确 GET 返回403时停止，发生在任何
+intent、lease、上传、创建或GPU使用之前。独立传输修复已区分 dataset 单次创建与 Notebook
+版本更新：前者使用新随机名称且不回退更新；后者必须有完整、已认证且身份明确的自有目录证明。
+当前目录有一条无ref记录，其正向GET仍为403，因此该新Notebook路径明确保持阻塞，未创建云任务。
+403不代表不存在，CPU测试通过也不代表云端运行成功；本地训练不受此阻塞影响。

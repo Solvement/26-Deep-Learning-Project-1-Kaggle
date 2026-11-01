@@ -74,6 +74,13 @@ def source_names():
     return (*SOURCES, "prepare_data.py", "research/process_tree_guard.py", CONFIG)
 
 
+def object_refs(run,nonce):
+    require(isinstance(nonce,str) and re.fullmatch(r'[0-9a-f]{12}',nonce) is not None,"A fresh 48-bit object nonce is required")
+    stem=run.replace('_','-')[:18].rstrip('-')
+    return ('kevin1220/saber-augmix-'+stem+'-'+nonce,
+            'kevin1220/saber-augmix-base-'+stem+'-'+nonce)
+
+
 def committed_bundle(root, commit):
     """Only an explicit, committed own-source closure; never data or weights."""
     from research.run_colab_augmix import CORE, validate_config
@@ -315,8 +322,8 @@ def prepare(root, output, run, source_commit="HEAD", max_seconds=MAX_SECONDS):
     require(training_manifest['source_provenance']['official_train_npz_sha256']==SIGNATURE['archive_sha256'] and
         training_manifest['split']['indices_sha256']==SIGNATURE['split_sha256'] and training_manifest['files_sha256']==CACHE_SHA,
         "Previously audited official training metadata differs")
-    kernel_id='kevin1220/saber-augmix-'+run.replace('_','-')
-    baseline_id='kevin1220/saber-augmix-base-'+run.replace('_','-')
+    nonce=uuid.uuid4().hex[:12]
+    kernel_id,baseline_id=object_refs(run,nonce)
     bm={'schema':'research_private_baseline_payload_v1','files_sha256':baseline,'official_images_included':False,'checkpoint_sha256':BASELINE_SHA}
     # New Kaggle controller logs live outside trainer directories; final audit
     # uses the unchanged typed validator and preserves every worker-pool proof.
@@ -326,7 +333,8 @@ def prepare(root, output, run, source_commit="HEAD", max_seconds=MAX_SECONDS):
         'host_source_sha256':digest(Path(__file__)),'config':config,'raw_config_sha256':RAW_CONFIG_SHA,'data_signature':SIGNATURE,
         'cache_sha256':CACHE_SHA,'training_indices_sha256':training_manifest['split']['train_indices_sha256'],
         'training_source_sha256':{n:h for n,h in hashes.items() if n in CORE or n in ('research/train_augmix.py','research/augmix.py','research/train_shadow.py','research/augmentations.py')},
-        'kernel_id':kernel_id,'baseline_dataset_id':baseline_id,'baseline_manifest':bm,'max_seconds':max_seconds,'server_session_timeout_seconds':max_seconds,
+        'kernel_id':kernel_id,'baseline_dataset_id':baseline_id,'object_nonce':nonce,'dataset_creation_policy':'create_new_only_no_update',
+        'baseline_manifest':bm,'max_seconds':max_seconds,'server_session_timeout_seconds':max_seconds,
         'campaign_stop_unix':STOP.timestamp(),'conservative_gpu_reservation_multiplier':GPU_RESERVATION_MULTIPLIER,'train_export':TRAIN_EXPORT,'kernel_private':True,'internet_enabled':False,'confirmation_evaluated':False,
         'hidden_input_attached':False,'required_outputs':sorted(required),'output_allowlist':sorted(required|{'controller.log'}),'guard_output_files':sorted(GUARD_FILES),'launch_blockers':list(BLOCKERS),
         'launch_supported':True,'remote_execution_authorized':False,'dataset_staging_supported':True,'actual_gpu_run':False,'actual_account_calls':0,'prepared_at':datetime.now(timezone.utc).isoformat()}
@@ -365,6 +373,8 @@ def validate_prepared(folder):
         (n.startswith('outputs/') and known_output(n)) for n in actual),"Prepared folder members changed")
     p=read(folder/'kaggle_plan.json'); require(p.get('schema')==SCHEMA and p.get('launch_supported') is True and
         p.get('remote_execution_authorized') is False and p.get('hidden_input_attached') is False,"Unverified Kaggle plan schema")
+    require((p['kernel_id'],p['baseline_dataset_id'])==object_refs(p['run'],p.get('object_nonce')) and
+        p.get('dataset_creation_policy')=='create_new_only_no_update',"Fresh owned object identity/create-only policy differs")
     require(p.get('host_source_sha256')==digest(Path(__file__)),"Offline preparation/audit source changed")
     require(hashlib.sha256(json.dumps({k:v for k,v in p.items() if k!='input_plan_sha256'},sort_keys=True,separators=(',',':')).encode()).hexdigest()==p['input_plan_sha256'],"Prepared canonical plan identity differs")
     metadata=read(folder/'kernel-metadata.json')
@@ -521,6 +531,8 @@ class Client:
             capture_output=True,encoding='utf-8',errors='replace',timeout=600 if action in ('stage','verify-baseline') else 180)
         try: response=json.loads(result.stdout)
         except ValueError: raise RuntimeError('Official operation outcome unknown; do not retry') from None
+        if response.get('error_code')=='visible_identity_ambiguous':
+            raise RuntimeError('visible_identity_ambiguous: complete own-kernel identity proof unavailable; no staging/push is permitted')
         require(result.returncode==0 and response.get('ok') is True,'Official operation failed/unknown; do not retry')
         return response['result']
 
@@ -568,7 +580,7 @@ def bound_intent(root,folder,plan,kind,extra):
     files[str((folder/'prepared_files.json').resolve())]=digest(folder/'prepared_files.json')
     files[str(Path(__file__).resolve())]=digest(__file__)
     transport=root/'research/kaggle_research_transport.py'; files[str(transport.resolve())]=digest(transport)
-    intent={'schema':'research_kaggle_durable_intent_v1',**value,'run':plan['run'],'lease_path':str(lease.resolve()),'files_sha256':files,
+    intent={'schema':'research_kaggle_durable_intent_v1',**value,'run':plan['run'],'kernel_ref':plan['kernel_id'],'lease_path':str(lease.resolve()),'files_sha256':files,
         'transport_sha256':digest(transport),'prepared_folder':str(folder.resolve()),'plan_sha256':plan['input_plan_sha256'],**extra}
     return intent,lease
 
@@ -583,9 +595,19 @@ def stage_baseline(root,folder,client=None):
     require(not intent_path.exists(),"Existing or unknown baseline staging intent forbids metadata retry")
     client=client or Client()
     require(not (root/'results/research/cloud_lease.json').exists(),"Shared cloud lease is occupied")
-    require(client.call('dataset-exists',{'ref':plan['baseline_dataset_id']}).get('exists') is False,"Dataset handle already exists; never overwrite or guess its version")
+    identity=client.call('kernel-inventory',{'ref':plan['kernel_id']})
+    require(identity.get('inventory_complete') is True and identity.get('authenticated_owner')=='kevin1220' and identity.get('exists') is False,
+        "A complete positively controlled own-kernel inventory is required before baseline staging")
+    # An exact GET may return 403 for an uncreated private slug. Never infer
+    # absence from that response. The official create/new endpoint is distinct
+    # from version/update; use a fresh source-bound nonce and fail on collision.
+    # Kaggle's official kagglehub handles conflict by a separate version call:
+    # https://github.com/Kaggle/kagglehub/blob/main/src/kagglehub/datasets_helpers.py
+    # This controller deliberately has no such fallback.
     payload={**plan['baseline_manifest']['files_sha256'],'saber_baseline_manifest.json':digest(folder/'baseline_dataset/saber_baseline_manifest.json')}
     intent,lease=bound_intent(root,folder,plan,'baseline_stage',{'dataset_ref':plan['baseline_dataset_id'],'payload_sha256':payload,
+        'creation_policy':'create_new_only_no_update','object_nonce':plan['object_nonce'],
+        'kernel_absence_proof':identity,
         'upload_folder':str((folder/'baseline_dataset').resolve()),'progress_path':str((folder/'baseline_stage_progress.json').resolve())})
     exclusive(intent_path,intent); args={'intent_path':str(intent_path),'intent_sha256':digest(intent_path)}
     receipt={'status':'stage_attempt_started','intent_sha256':args['intent_sha256'],'started_at':datetime.now(timezone.utc).isoformat()}
@@ -634,8 +656,9 @@ def launch(folder,root=ROOT,client=None,ledger_path=None,baseline_receipt=None,p
     quota_before_raw=client.last_raw_quota
     # A new handle is never silently updated. Existing versions, even terminal,
     # require another explicit run/plan rather than overwriting the same kernel.
-    existing=client.call('kernel-exists',{'ref':plan['kernel_id']})
-    require(existing.get('exists') is False,"Kernel handle already exists; do not push another version")
+    existing=client.call('kernel-inventory',{'ref':plan['kernel_id']})
+    require(existing.get('inventory_complete') is True and existing.get('authenticated_owner')=='kevin1220' and existing.get('exists') is False,
+        "Complete authenticated owner inventory must prove the target kernel is absent")
     sealed={**plan,'remote_execution_authorized':True}
     launch_folder=folder/'kernel_launch'; require(not launch_folder.exists(),"Sealed launch source is immutable")
     launch_folder.mkdir()
@@ -645,6 +668,7 @@ def launch(folder,root=ROOT,client=None,ledger_path=None,baseline_receipt=None,p
         'baseline_pinned_ref':plan['baseline_dataset_id']+'/1','train_export':train_pinned,'server_timeout_seconds':budget['server_session_timeout_seconds'],
         'absolute_deadline_unix':budget['absolute_deadline_unix'],'reserve_gpu_seconds':budget['reserve_seconds'],'ledger_path':str(ledger_path.resolve())})
     intent['progress_path']=str((folder/'kernel_push_progress.json').resolve())
+    intent['kernel_absence_proof']=existing
     # Earlier readonly account checks did not own the cloud lease. Another
     # legitimate controller may have finalized its ledger in that interval.
     # Re-read under our exclusive lease before reserving or making an intent.
