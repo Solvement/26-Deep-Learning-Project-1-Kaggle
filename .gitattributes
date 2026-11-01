@@ -54,3 +54,7 @@ tests/test_preflight_core_control.py text eol=lf
 research/wrn34-3-300-bf16-plan.md text eol=lf
 research/configs/wrn34_3_300_bf16.json text eol=lf
 research/configs/wrn34_3_300_bf16_seed2027.json text eol=lf
+research/profile_core_control.py text eol=lf
+research/core-control-profile-plan.md text eol=lf
+tests/test_profile_core_control.py text eol=lf
+docs/augmix-nativebn-results.json text eol=lf
