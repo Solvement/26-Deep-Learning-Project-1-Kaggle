@@ -33,3 +33,6 @@ research/augmix_nativebn.py text eol=lf
 research/run_augmix_nativebn.py text eol=lf
 research/benchmark_augmix_nativebn.py text eol=lf
 tests/test_augmix_nativebn.py text eol=lf
+research/run_kaggle_augmix.py text eol=lf
+research/kaggle_research_transport.py text eol=lf
+tests/test_kaggle_augmix.py text eol=lf
