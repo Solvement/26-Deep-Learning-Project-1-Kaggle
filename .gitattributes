@@ -36,3 +36,6 @@ tests/test_augmix_nativebn.py text eol=lf
 research/run_kaggle_augmix.py text eol=lf
 research/kaggle_research_transport.py text eol=lf
 tests/test_kaggle_augmix.py text eol=lf
+docs/research-official-scores.json text eol=lf
+docs/research-submission-receipts/*.json text eol=lf
+docs/augmix-nativebn-preflight-results.json text eol=lf

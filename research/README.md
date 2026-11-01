@@ -26,8 +26,9 @@
   都计入任务耗时。Colab 由独立监督器及单独云端 lease 约束，不计入本地 GPU 时间。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
-  复测和真实预测均完成。SAM 的160轮、完整benchmark和配对已完成，待正式seed复测；
-  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix已完成独立CPU变换/损失实现与等价热路径优化，完整流水线仍待预检。
+  复测和真实预测均完成；WRN34-160、ResizeMix、WRN34-300 已获真实官方评分，最佳 **0.878**。
+  SAM 的160轮、完整benchmark和配对已完成，独立seed2027正在正式训练；
+  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix训练BN改用native的新协议已通过真实图像完整流水线预检，尚无正式训练或准确率。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -49,19 +50,23 @@ GradScaler、有限梯度和真实参数更新通过。合成 batch256、dropout
 最新完整结果见 [research-followup-results.json](../docs/research-followup-results.json)。
 WRN34-3 主 seed2026 的加权 policy 为 clean96.32%、stress78.592%；预先固定相同 policy
 的 seed2027 复测为96.38%/79.652%，均通过门槛。主模型 clean 的配对区间跨零，
-不能声称 clean 显著提高。主模型2,000行CSV和实际离线交付核验完成；10月31日UTC队伍
-额度已用尽，等待下一UTC日真实配额。当前实际最佳公开成绩仍为0.874，尚无新增研究评分。
+不能声称 clean 显著提高。主模型2,000行CSV和实际交付核验完成；11月1日UTC真实提交
+ref57853905已评分 **0.869**。后续ResizeMix为 **0.875**（ref57854107），WRN34-300为
+**0.878**（ref57854294），当前最佳公开成绩为0.878；原主交付0.871、原最佳0.874保持独立记录。
+三份正式评分回执、冻结主权重/CSV的hash见[research-official-scores.json](../docs/research-official-scores.json)。
+同日最后核验队伍额度为3次已用、2次剩余；每次提交前仍须读取实际额度。private分数尚未公布。
 CutMix完成T4 benchmark，配对/复测尚待。ResizeMix补完本地同v3上下文重测与配对；首次配置预检
 缺省字段问题已修复且原SHA保留。随后本地正式重复稳态36.2秒/轮，无法在剩余额度内完成，
 在9/160轮受控停止、检查点/RNG/GradScaler保留，不能当作效果失败或完整复测。
 后续全新T4独立seed2027已完成160轮并核实回收，本地同v3完整重测为96.56%/78.468%，
 预先固定的加权policy通过门槛。真实组合证明、主seed2026的2,000行预测和严格离线交付核验均完成，
-与WRN34-160一同等待真实UTC配额。重复的stress收益小于主实验，不能据此保证隐藏测试收益。
+已获上述0.875官方公开分。重复的stress收益小于主实验，不能据此保证隐藏测试收益。
 
 SAM的固定加权policy为clean **96.74%** / stress **79.368%**，相对本地基线提高0.46和1.74个百分点。
 原图聚类配对95%区间分别为 **[+0.04,+0.90]**、**[+1.364,+2.108]**个百分点；全部五个stress case
 都有改善。区间仍对已拟合、复用开发集选出的检查点有条件，不能当作新确认或隐藏分数保证。
-主seed2026权重/policy和seed2027配置已冻结；正式复测约需一小时，排在UTC预算重置后。
+主seed2026权重/policy和seed2027配置已冻结；独立seed2027于11月1日00:01 UTC开始正式训练，
+尚无完整复测benchmark或交付资格。按实际约18秒/轮估计训练约49分钟，benchmark另计；以正式回执为准。
 
 ![本地v3原图聚类配对结果](../docs/figures/research-paired-v3.png)
 
@@ -187,12 +192,12 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
    也会把部分正确预测变错。当前本地 BN/TTA 结果决定不晋级，不把更多视图视为已有收益。
 2. **Weight decay。** [MixUp 作者训练代码](https://github.com/facebookresearch/mixup-cifar10/blob/main/train.py#L35)
    默认使用 `weight_decay=1e-4`；当前候选只把原 recipe 的 `5e-4` 改成 `1e-4`。
-   这是待测假设，不是本项目已证明的最佳值。参考算法/参数，独立实现并遵守引用与代码许可要求。
-3. **SWA，独立实现/CPU检查完成，尚无真实GPU结果。** 固定40轮tail及严格新seed完整复测的协议见[swa-plan.md](swa-plan.md)。[原论文](https://arxiv.org/abs/1803.05407)和[作者示例](https://github.com/timgaripov/swa#examples)
+   本次160轮对照已完成，但旧v2 benchmark未过门槛；不把v2结果混入当前v3晋级。参考算法/参数，独立实现并遵守引用与代码许可要求。
+3. **SWA，固定40轮真实GPU对照已完成，clean门槛失败。** 固定40轮tail及严格新seed完整复测的协议见[swa-plan.md](swa-plan.md)。[原论文](https://arxiv.org/abs/1803.05407)和[作者示例](https://github.com/timgaripov/swa#examples)
    支持对 SGD 轨迹权重做平均，最终保留单个模型。作者 CIFAR/WRN 示例从 epoch 161 开始 SWA，
    SWA LR 为 0.05，论文附录WRN设置为0.01。当前备用计划固定40轮、0.01，不临时搜索长度/LR；
-   仍须独立40k benchmark、配对和冻结后的正式seed复测，平均后的BN只用40k优化训练图像重估。
-4. **SAM，完整160轮与配对已完成、待正式复测。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
+   完整40k训练来源、BN和benchmark已核验；门槛失败，未启动配对或独立seed复测，平均后的BN只用40k优化训练图像重估。
+4. **SAM，完整160轮与配对已完成，独立seed2027正式训练中。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
    的 CIFAR-10 WRN-28-10 参考配置使用 LR 0.1、WD 0.0005、rho 0.05。
    迁移到预算内 WRN-22-4 是新假设；原大模型成绩不移用。每次更新需要两次反向传播，
    预算先按约两倍计算并实测。实现须复用相同增强/MixUp、控制第二遍 BN 统计，
@@ -202,7 +207,7 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
 
 | 结构候选 | 设计/CPU 核算参数量 | 核验依据与实现边界 |
 | --- | ---: | --- |
-| SE-WRN-22-4，r=16 | 4,332,654 | 每个残差支路末端、相加前加带 bias 双 FC 门；增加 33,684 参数。[SE 论文](https://arxiv.org/abs/1709.01507)、[作者实现](https://github.com/hujie-frank/SENet/blob/master/models/SE-ResNet-50.prototxt)。该精确组合尚未实现/训练。 |
+| SE-WRN-22-4，r=16 | 4,332,654 | 每个残差支路末端、相加前加带 bias 双 FC 门；增加 33,684 参数。[SE 论文](https://arxiv.org/abs/1709.01507)、[作者实现](https://github.com/hujie-frank/SENet/blob/master/models/SE-ResNet-50.prototxt)。该精确组合已实现并通过原生BF16工程预检，尚无正式训练/准确率。 |
 | WRN-34-3 | 4,166,298 | 实际40k训练、完整开发benchmark与独立seed复测完成；[WRN 论文](https://arxiv.org/abs/1605.07146)、[作者参数化代码](https://github.com/szagoruyko/wide-residual-networks/blob/master/pytorch/resnet.py)。该精确配置没有可移用的论文成绩。 |
 | CIFAR ResNeXt-29，4×24d | 4,845,002 | 按作者 CIFAR 模板核算：hidden 96/192/384，输出 256/512/1024。[论文](https://arxiv.org/abs/1611.05431)、[作者代码](https://github.com/facebookresearch/ResNeXt/blob/master/models/resnext.lua)。尚未实现；不同 baseWidth/expansion 约定须重新计数。 |
 | PyramidNet-110，α=84，basic | 3,904,446 | 作者 PyTorch 类 CPU 构造计数；论文近似写 3.8M。[论文](https://arxiv.org/abs/1610.02915)、[作者代码](https://github.com/dyhan0920/PyramidNet-PyTorch/blob/master/PyramidNet.py)。尚未移植；旧 CUDA padding 必须改为匹配 device/dtype，保留其 basic block 设计。 |
@@ -267,7 +272,7 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 `run_diagnostic.py --mode cloud-repeat-predict`；上传器重新深验该证明，普通v2预测拒绝未知云回执。
 真实seed2027组合回执已构建并深度复核；主seed2026隐藏预测和严格`--prepare`通过。
 该云目录的实际delivery.run是`candidate`；研究队列另存可读配方名称，不改真实manifest。
-尚无上传intent或新评分回执。
+已通过正式上传并获0.875公开分，真实回执ref57854107；所有预测仍来自提前冻结的主2026权重。
 
 [run_diagnostic.py](run_diagnostic.py) 为测速、独立训练器重测与配对比较提供同一个
 本地 lease、预算和 watchdog，不用裸 GPU 命令绕过监督。SAM 实际测速入口为
@@ -278,7 +283,7 @@ CutMix 已完成完整 T4 FP16 v3 benchmark：加权 policy clean96.22%、stress
 
 [wrn34_3_300.json](configs/wrn34_3_300.json)保持模型与原增强、WD，仅延长配置中的训练轮数。
 云端使用独立shadow原生FP16入口，与同一运行时可信WRN22基线比较；原WRN34-160是本地BF16，
-因此不能把跨环境差异归因于训练轮数。主2026已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；本地v3重测为96.54%/79.716%，配对及epoch298raw/加权策略先冻结。独立2027也完整完成300轮、93,866成功/34跳步；同T4完整benchmark为96.70%/80.532%，回收验证后本地同v3为96.66%/80.584%，固定policy通过。真实组合证明、冻结主2026的2,000行预测及严格离线交付校验均完成，等待实际UTC配额；尚无上传或新评分。
+因此不能把跨环境差异归因于训练轮数。主2026已完成T4/nativeFP16的300轮、93,864成功更新/36跳步及完整v3 benchmark；本地v3重测为96.54%/79.716%，配对及epoch298raw/加权策略先冻结。独立2027也完整完成300轮、93,866成功/34跳步；同T4完整benchmark为96.70%/80.532%，回收验证后本地同v3为96.66%/80.584%，固定policy通过。真实组合证明、冻结主2026的2,000行预测及严格交付校验均完成；正式提交ref57854294已评分0.878，成为当前最佳公开成绩。未用更高dev指标的重复权重替换主模型。
 
 普通Mixup/Cutout的shadow路径新增真实模型级FP16预检：3步预热、10步计时、13次真实更新，
 核验所有参数/损失有限、参数<=5M及训练/增强源码SHA。预先固定预算公式为
@@ -327,8 +332,10 @@ Kaggle 每 **UTC 日、整个队伍合计最多 5 次**。提交前读取实际 
 [submit_candidate.py](submit_candidate.py) 的 `--prepare` 仅作真实文件校验、不创建上传意图；
 `--submit` 重新校验交付链、实际团队配额与 CSV，先持久记录意图再调用官方 CLI/API。
 未知上传结果不重传，已知 reference 可用 `--check REF` 只读查询；原五次记录和旧 allowlist 不改。
-WRN34 的独立复测、真实2,000行预测和 `--prepare` 已完成，目前等待真实 API 配额。
-尚未有新评分；不把 fake API 测试或已生成CSV称为提交成功。
+WRN34-160、ResizeMix与WRN34-300的独立复测、真实2,000行预测和 `--prepare` 均完成，
+正式API回执分别确认0.869、0.875和0.878。公开的[三份规范评分回执](../docs/research-submission-receipts)
+仅含标量元数据，保留原始解析对象；[汇总](../docs/research-official-scores.json)分别记录原私有字节和公开LF序列化的hash。
+fake API测试或已生成CSV仍不算正式提交/评分。
 
 ### 按冻结配方全量重训
 
@@ -343,9 +350,8 @@ WRN34 的独立复测、真实2,000行预测和 `--prepare` 已完成，目前�
 full模型没有新的独立开发准确率；其依据来自已冻结父配方，不复用重叠dev冒充验证。
 该初始全量路径不支持SAM/CutMix/ResizeMix等独立训练器，不能将其强行交给冻结BF16核心。
 
-本地余量由实际账本计算。首次WRN34全量训练估计接近今日SAM后的剩余时间，
-计划在2026-11-01 00:00 UTC（10月31日20:00纽约）预算重置并完成更强SAM候选的正式重复后，
-以至少3,000秒余量门槛启动。
+本地余量由实际账本计算。2026-11-01 UTC预算已重置，当前先完成SAM独立seed2027正式重复，
+之后仅在实际剩余预算不少于3,000秒且共享lease空闲时启动首次WRN34全量训练。
 冻结计划已实际生成并重验父交付链，没有占GPU或创建训练回执；尚未启动全量训练或提交。
 
 每个任务记录实际设备/精度、配置、数据分割、起止时间、预算、训练历史、benchmark、gate 及失败原因。
@@ -361,7 +367,7 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 固定guard需4929.32秒，超过当前UTC日剩余约1363秒，尚未正式训练或测准确率。
 证据见[se-engineering-results.json](../docs/se-engineering-results.json)。
 未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
-通过完整配对后才冻结并新scratch seed2027。优先完成现有SAM/ResizeMix复测。
+通过完整配对后才冻结并新scratch seed2027。ResizeMix复测与提交已完成，当前优先完成SAM独立复测。
 
 SE入口为[train_se_sam.py](train_se_sam.py)、[benchmark_se_sam.py](benchmark_se_sam.py)、
 [run_se_sam.py](run_se_sam.py)，配置固定在[wrn22_se_sam.json](configs/wrn22_se_sam.json)。
@@ -405,10 +411,11 @@ policy、训练范围及参数量；准备完成、CSV或intent均不算官方�
 
 已审查的当前执行快照见[Project1_Research_Executed.ipynb](../notebooks/Project1_Research_Executed.ipynb)，
 页数、执行输出、来源和产物哈希见[research-report-preview.json](../docs/research-report-preview.json)。
-351项CPU检查通过；CI明确安装Notebook结构、真实PNG展示和PDF边界所需的CPU报告依赖，
+报告扩展阶段351项CPU检查通过；CI明确安装Notebook结构、真实PNG展示和PDF边界所需的CPU报告依赖，
 不在CI启动Notebook kernel。重建时指定未存在的新目录：
-`python build_report.py --research-summary docs/research-followup-results.json --output-dir outputs/my_research_preview`。
-这是有日期的探索快照，最终报告仍须在截止时按实际评分回执刷新。
+`python build_report.py --research-summary docs/research-followup-results.json --research-receipts docs/research-submission-receipts --output-dir outputs/my_research_preview`。
+已发布Notebook与a6预览是10月31日21:17 UTC、Git43e6e2e的有日期快照，不含其后官方新评分。
+当前滚动JSON与公开评分回执包含0.878结果；最终报告仍须在截止时以新目录按实际评分回执刷新。
 
 ## AugMix 独立增强与一致性损失
 
@@ -451,5 +458,14 @@ loss的CPU范围会等待此前异步forward，不能把162.6ms直接解释为JS
 两臂均23次真实更新、19层BN单次计数/有限正梯度/参数变化验证通过，实际autograd后端也不同；
 输出/梯度/BN缓冲存在已记录的小幅浮点差异，不能声称逐位等价。监督18.02秒且进程树回收核实。
 这省略数据流水线与传输，仍不准入正式训练。新[数值协议计划](augmix-nativebn-plan.md)
-固定仅训练BN用native、eval保留原后端；独立typed入口准备中，须重新测实际图像流水线。
+固定仅训练BN用native、eval保留原后端；独立typed入口现已实现，原已绑定训练引擎不改。
 聚合见[augmix-bn-engineering-results.json](../docs/augmix-bn-engineering-results.json)。
+
+新协议的真实官方训练图像完整流水线预检随后通过：23次正常成功更新、0跳步，另有一次
+独立溢出跳步，参数/SGD/EMA保留且scale下降；19层BN的456次forward均验证单次统计更新，
+528次卷积仍启用cuDNN。双worker与整个进程树清理通过，监督17.74秒。
+实际流水线单步中位 **106.220ms**、P90 **128.287ms**，固定训练加benchmark guard为
+**8,279.24秒（约2小时18分钟）**，低于单任务三小时上限；正式运行仍须共享lease空闲、
+相同冻结源码/数值环境和足够的实际日预算。该测量不替代同T4准入，也没有开发准确率、配对或交付资格。
+原4.552倍是独立合成BN对照；此处为含真实CPU/PIL/传输/损失/SGD/EMA的完整流水线。
+公开标量与源码证据见[augmix-nativebn-preflight-results.json](../docs/augmix-nativebn-preflight-results.json)。

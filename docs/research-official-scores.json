@@ -1,0 +1,71 @@
+{
+  "schema": "official_research_score_aggregate_v1",
+  "recorded_at": "2026-11-01T00:30:51.017181+00:00",
+  "team": "Saber",
+  "source": "Actual official complete research receipts; public copies differ only in JSON serialization, preserve all original parsed scalar metadata.",
+  "original_primary_public": 0.871,
+  "original_best_public": 0.874,
+  "best_new_public": 0.878,
+  "best_observed_public": 0.878,
+  "private_scores_released": false,
+  "scored_candidates": [
+    {
+      "label": "WRN34-3/160",
+      "actual_receipt_run": "wrn34_3_s2026",
+      "submission_ref": 57853905,
+      "status": "complete",
+      "public_score": 0.869,
+      "private_score": null,
+      "checkpoint_sha256": "1787237fb5f4566043843f9008516e911b9a6d867bc6ac4720c52448871c7b9a",
+      "submission_sha256": "ff4943d5ac76e22c3858553c63533b2f596b0d73b7d1d0007052dd0aee80f01f",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 40000,
+      "parameter_count": 4166298,
+      "original_private_receipt_sha256": "6575c60894294e285af29f41722e4303da4bd076703e2ff6611cc54f7357bf7f",
+      "public_canonical_receipt_sha256": "c7ca148dd36f5306200ee4809bdebace2db4737a42104f988d0b0bfdd07e4a7f",
+      "same_parsed_receipt": true
+    },
+    {
+      "label": "ResizeMix/WRN22-4",
+      "actual_receipt_run": "candidate",
+      "submission_ref": 57854107,
+      "status": "complete",
+      "public_score": 0.875,
+      "private_score": null,
+      "checkpoint_sha256": "c39436412b454f37f030e49beb977ab8e4a6dc60f8027a0e9942c3c3ad534894",
+      "submission_sha256": "1198e1d39419dd42838cec1ca7973af49eca769b7bb014709e56b096b5e1390a",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 40000,
+      "parameter_count": 4298970,
+      "original_private_receipt_sha256": "9b85f6a3b1a54f6ffb81d5b54d423b5d2aa80b72f61f7b62f4b2c4a4bf0addec",
+      "public_canonical_receipt_sha256": "289ff61904e9fcb8eb1a999461cf8539084265e6bd33cac4558eefed87f7be1f",
+      "same_parsed_receipt": true
+    },
+    {
+      "label": "WRN34-3/300",
+      "actual_receipt_run": "candidate",
+      "submission_ref": 57854294,
+      "status": "complete",
+      "public_score": 0.878,
+      "private_score": null,
+      "checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+      "submission_sha256": "7bc889680d2e55a207792d0c07a160ac0ed830b90073b74408cced9e3351ccd6",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 40000,
+      "parameter_count": 4166298,
+      "original_private_receipt_sha256": "7bc17db23dc60f5aa90e34d24a6d71f864514c09316ac424613df7258d3776b3",
+      "public_canonical_receipt_sha256": "ab7118636232193ef7d98501a38f248dc630bac0a529d569a960347cbe6f1b9f",
+      "same_parsed_receipt": true
+    }
+  ],
+  "quota_last_verified": {
+    "UTC_day": "2026-11-01",
+    "used": 3,
+    "remaining": 2,
+    "snapshot_note": "Official whole-team quota verified after the third Nov1 submission; recheck immediately before any upload. Exact check time is not recorded here."
+  },
+  "no_hidden_prediction_rows_or_weights_or_credentials": true
+}
