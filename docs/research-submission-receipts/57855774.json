@@ -1,0 +1,22 @@
+{
+  "run": "wrn22_sam_s2026",
+  "submission_sha256": "1a01b310816aa6b37a8bc3901e82dec533eb47f7cd61d3fa3d70b823b752987d",
+  "checkpoint_sha256": "5a9771fe26e5b6bd6253a1ddfb2a3187e2087c3348b1569e3585fb6fa6bf07b2",
+  "parameter_count": 4298970,
+  "policy": "center80_shift20",
+  "seed": 2026,
+  "training_examples": 40000,
+  "manifest_sha256": "1d49bd70c049ce53e2c35aba7817fa1b95330a08cc0706b6026ee2ab606f9ee6",
+  "frozen_manifest_sha256": "d505c367a78970ddb56dc036dcec97b1851f52230fd0bf1f49188692c6c0c943",
+  "competition": "cifar-10-res-net-architecture-challenge-dl",
+  "team": "Saber",
+  "status": "complete",
+  "submission_ref": 57855774,
+  "public_score": 0.871,
+  "private_score": null,
+  "submitted_at": "2026-11-01T00:53:13.002628+00:00",
+  "checked_at": "2026-11-01T00:53:37.778501+00:00",
+  "delivery_schema": "research_prediction_delivery_v2",
+  "repeat_receipt_schema": "native_local_repeat_v1",
+  "repeat_receipt_sha256": "79726a41617ec6ea1aca7a8d706bd37f7d12da56037c45b606e40fbc994fecac"
+}

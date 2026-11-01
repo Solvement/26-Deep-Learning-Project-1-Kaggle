@@ -1,8 +1,8 @@
 {
   "schema": "audited_followup_research_aggregate_v1",
-  "recorded_at": "2026-11-01T00:30:51.017181+00:00",
+  "recorded_at": "2026-11-01T00:58:46.951542+00:00",
   "issue": 7,
-  "interpretation": "Exploratory reused development and fixed synthetic stress proxies are separate from hidden-test accuracy and independent confirmation. Three new actual official research submissions completed scoring: WRN34-160 0.869, ResizeMix 0.875 and WRN34-300 0.878. Private scores are unreleased.",
+  "interpretation": "Exploratory reused development and fixed synthetic stress proxies remain separate from hidden-test accuracy and independent confirmation. Four actual official research submissions scored: WRN34-160 0.869, ResizeMix 0.875, WRN34-300 0.878 and SAM 0.871. SAM passed its fixed local gate and independent repeat but did not improve the official best 0.878. Private scores are unreleased.",
   "baseline": {
     "schema": "official_development_stress_v3",
     "examples": 5000,
@@ -796,7 +796,7 @@
     "peak_gpu_memory_bytes": 534094336,
     "interpretation": "Synthetic engineering throughput; training estimates exclude validation, EMA, checkpoint I/O and full pipeline overhead; no accuracy evidence."
   },
-  "sam_status": "Primary160 epochs/full v3/paired evidence complete and seed2026 frozen before repeat. Fresh scratch seed2027 repeat is running; last observed 97/160 at this snapshot. No complete repeat benchmark, qualification or hidden prediction is inferred from partial progress.",
+  "sam_status": "Primary and independent scratch seed2027 each completed160 epochs/full same-context v3; fixed weighted repeat96.70% clean/NLL0.1042158653/stress79.092% passed. Native repeat receipt audit/primary2026-only2000prediction/strict prepare/official upload complete. Ref57855774 scored0.871 public, below current best0.878. Preserve frozen primary/policy/thresholds; no rescue tuning from this feedback.",
   "resizemix_status": "Complete fresh seed2027 T4 repeat and subsequent same-local-v3 fixed weighted gate pass (96.56% clean/78.468% stress); original2026primary remains 96.20%/80.092%. Repeat variability is substantial for synthetic stress. Immutable attestation/primary-only2000CSV/strict prepare complete; official ref57854107 completed scoring at0.875 public. Original partial local9/160 remains preserved as capacity cancellation.",
   "full50k_refit": {
     "status": "plan_prepared_not_started",
@@ -810,7 +810,7 @@
     "not_before_utc": "2026-11-01T00:00:00Z"
   },
   "research_submission": {
-    "status": "three_distinct_frozen_primary_candidates_officially_scored",
+    "status": "four_distinct_frozen_primary_candidates_officially_scored",
     "official_rows_per_submission": 2000,
     "best_new_public": 0.878,
     "actual_best_public": 0.878,
@@ -819,8 +819,8 @@
     "original_best_public": 0.874,
     "private_score": null,
     "last_verified_utc_day": "2026-11-01",
-    "quota_used": 3,
-    "quota_remaining": 2,
+    "quota_used": 4,
+    "quota_remaining": 1,
     "quota_snapshot_requires_recheck_before_upload": true,
     "public_receipts_directory": "docs/research-submission-receipts",
     "score_aggregate": "docs/research-official-scores.json",
@@ -877,8 +877,34 @@
         "original_private_receipt_sha256": "7bc17db23dc60f5aa90e34d24a6d71f864514c09316ac424613df7258d3776b3",
         "public_canonical_receipt_sha256": "ab7118636232193ef7d98501a38f248dc630bac0a529d569a960347cbe6f1b9f",
         "same_parsed_receipt": true
+      },
+      {
+        "label": "SAM/WRN22-4",
+        "submission_ref": 57855774,
+        "status": "complete",
+        "public_score": 0.871,
+        "private_score": null,
+        "checkpoint_sha256": "5a9771fe26e5b6bd6253a1ddfb2a3187e2087c3348b1569e3585fb6fa6bf07b2",
+        "submission_sha256": "1a01b310816aa6b37a8bc3901e82dec533eb47f7cd61d3fa3d70b823b752987d",
+        "policy": "center80_shift20",
+        "seed": 2026,
+        "training_examples": 40000,
+        "parameter_count": 4298970,
+        "actual_receipt_run": "wrn22_sam_s2026",
+        "original_private_receipt_sha256": "ef18ed97e4c8174418cb6b2c230e50735647dc8a77e7eb26dedb4417b78535d3",
+        "public_canonical_receipt_sha256": "cbd71d697d91e443bd8e78bee61dfa90bcc0bc13f7c3fa95455d79be64892b27",
+        "same_parsed_receipt": true
       }
-    ]
+    ],
+    "current_team_quota_verified_after_latest_submission": true,
+    "last_verified_quota_snapshot": {
+      "checked_at": "2026-11-01T00:58:24.425823+00:00",
+      "UTC_day": "2026-11-01",
+      "used": 4,
+      "remaining": 1,
+      "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
+      "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
+    }
   },
   "validation": {
     "commit": "c6fe9210f6ecb2e84bdda657faa22a5861e8e194",
@@ -1548,7 +1574,7 @@
       }
     }
   },
-  "SAM_status": "Primary160 epochs/full v3/paired evidence complete and seed2026 frozen before repeat. Fresh scratch seed2027 repeat is running; last observed 97/160 at this snapshot. No complete repeat benchmark, qualification or hidden prediction is inferred from partial progress.",
+  "SAM_status": "Primary and independent scratch seed2027 each completed160 epochs/full same-context v3; fixed weighted repeat96.70% clean/NLL0.1042158653/stress79.092% passed. Native repeat receipt audit/primary2026-only2000prediction/strict prepare/official upload complete. Ref57855774 scored0.871 public, below current best0.878. Preserve frozen primary/policy/thresholds; no rescue tuning from this feedback.",
   "SAM_primary_freeze_sha256": "d505c367a78970ddb56dc036dcec97b1851f52230fd0bf1f49188692c6c0c943",
   "resizemix_local_primary": {
     "schema": "official_development_stress_v3",
@@ -3817,14 +3843,318 @@
     "training_backend": "Colab Tesla T4"
   },
   "SAM_repeat_observed_progress": {
-    "status": "training",
-    "observed_at": "2026-11-01T00:30:51.017181+00:00",
-    "epochs_completed": 97,
+    "status": "complete",
+    "observed_at": "2026-11-01T00:58:46.951542+00:00",
+    "epochs_completed": 160,
     "planned_epochs": 160,
     "training_seed": 2027,
     "native_precision": "bf16",
-    "repeat_complete": false,
-    "complete_repeat_benchmark_available": false,
-    "qualification_from_partial_progress": false
+    "successful_updates": 50080,
+    "skipped_updates": 0,
+    "sam_forward_passes": 100160,
+    "actual_supervisor_seconds": 2958.650012099999,
+    "complete_repeat_benchmark_available": true,
+    "fixed_weighted_policy_passed": true,
+    "native_repeat_receipt_sha256": "79726a41617ec6ea1aca7a8d706bd37f7d12da56037c45b606e40fbc994fecac",
+    "submission_ref": 57855774,
+    "public_score": 0.871,
+    "repeat_weights_used_for_hidden_prediction": false
+  },
+  "SAM_local_repeat": {
+    "parameter_count": 4298970,
+    "status": "complete",
+    "config": {
+      "depth": 22,
+      "widen_factor": 4,
+      "dropout": 0.0,
+      "num_classes": 10,
+      "epochs": 160,
+      "batch_size": 128,
+      "lr": 0.1,
+      "min_lr": 0.0001,
+      "warmup_epochs": 5,
+      "momentum": 0.9,
+      "weight_decay": 0.0005,
+      "label_smoothing": 0.0,
+      "cutout": 16,
+      "mixup_alpha": 0.2,
+      "mixup_probability": 0.5,
+      "ema_decay": 0.995,
+      "seed": 2027,
+      "split_seed": 2026,
+      "train_all": false,
+      "final_variant": "ema",
+      "fixed_flip_tta": false,
+      "sam_rho": 0.05
+    },
+    "promotion": {
+      "plain": {
+        "passed": true,
+        "clean_delta": 0.0028000000000000247,
+        "stress_delta": 0.010199999999999876,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "flip": {
+        "passed": true,
+        "clean_delta": 0.0046000000000000485,
+        "stress_delta": 0.01307999999999998,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      },
+      "center80_shift20": {
+        "passed": true,
+        "clean_delta": 0.0041999999999999815,
+        "stress_delta": 0.014639999999999986,
+        "thresholds": {
+          "clean_improvement": 0.001,
+          "stress_noninferiority": -0.002,
+          "stress_improvement": 0.005,
+          "clean_noninferiority": -0.002
+        }
+      }
+    },
+    "evaluation_context": {
+      "device_type": "cuda",
+      "amp_dtype": "torch.bfloat16",
+      "torch_version": "2.12.0+cu130",
+      "training_core_sha256": {
+        "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+        "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+        "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+        "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4"
+      }
+    },
+    "external_data_loaded": false,
+    "confirmation_evaluated": false,
+    "schema": "official_development_stress_v3",
+    "data_signature": {
+      "archive_sha256": "d7def227362a3c930c86a9ab1ad9180c15ac5477847f4b5c34657bec61ff2a60",
+      "split_sha256": "73c9dbbf99a8c85944a314e1679e6116da066b7a4f40cd794e10aceb6bafea7e"
+    },
+    "baseline_sha256": "eced314d97fcb5ddef4cad25c6968ba299d0e8a2c79af6bdcbdbf305b79c632d",
+    "elapsed_seconds": 26.4705027999953,
+    "checkpoint_epoch": 156,
+    "training_examples": 40000,
+    "bn_recalibrated": false,
+    "research_training_integrity": {
+      "schema": "research_sam_integrity_v1",
+      "training": {
+        "schema": "research_sam_training_v1",
+        "method": "sam",
+        "rho": 0.05,
+        "adaptive": false,
+        "source_sha256": {
+          "research/train_sam.py": "6c172b127ee0749e6973903c192156bcc2f0bb88c8c6c22b74f8a0d1e089d8f1",
+          "research/sam.py": "682171d56134e82e14cd538bee67b7eec8dffa63c3c788b77e4636e5a09ad01c",
+          "research/train_shadow.py": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061",
+          "research/augmentations.py": "718530d2c56c556eb65508915126e0f5f0964a9c03d4937df74d3e3798551873"
+        },
+        "precision": "bf16",
+        "grad_scaler_enabled": false,
+        "training_seed": 2027,
+        "split_seed": 2026,
+        "confirmation_evaluated": false,
+        "hidden_images_loaded": false,
+        "external_data_loaded": false
+      },
+      "successful_updates": 50080,
+      "skipped_updates": 0,
+      "sam_forward_passes": 100160,
+      "confirmation_evaluated": false,
+      "hidden_images_loaded": false,
+      "validator_source_sha256": "ec7d93ff8aa05e658f0fb44170d43a76b1f8d0a711fe7320b82a9717a83a5376",
+      "core_benchmark_sha256": "b60af219a2f08e5b3d7150c968c2ab168ee373861e173002dba39b6cf6ad6f4c",
+      "provenance_document_sha256": "d4519ba4089606e41c46ad455bc0db6e3fd66fbe7e69be33ab6086d92ac82d39",
+      "environment_document_sha256": "d7020348af62372cba2f5a04457db3f5c7cb8629cf0026737009ecadf0162b18"
+    },
+    "policies": {
+      "plain": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9656,
+            "loss": 0.11013785934746266,
+            "examples": 5000,
+            "seconds": 1.577586199993675,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7378,
+            "loss": 0.8314373056411744,
+            "examples": 5000,
+            "seconds": 0.43093640000006417,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.442,
+            "loss": 1.840416145324707,
+            "examples": 5000,
+            "seconds": 0.34499810000124853,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.9578,
+            "loss": 0.12653773538470267,
+            "examples": 5000,
+            "seconds": 0.3603889000005438,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.962,
+            "loss": 0.1145305853843689,
+            "examples": 5000,
+            "seconds": 0.34770389999903273,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8328,
+            "loss": 0.5019979811191558,
+            "examples": 5000,
+            "seconds": 0.34656530000211205,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9656,
+        "clean_loss": 0.11013785934746266,
+        "stress_accuracy": 0.78648
+      },
+      "flip": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.9674,
+            "loss": 0.10520665362775326,
+            "examples": 5000,
+            "seconds": 0.669733399998222,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7374,
+            "loss": 0.8235239595413208,
+            "examples": 5000,
+            "seconds": 0.719540700003563,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4448,
+            "loss": 1.8271993446350097,
+            "examples": 5000,
+            "seconds": 0.6497460000027786,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.958,
+            "loss": 0.12312303992211819,
+            "examples": 5000,
+            "seconds": 0.6307453000044916,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.967,
+            "loss": 0.11093755926787853,
+            "examples": 5000,
+            "seconds": 0.6266944000017247,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8396,
+            "loss": 0.48749692163467406,
+            "examples": 5000,
+            "seconds": 0.643437200000335,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.9674,
+        "clean_loss": 0.10520665362775326,
+        "stress_accuracy": 0.7893600000000001
+      },
+      "center80_shift20": {
+        "cases": {
+          "clean": {
+            "accuracy": 0.967,
+            "loss": 0.10421586529761553,
+            "examples": 5000,
+            "seconds": 3.07071310000174,
+            "input_pixel_sha256": "3a61a5555d8ad40bdf57bbe75f75e5b6861ce67c1402451950052599b5ef8cdc"
+          },
+          "noise_004": {
+            "accuracy": 0.7416,
+            "loss": 0.8147319355010987,
+            "examples": 5000,
+            "seconds": 3.1599377000020468,
+            "input_pixel_sha256": "4ba707982d415b8f41daa20ff6369f11a46599c51301febc16b36cfc126e61f3"
+          },
+          "boxblur3": {
+            "accuracy": 0.4464,
+            "loss": 1.8226575347900391,
+            "examples": 5000,
+            "seconds": 3.1077250999951502,
+            "input_pixel_sha256": "dd880883a785b793d7058ea5aa4e43a9b3b1d86769980657402d2dc18733d529"
+          },
+          "contrast065": {
+            "accuracy": 0.958,
+            "loss": 0.12255086037814616,
+            "examples": 5000,
+            "seconds": 3.129949999995006,
+            "input_pixel_sha256": "9d1a20479db87f84265abe1f7f8ffa9a94a41197d8ca4c4f5b10d1b2f53150ea"
+          },
+          "brightness080": {
+            "accuracy": 0.966,
+            "loss": 0.1100218851402402,
+            "examples": 5000,
+            "seconds": 3.0811872000049334,
+            "input_pixel_sha256": "8447f715c226d064e8e4edd85a9fc8c77da5868344688002471ab575cea7a001"
+          },
+          "resize24": {
+            "accuracy": 0.8426,
+            "loss": 0.48246649785041806,
+            "examples": 5000,
+            "seconds": 3.13138820000313,
+            "input_pixel_sha256": "6705b65540c8a7fa14815cec75538dc94829524a049b60f0342b67b4f473fa51"
+          }
+        },
+        "clean_accuracy": 0.967,
+        "clean_loss": 0.10421586529761553,
+        "stress_accuracy": 0.7909200000000001
+      }
+    },
+    "hidden_images_loaded": false,
+    "examples": 5000,
+    "checkpoint_sha256": "52017501b24ad74659a84e2f6d9e9820172292054807cee380fe83e59fdcd600",
+    "checkpoint_variant": "model",
+    "benchmark_sha256": "6a0945948109404b75782516d7b3623cbf49e52b90f830d60ddcf38dac82d7fc",
+    "supervisor_sha256": "79726a41617ec6ea1aca7a8d706bd37f7d12da56037c45b606e40fbc994fecac",
+    "supervisor": {
+      "status": "complete",
+      "started_at": "2026-11-01T00:01:14.648358+00:00",
+      "finished_at": "2026-11-01T00:50:33.298381+00:00",
+      "elapsed_seconds": 2958.650012099999,
+      "backend": "local",
+      "trainer": "sam",
+      "precision": "bf16"
+    }
+  },
+  "AugMix_nativeBN_primary_progress": {
+    "status": "training",
+    "observed_at": "2026-11-01T00:58:46.951542+00:00",
+    "started_at": "2026-11-01T00:54:04.011385+00:00",
+    "training_seed": 2026,
+    "precision": "fp16",
+    "epochs_completed": 6,
+    "planned_epochs": 160,
+    "recorded_successful_updates": 1878,
+    "recorded_skipped_updates": 0,
+    "last_epoch_seconds": 41.00770599999669,
+    "complete_benchmark_available": false,
+    "accuracy_qualification_claimed": false,
+    "hidden_prediction_or_submission_available": false,
+    "interpretation": "Healthy supervised primary is running. Partial epochs/metrics are not complete development evidence or submission qualification."
   }
 }

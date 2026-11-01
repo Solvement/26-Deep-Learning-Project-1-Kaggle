@@ -1,6 +1,6 @@
 {
   "schema": "official_research_score_aggregate_v1",
-  "recorded_at": "2026-11-01T00:30:51.017181+00:00",
+  "recorded_at": "2026-11-01T00:58:46.951542+00:00",
   "team": "Saber",
   "source": "Actual official complete research receipts; public copies differ only in JSON serialization, preserve all original parsed scalar metadata.",
   "original_primary_public": 0.871,
@@ -59,13 +59,42 @@
       "original_private_receipt_sha256": "7bc17db23dc60f5aa90e34d24a6d71f864514c09316ac424613df7258d3776b3",
       "public_canonical_receipt_sha256": "ab7118636232193ef7d98501a38f248dc630bac0a529d569a960347cbe6f1b9f",
       "same_parsed_receipt": true
+    },
+    {
+      "label": "SAM/WRN22-4",
+      "submission_ref": 57855774,
+      "status": "complete",
+      "public_score": 0.871,
+      "private_score": null,
+      "checkpoint_sha256": "5a9771fe26e5b6bd6253a1ddfb2a3187e2087c3348b1569e3585fb6fa6bf07b2",
+      "submission_sha256": "1a01b310816aa6b37a8bc3901e82dec533eb47f7cd61d3fa3d70b823b752987d",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 40000,
+      "parameter_count": 4298970,
+      "actual_receipt_run": "wrn22_sam_s2026",
+      "original_private_receipt_sha256": "ef18ed97e4c8174418cb6b2c230e50735647dc8a77e7eb26dedb4417b78535d3",
+      "public_canonical_receipt_sha256": "cbd71d697d91e443bd8e78bee61dfa90bcc0bc13f7c3fa95455d79be64892b27",
+      "same_parsed_receipt": true
     }
   ],
   "quota_last_verified": {
+    "checked_at": "2026-11-01T00:58:24.425823+00:00",
     "UTC_day": "2026-11-01",
-    "used": 3,
-    "remaining": 2,
-    "snapshot_note": "Official whole-team quota verified after the third Nov1 submission; recheck immediately before any upload. Exact check time is not recorded here."
+    "used": 4,
+    "remaining": 1,
+    "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
+    "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
   },
-  "no_hidden_prediction_rows_or_weights_or_credentials": true
+  "no_hidden_prediction_rows_or_weights_or_credentials": true,
+  "current_team_quota_verified_after_latest_submission": true,
+  "current_team_quota": {
+    "checked_at": "2026-11-01T00:58:24.425823+00:00",
+    "UTC_day": "2026-11-01",
+    "used": 4,
+    "remaining": 1,
+    "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
+    "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
+  },
+  "latest_feedback": "Frozen primary SAM scored0.871 public after its independent repeat passed the local development gate. This did not improve the observed best0.878; reused development/synthetic stress does not guarantee hidden-test gains. Preserve the frozen policy and thresholds."
 }

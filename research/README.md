@@ -26,9 +26,9 @@
   都计入任务耗时。Colab 由独立监督器及单独云端 lease 约束，不计入本地 GPU 时间。
 - [benchmark.py](benchmark.py) 已实现 6 个 case、3 个推理 policy 和晋级 gate；当前相关
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
-  复测和真实预测均完成；WRN34-160、ResizeMix、WRN34-300 已获真实官方评分，最佳 **0.878**。
-  SAM 的160轮、完整benchmark和配对已完成，独立seed2027正在正式训练；
-  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix训练BN改用native的新协议已通过真实图像完整流水线预检，尚无正式训练或准确率。
+  复测和真实预测均完成；WRN34-160、ResizeMix、WRN34-300、SAM 已获真实官方评分，最佳 **0.878**。
+  SAM 独立seed2027的160轮与完整v3 benchmark通过，冻结主2026的实际公开分为 **0.871**，未提高最佳分。
+  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix训练BN改用native的新协议已通过真实图像完整流水线预检，主2026正在受监督训练，尚无完整benchmark或交付资格。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -53,8 +53,9 @@ WRN34-3 主 seed2026 的加权 policy 为 clean96.32%、stress78.592%；预先�
 不能声称 clean 显著提高。主模型2,000行CSV和实际交付核验完成；11月1日UTC真实提交
 ref57853905已评分 **0.869**。后续ResizeMix为 **0.875**（ref57854107），WRN34-300为
 **0.878**（ref57854294），当前最佳公开成绩为0.878；原主交付0.871、原最佳0.874保持独立记录。
-三份正式评分回执、冻结主权重/CSV的hash见[research-official-scores.json](../docs/research-official-scores.json)。
-同日最后核验队伍额度为3次已用、2次剩余；每次提交前仍须读取实际额度。private分数尚未公布。
+SAM随后得到 **0.871**（ref57855774），未提高0.878最佳分。
+四份正式评分回执、冻结主权重/CSV的hash见[research-official-scores.json](../docs/research-official-scores.json)。
+11月1日00:58:24.425823 UTC实际只读API核验队伍额度为4次已用、1次剩余；每次提交前仍须重新读取。private分数尚未公布。
 CutMix完成T4 benchmark，配对/复测尚待。ResizeMix补完本地同v3上下文重测与配对；首次配置预检
 缺省字段问题已修复且原SHA保留。随后本地正式重复稳态36.2秒/轮，无法在剩余额度内完成，
 在9/160轮受控停止、检查点/RNG/GradScaler保留，不能当作效果失败或完整复测。
@@ -65,8 +66,11 @@ CutMix完成T4 benchmark，配对/复测尚待。ResizeMix补完本地同v3上�
 SAM的固定加权policy为clean **96.74%** / stress **79.368%**，相对本地基线提高0.46和1.74个百分点。
 原图聚类配对95%区间分别为 **[+0.04,+0.90]**、**[+1.364,+2.108]**个百分点；全部五个stress case
 都有改善。区间仍对已拟合、复用开发集选出的检查点有条件，不能当作新确认或隐藏分数保证。
-主seed2026权重/policy和seed2027配置已冻结；独立seed2027于11月1日00:01 UTC开始正式训练，
-尚无完整复测benchmark或交付资格。按实际约18秒/轮估计训练约49分钟，benchmark另计；以正式回执为准。
+主seed2026权重/policy在重复开始前已冻结。独立seed2027完成160轮、50,080次成功更新、0跳步、
+100,160次双pass；训练和完整benchmark的监督总耗时 **2,958.65秒（49分19秒）**。
+同一固定加权policy复测为clean **96.70%**、NLL **0.1042158653**、stress **79.092%**，通过门槛。
+原生重复回执审计、主2026专属2,000行预测和严格交付核验均通过，实际提交公开分为 **0.871**。
+这是开发proxy通过却未提高比赛分数的实际反馈；保留冻结权重、policy和阈值，不据此调参救分。
 
 ![本地v3原图聚类配对结果](../docs/figures/research-paired-v3.png)
 
@@ -197,7 +201,7 @@ CutMix 标签面积、源码/更新计数校验、云端未知分配不重试，
    支持对 SGD 轨迹权重做平均，最终保留单个模型。作者 CIFAR/WRN 示例从 epoch 161 开始 SWA，
    SWA LR 为 0.05，论文附录WRN设置为0.01。当前备用计划固定40轮、0.01，不临时搜索长度/LR；
    完整40k训练来源、BN和benchmark已核验；门槛失败，未启动配对或独立seed复测，平均后的BN只用40k优化训练图像重估。
-4. **SAM，完整160轮与配对已完成，独立seed2027正式训练中。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
+4. **SAM，完整160轮、配对与独立seed2027通过，官方公开分0.871。** [原论文](https://arxiv.org/abs/2010.01412)与[作者代码](https://github.com/google-research/sam)
    的 CIFAR-10 WRN-28-10 参考配置使用 LR 0.1、WD 0.0005、rho 0.05。
    迁移到预算内 WRN-22-4 是新假设；原大模型成绩不移用。每次更新需要两次反向传播，
    预算先按约两倍计算并实测。实现须复用相同增强/MixUp、控制第二遍 BN 统计，
@@ -231,6 +235,8 @@ SAM 的 CPU检查包含解析二次函数更新、扰动范数、失败恢复、
 160轮正式训练、完整benchmark与配对已经完成，50,080次成功更新、0跳步、100,160次双pass。
 主模型第157轮raw检查点已冻结，不能改为按复测分数挑权重。加入组合回执后全套239项 CPU检查通过；
 对应源码版本的CI结果见PR8，CPU fixture不等于真实候选配对或提交成功。
+后续真实独立seed2027也完成160轮与完整v3，固定加权96.70%/79.092%通过，原生回执审计通过。
+只用提前冻结的主2026完成实际预测/提交，官方ref57855774为0.871；保留负反馈，不改旧policy或阈值。
 本地监督器新增 `--trainer sam --precision bf16`，保存训练器/精度并禁止交叉恢复。
 云端与本地时间预算分开计数；活动 Colab 任务不会被误计为本地 GPU 时间。
 
@@ -332,8 +338,8 @@ Kaggle 每 **UTC 日、整个队伍合计最多 5 次**。提交前读取实际 
 [submit_candidate.py](submit_candidate.py) 的 `--prepare` 仅作真实文件校验、不创建上传意图；
 `--submit` 重新校验交付链、实际团队配额与 CSV，先持久记录意图再调用官方 CLI/API。
 未知上传结果不重传，已知 reference 可用 `--check REF` 只读查询；原五次记录和旧 allowlist 不改。
-WRN34-160、ResizeMix与WRN34-300的独立复测、真实2,000行预测和 `--prepare` 均完成，
-正式API回执分别确认0.869、0.875和0.878。公开的[三份规范评分回执](../docs/research-submission-receipts)
+WRN34-160、ResizeMix、WRN34-300与SAM的独立复测、真实2,000行预测和 `--prepare` 均完成，
+正式API回执依次确认0.869、0.875、0.878和0.871。公开的[四份规范评分回执](../docs/research-submission-receipts)
 仅含标量元数据，保留原始解析对象；[汇总](../docs/research-official-scores.json)分别记录原私有字节和公开LF序列化的hash。
 fake API测试或已生成CSV仍不算正式提交/评分。
 
@@ -350,9 +356,16 @@ fake API测试或已生成CSV仍不算正式提交/评分。
 full模型没有新的独立开发准确率；其依据来自已冻结父配方，不复用重叠dev冒充验证。
 该初始全量路径不支持SAM/CutMix/ResizeMix等独立训练器，不能将其强行交给冻结BF16核心。
 
-本地余量由实际账本计算。2026-11-01 UTC预算已重置，当前先完成SAM独立seed2027正式重复，
-之后仅在实际剩余预算不少于3,000秒且共享lease空闲时启动首次WRN34全量训练。
+本地余量由实际账本计算。SAM独立seed2027已完成，当前共享GPU lease由NativeBN主训练占用；
+后续仅在实际剩余预算不少于3,000秒且lease空闲时考虑此已准备的WRN34-160全量路径。
 冻结计划已实际生成并重验父交付链，没有占GPU或创建训练回执；尚未启动全量训练或提交。
+
+后续优先评估实际公开分0.878的WRN34-3/300父配方。新增独立的
+[300轮全量协议](wrn300-refit-plan.md)、[监督入口](run_wrn300_refit.py)和
+[交付上传入口](submit_wrn300_refit.py)，保留旧helper及所有父证明原样。
+固定scratch seed2026、50k/零验证集、FP16初始scale65536、300轮最终online model；
+117,300次尝试、1,500万来源样本，不用重叠dev选择权重。新协议尚待实际图像速度预检，
+预先固定的`1.5×median×391×300+300`必须符合剩余预算；当前没有全量训练或新评分。
 
 每个任务记录实际设备/精度、配置、数据分割、起止时间、预算、训练历史、benchmark、gate 及失败原因。
 到停止时间保存现有证据并结束本轮，不以尚未分配的 Colab GPU、尚未运行的算法或未评分的提交宣布完成。
@@ -364,10 +377,10 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 同seed共享state keys/初始张量逐项一致，shortcut不门控；8项模型/数学/序列化CPU检查通过，
 独立trainer、完整双参照benchmark与监督器已实现，21项新CPU检查和独立审查通过。
 原生BF16合成预检现已完成23/23真实更新，全部9门的梯度和参数变化逐步通过；中位61.626ms，
-固定guard需4929.32秒，超过当前UTC日剩余约1363秒，尚未正式训练或测准确率。
+固定guard需4929.32秒，超过10月31日预检时的UTC日余量约1363秒；尚未正式训练或测准确率，后续按实际账本核验。
 证据见[se-engineering-results.json](../docs/se-engineering-results.json)。
 未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
-通过完整配对后才冻结并新scratch seed2027。ResizeMix复测与提交已完成，当前优先完成SAM独立复测。
+通过完整配对后才冻结并新scratch seed2027。ResizeMix与SAM复测/提交均已完成，当前先接续健康的NativeBN主训练。
 
 SE入口为[train_se_sam.py](train_se_sam.py)、[benchmark_se_sam.py](benchmark_se_sam.py)、
 [run_se_sam.py](run_se_sam.py)，配置固定在[wrn22_se_sam.json](configs/wrn22_se_sam.json)。
@@ -438,9 +451,9 @@ POSIX自有session及独立watchdog。12项实际Windows CPU测试覆盖无pool�
 及有限性proof端到端native预检通过后，才考虑正式训练。23正常更新之外单独验证有限loss引发inf梯度时跳过SGD，
 保留全部参数/动量/EMA并降低scale；正式进程重新scratch初始化。固定guard为`1.5×median×313×160+300`，
 云端另留180秒传输/清理。显存/预算不适合则停止，不降batch、不拆view、不转无JSD挽救。
-本地预检不能替代同T4实际准入；当前尚无AugMix正式训练、开发集结果、配对或交付资格。
+本地预检不能替代同T4实际准入；原cuDNN协议没有本地正式训练，后述native-BN协议的主训练已开始，仍无完整开发集benchmark、配对或交付资格。
 
-本地实际官方训练图像FP16预检现已完成，23/23正常更新及单独inf梯度跳步通过，
+原cuDNN后端的本地实际官方训练图像FP16预检已完成，23/23正常更新及单独inf梯度跳步通过，
 全部worker与Job进程树回收验证通过，监督总耗时22.70秒。单步中位0.410031秒、P90 0.416785秒，
 固定guard为31,101.54秒（约8.6小时），超过三小时上限，故不启动本地正式训练。
 这仅是本地工程与吞吐结果；不能据此推断T4速度或准确率，同T4仍需独立实测。
@@ -469,6 +482,9 @@ loss的CPU范围会等待此前异步forward，不能把162.6ms直接解释为JS
 相同冻结源码/数值环境和足够的实际日预算。该测量不替代同T4准入，也没有开发准确率、配对或交付资格。
 原4.552倍是独立合成BN对照；此处为含真实CPU/PIL/传输/损失/SGD/EMA的完整流水线。
 公开标量与源码证据见[augmix-nativebn-preflight-results.json](../docs/augmix-nativebn-preflight-results.json)。
+
+NativeBN主seed2026已于11月1日 **00:54:04 UTC** 在本地受监督开始训练，接续使用提前核验的预检与冻结源码。
+当前只有部分epoch的真实训练记录；不从部分指标宣称完整benchmark、准确率晋级或提交资格，也不重复启动该健康任务。
 
 Kaggle fallback 的实际首个 baseline staging 在只读精确 GET 返回403时停止，发生在任何
 intent、lease、上传、创建或GPU使用之前。独立传输修复已区分 dataset 单次创建与 Notebook
