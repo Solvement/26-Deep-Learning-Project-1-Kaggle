@@ -38,8 +38,10 @@ source/config/data/hardware/runtime hashes, parameter count and verified OS-tree
 cleanup are required. Do not use the old synthetic45k benchmark as admission.
 The fixed guard is `1.5 * median_step_seconds * 313 * 160 + 300`; training plus
 complete benchmark must fit actual daily budget, the3h cap and campaign stop.
-The actual-image preflight controller does not yet exist. A configuration file
-does not authorize bypassing it, another local GPU job or the occupied lease.
+The independent engineering entry is `preflight_core_control.py` with recipe
+`wrn16_5`. Its source/CPU review and a complete source-bound actual-image report
+must pass before a formal run. A configuration file or controller alone does not
+authorize bypassing admission, another local GPU job or the occupied lease.
 
 Only a complete5,000-image nativev3 benchmark may qualify the primary. Preserve
 clean/NLL, all five stress cases and the three existing policies, with weighted
