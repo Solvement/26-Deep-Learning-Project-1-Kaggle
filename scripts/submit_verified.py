@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 COMPETITION = "cifar-10-res-net-architecture-challenge-dl"
 SAMPLE_SHA = "83aa7ddd58d46026c3b3f870f507c33b178ebfbdf24e0a69d9f7a9d6d8cfff59"
-ALLOWED_RUNS = ("baseline", "architecture", "regularized", "final_full", "stability_seed2027", "robust_full")
+ALLOWED_RUNS = ("baseline", "architecture", "regularized", "final_full", "robust_full")
 
 
 def sha256(path):

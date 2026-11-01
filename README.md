@@ -4,10 +4,12 @@ Kevin Yang (`ky2738`) | Team **Saber** | NYU Deep Learning Project 1
 
 [Competition](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl) · [Verified requirements](docs/competition.md) · [Experiment protocol](docs/experiment-plan.md) · [Delivery checklist](docs/requirements-checklist.md)
 
-The repository is public. The implemented pipeline is on
-[`feat/cifar10-resnet-submission`](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/cifar10-resnet-submission)
-and [PR 6](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/pull/6),
-pending human review; `main` still contains the earlier environment harness.
+The repository is public. The primary pipeline was merged into `main` through
+[PR 6](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/pull/6)
+with the owner's explicit merge authorization. The original feature branch is
+retained as the report's reproducibility link. The separate five-day exploratory
+campaign is documented in [research/README.md](research/README.md) and Issue 7;
+it does not rewrite the primary study or reuse its confirmation split.
 
 The main model is a scratch-initialized **WideResNet-22-4 with 4,298,970 total and
 trainable parameters**. Its constructor rejects models above the 5,000,000
