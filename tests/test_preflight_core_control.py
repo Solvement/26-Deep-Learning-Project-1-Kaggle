@@ -383,13 +383,14 @@ class TorchNumericalContracts(unittest.TestCase):
             labels = t.arange(16)%10
             order = t.randperm(16)
             namespace = dict(torch=t,F=t.nn.functional,np=np,random=random,config=config,device=t.device("cpu"),
-                schedule=core.schedule,augment=core.augment,model=model,ema=ema,opt=opt,model_params=list(model.parameters()),
+                schedule=core.schedule,augment=core.augment,model=model,ema=ema,opt=opt,optimizer=opt,model_params=list(model.parameters()),
                 ema_params=list(ema.parameters()),train_x=images,train_y=labels,order=order,epoch=1,steps_per_epoch=313,
                 total_steps=config["epochs"]*313,updates=0,correct=t.zeros(()),loss_sum=t.zeros(()),seen=0,
-                dtype=t.float32,scaler=scaler,epoch_updates=0,epoch_skipped=0,skipped=0)
+                dtype=t.float32,scaler=scaler,epoch_updates=0,epoch_skipped=0,skipped=0,cutmix_batches=0)
             if trainer == "shadow":
-                from research.train_shadow import optimizer_step
+                from research.train_shadow import optimizer_step, cutmix
                 namespace["optimizer_step"] = optimizer_step
+                namespace["cutmix"] = cutmix
             for index in range(4):
                 if reference:
                     namespace.update(batch=index,start=index*4)
