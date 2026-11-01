@@ -28,7 +28,7 @@
   扩展回归由 CI 验证。WD1e-4 未晋级；WRN34-3 的完整 benchmark、配对核验、独立 seed
   复测和真实预测均完成；WRN34-160、ResizeMix、WRN34-300、SAM 已获真实官方评分，最佳 **0.878**。
   SAM 独立seed2027的160轮与完整v3 benchmark通过，冻结主2026的实际公开分为 **0.871**，未提高最佳分。
-  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix训练BN改用native的新协议已通过真实图像完整流水线预检，主2026正在受监督训练，尚无完整benchmark或交付资格。
+  SWA固定40轮tail及两份完整benchmark完成，clean退化未晋级。SE独立trainer/双门槛benchmark/监督器已实现，原生工程预检通过，尚无正式训练或准确率。AugMix native-BN主2026已完成160轮与完整v3：固定weighted clean95.88%、五种合成stress均值94.284%，clean下降0.40pp超过预定非劣界，所有policy均未晋级，不配对、复测或提交。
 
 Colab 运行时管理使用 [colab_cli.py](colab_cli.py)，通过官方 0.7.5 entrypoint，
 在进程内把请求权限限制为已批准的 Colab/基本身份子集。缓存读取与 refresh 均已实测；
@@ -380,7 +380,7 @@ full模型没有新的独立开发准确率；其依据来自已冻结父配方�
 固定guard需4929.32秒，超过10月31日预检时的UTC日余量约1363秒；尚未正式训练或测准确率，后续按实际账本核验。
 证据见[se-engineering-results.json](../docs/se-engineering-results.json)。
 未来唯一weighted主policy还须通过相对固定SAM主seed2026的增量gate，不能只继承旧SAM收益；
-通过完整配对后才冻结并新scratch seed2027。ResizeMix与SAM复测/提交均已完成，当前先接续健康的NativeBN主训练。
+通过完整配对后才冻结并新scratch seed2027。ResizeMix与SAM复测/提交均已完成；NativeBN随后完成但未过clean门槛，保留该负结果并继续受控架构研究。
 
 SE入口为[train_se_sam.py](train_se_sam.py)、[benchmark_se_sam.py](benchmark_se_sam.py)、
 [run_se_sam.py](run_se_sam.py)，配置固定在[wrn22_se_sam.json](configs/wrn22_se_sam.json)。
@@ -427,8 +427,11 @@ policy、训练范围及参数量；准备完成、CSV或intent均不算官方�
 报告扩展阶段351项CPU检查通过；CI明确安装Notebook结构、真实PNG展示和PDF边界所需的CPU报告依赖，
 不在CI启动Notebook kernel。重建时指定未存在的新目录：
 `python build_report.py --research-summary docs/research-followup-results.json --research-receipts docs/research-submission-receipts --output-dir outputs/my_research_preview`。
-已发布Notebook与a6预览是10月31日21:17 UTC、Git43e6e2e的有日期快照，不含其后官方新评分。
-当前滚动JSON与公开评分回执包含0.878结果；最终报告仍须在截止时以新目录按实际评分回执刷新。
+当前公开Notebook来自11月1日b3真实CPU执行：8个code cell、4张PNG、0错误，前六个输出与冻结原研究一致；
+8页PDF全部渲染审查。其来源为00:58:46 UTC的聚合快照，包含四次新官方评分及最佳0.878，并明确SAM的0.871未提分。
+官方回执中的两个原始run都为candidate；报告只按唯一checkpoint/policy/40k范围显示对应配方名称，保留原始回执与快照。
+旧a6与旧公开Notebook字节已备份。b3不包含随后完成的NativeBN结果，也没有已核验的整页HTML导出；
+最新NativeBN负结果单列如下，最终报告仍须在截止时以新目录按实际评分回执刷新。
 
 ## AugMix 独立增强与一致性损失
 
@@ -451,7 +454,7 @@ POSIX自有session及独立watchdog。12项实际Windows CPU测试覆盖无pool�
 及有限性proof端到端native预检通过后，才考虑正式训练。23正常更新之外单独验证有限loss引发inf梯度时跳过SGD，
 保留全部参数/动量/EMA并降低scale；正式进程重新scratch初始化。固定guard为`1.5×median×313×160+300`，
 云端另留180秒传输/清理。显存/预算不适合则停止，不降batch、不拆view、不转无JSD挽救。
-本地预检不能替代同T4实际准入；原cuDNN协议没有本地正式训练，后述native-BN协议的主训练已开始，仍无完整开发集benchmark、配对或交付资格。
+本地预检不能替代同T4实际准入；原cuDNN协议没有本地正式训练，后述native-BN协议已完成主训练和完整开发benchmark，但未过门槛，没有配对或交付资格。
 
 原cuDNN后端的本地实际官方训练图像FP16预检已完成，23/23正常更新及单独inf梯度跳步通过，
 全部worker与Job进程树回收验证通过，监督总耗时22.70秒。单步中位0.410031秒、P90 0.416785秒，
@@ -483,8 +486,13 @@ loss的CPU范围会等待此前异步forward，不能把162.6ms直接解释为JS
 原4.552倍是独立合成BN对照；此处为含真实CPU/PIL/传输/损失/SGD/EMA的完整流水线。
 公开标量与源码证据见[augmix-nativebn-preflight-results.json](../docs/augmix-nativebn-preflight-results.json)。
 
-NativeBN主seed2026已于11月1日 **00:54:04 UTC** 在本地受监督开始训练，接续使用提前核验的预检与冻结源码。
-当前只有部分epoch的真实训练记录；不从部分指标宣称完整benchmark、准确率晋级或提交资格，也不重复启动该健康任务。
+NativeBN主seed2026于11月1日 **00:54:04–02:43:03 UTC** 完成160轮和完整5,000张v3 benchmark，
+监督耗时6,539.41秒；50,068次成功更新加12次FP16 overflow跳步，共50,080次attempt、640万来源图和1,920万view。
+固定weighted policy为clean **95.88%**、NLL **0.1304043**、五种合成stress均值 **94.284%**。
+相对可信原基线，clean下降0.40pp、stress上升16.656pp；clean非劣界为下降不超过0.20pp，所有policy均失败。
+因此停止此候选，不更换policy/阈值、不配对、复测、预测或提交。合成stress不是CIFAR-C或隐藏测试分数。
+160个worker pool、18份源码、两层扩展来源及实际OS清理均已核验，回执原字节保留。
+公开标量与完整范围说明见[augmix-nativebn-results.json](../docs/augmix-nativebn-results.json)。
 
 Kaggle fallback 的实际首个 baseline staging 在只读精确 GET 返回403时停止，发生在任何
 intent、lease、上传、创建或GPU使用之前。独立传输修复已区分 dataset 单次创建与 Notebook
@@ -505,7 +513,8 @@ id/ref、私有状态、版本和源码仍匹配，但尚未核验完整后续�
 保留所有原快照、准备包与失败证据，本地健康训练继续。
 
 后续架构对照已预登记[WRN16-5计划](wrn16-5-plan.md)：静态4,289,754参数，与WRN22-4近似，
-只改深宽、保留160轮BF16控制配方。尚无实际图像预检、训练、准确率或提交资格，优先级低于当前任务。
+只改深宽、保留160轮BF16控制配方。真实官方图像23步BF16预检现已通过，实测中位49.313ms，
+固定guard4,004.37秒低于三小时上限；这不是准确率或提交资格，正式训练仍需共享lease空闲、同来源/环境和实际日预算。
 
 独立的[core control预检入口](preflight_core_control.py)只覆盖两个明确的BF16配方：WRN16-5/160与
 [WRN34-3/300本地BF16探索](wrn34-3-300-bf16-plan.md)，各有固定primary26/repeat27配置。
@@ -513,4 +522,8 @@ id/ref、私有状态、版本和源码仍匹配，但尚未核验完整后续�
 预检只执行官方40k训练池的23个batch128工程步骤，不评价dev/confirmation或生成候选权重，
 记录真实SGD/EMA、BF16/FP32 dtype、13或31层BN单次更新、参数数和完整流水线耗时。
 固定guard按实际配方的160/300轮计算，并受共享lease、180秒预检、日预算和OS进程树保护约束。
-源码/CPU检查通过仍不等于实际GPU准入；当前GPU由健康NativeBN占用，不并发启动这些预检。
+源码/CPU检查通过不等于实际GPU准入。当前已实际测量：WRN300 full50k FP16的中位125.298ms，
+固定guard22,346.17秒；40k/300 BF16中位88.853ms、guard12,814.99秒，两者均超过三小时上限，未启动正式长任务。
+这些负工程结果保留，不能按旧速度、拆分重启、排除proof成本或放宽倍率绕过准入。
+WRN16-5预检通过；另外继续核查预检附加proof的同步/归约开销。静态代码仅支持优化假设，
+未经受控profile、数学/证明强度等价检查与全新实际预检，不能宣称加速或准入300轮。
