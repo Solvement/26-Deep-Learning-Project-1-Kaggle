@@ -17,6 +17,60 @@ import build_report as report
 
 
 class FollowupReportTests(unittest.TestCase):
+    def scored_fixture(self):
+        followup = self.public_fixture()
+        template = followup["rows"][0]
+        followup["rows"] = [dict(template,id="resizemix",label="Synthetic ResizeMix",checkpoint_sha256="1"*64),
+                            dict(template,id="wrn34_300",label="Synthetic WRN300",checkpoint_sha256="2"*64),
+                            dict(template,id="sam",label="Synthetic SAM",checkpoint_sha256="3"*64)]
+        followup["official_submissions"] = [
+            {"run":"candidate","checkpoint_sha256":"1"*64,"policy":"center80_shift20","training_examples":40000,"public_score":.88},
+            {"run":"candidate","checkpoint_sha256":"2"*64,"policy":"center80_shift20","training_examples":40000,"public_score":.9},
+            {"run":"sam_actual_run","checkpoint_sha256":"3"*64,"policy":"center80_shift20","training_examples":40000,"public_score":.8}]
+        return followup
+
+    def test_shared_raw_run_labels_use_unique_checkpoint_policy_scope_without_mutating_snapshot(self):
+        followup = self.scored_fixture()
+        before = report.followup_snapshot(followup)
+        labels = [report.receipt_label(followup, receipt) for receipt in followup["official_submissions"]]
+        self.assertEqual(labels,["Synthetic ResizeMix","Synthetic WRN300","Synthetic SAM"])
+        self.assertEqual(report.followup_snapshot(followup),before)
+        self.assertEqual([r["run"] for r in followup["official_submissions"]],["candidate","candidate","sam_actual_run"])
+
+    def test_unknown_policy_hash_scope_or_ambiguous_row_keeps_actual_run_name(self):
+        followup = self.scored_fixture()
+        receipt = followup["official_submissions"][0]
+        for changes in ({"policy":"flip"},{"checkpoint_sha256":"f"*64},{"checkpoint_sha256":None,"policy":None},
+                        {"training_examples":50000},{"training_examples":True}):
+            self.assertEqual(report.receipt_label(followup,{**receipt,**changes}),"candidate")
+        followup["rows"].append(dict(followup["rows"][0]))
+        self.assertEqual(report.receipt_label(followup,receipt),"candidate")
+
+    def test_outcome_uses_scored_matched_recipe_and_actual_sam_negative_result(self):
+        followup = self.scored_fixture()
+        # A high development accuracy and stale display aggregate cannot pick the winner.
+        followup["rows"][0]["clean_accuracy"] = 1.
+        followup["best_new_public"] = .99
+        text = report.scored_outcome_text(followup)
+        self.assertIn("Synthetic WRN300 at 90.00%",text)
+        self.assertIn("SAM scored 80.00%",text)
+        self.assertIn("did not improve the public best",text)
+        followup["official_submissions"][2]["public_score"] = .95
+        self.assertNotIn("did not improve",report.scored_outcome_text(followup))
+
+    def test_zero_is_a_real_score_but_missing_or_unmatched_sam_creates_no_conclusion(self):
+        followup = self.scored_fixture()
+        followup["official_submissions"] = [dict(followup["official_submissions"][0],public_score=0.)]
+        text = report.scored_outcome_text(followup)
+        self.assertIn("Synthetic ResizeMix at 0.00%",text)
+        self.assertNotIn("SAM scored",text)
+        for score in (None,False,float("nan"),float("inf")):
+            followup["official_submissions"][0]["public_score"] = score
+            self.assertEqual(report.scored_outcome_text(followup),"")
+        followup = self.scored_fixture()
+        followup["official_submissions"][2]["training_examples"] = 50000
+        self.assertNotIn("SAM scored",report.scored_outcome_text(followup))
+
     def test_research_cell_emits_a_real_png_on_the_headless_backend(self):
         evidence = dict(self.primary_fixture(), followup=self.public_fixture())
         with patch.object(nbformat, "write") as write:

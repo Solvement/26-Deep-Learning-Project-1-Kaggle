@@ -188,6 +188,55 @@ def repeat_label(row):
     return label
 
 
+def matched_receipt_row(followup, receipt):
+    """Match a held-out receipt to one audited row, without changing either."""
+    checkpoint, policy = receipt.get("checkpoint_sha256"), receipt.get("policy")
+    if (followup.get("schema") != "research_report_followup_v1" or
+            followup.get("baseline", {}).get("training_examples") != 40000 or
+            type(receipt.get("training_examples")) is not int or receipt["training_examples"] != 40000 or
+            not isinstance(checkpoint, str) or len(checkpoint) != 64 or
+            any(c not in "0123456789abcdef" for c in checkpoint) or not isinstance(policy, str) or not policy):
+        return None
+    # The public projection's benchmark rows have verified 40k training scope.
+    matches = [row for row in followup.get("rows", [])
+               if row.get("checkpoint_sha256") == checkpoint and row.get("policy") == policy and
+               type(row.get("training_examples", 40000)) is int and row.get("training_examples", 40000) == 40000]
+    if len(matches) == 1 and isinstance(matches[0].get("label"), str) and matches[0]["label"].strip():
+        return matches[0]
+    return None
+
+
+def receipt_label(followup, receipt):
+    row = matched_receipt_row(followup, receipt)
+    return row["label"] if row is not None else receipt["run"]
+
+
+def scored_outcome_text(followup):
+    """Describe only actual public receipt scores, including a genuine zero."""
+    def valid_score(value):
+        value = number(value)
+        return value if value is not None and math.isfinite(value) and 0 <= value <= 1 else None
+    scored = [(receipt, valid_score(receipt.get("public_score")))
+              for receipt in followup.get("official_submissions", [])]
+    scored = [(receipt, score) for receipt, score in scored if score is not None]
+    if not scored:
+        return ""
+    highest = max(score for _, score in scored)
+    winners = sorted({row["label"] for receipt, score in scored if score == highest
+                      if (row := matched_receipt_row(followup, receipt)) is not None})
+    statements = []
+    if winners:
+        statements.append(f"Best newly scored research result: {', '.join(winners)} at {accuracy(highest)} public accuracy.")
+    previous = [valid_score(followup.get(key)) for key in ("original_primary_public", "original_best_public")]
+    best = max([score for _, score in scored] + [score for score in previous if score is not None])
+    sam = [score for receipt, score in scored
+           if (row := matched_receipt_row(followup, receipt)) is not None and row.get("id") == "sam"]
+    if sam and max(sam) < best:
+        statements.append(f"SAM scored {accuracy(max(sam))}, below the best observed public score of {accuracy(best)}; "
+                          "it did not improve the public best.")
+    return " ".join(statements)
+
+
 def confirmation_scope(evidence):
     confirmation = evidence.get("confirmation", {})
     run = confirmation.get("run", evidence.get("selection", {}).get("run"))
@@ -800,11 +849,15 @@ def create_pdf(evidence, selected, plots, output_dir):
         receipt_rows = [["Research entry", "Official reference", "Public / private"]]
         for receipt in receipts[:8]:
             private_text = accuracy(receipt['private_score']) if receipt.get('private_score') is not None else "Unavailable"
-            receipt_rows.append([receipt["run"], receipt["submission_ref"],
+            receipt_rows.append([receipt_label(followup, receipt), receipt["submission_ref"],
                                  f"{accuracy(receipt['public_score'])} / {private_text}"])
         if not receipts:
             receipt_rows.append(["No newly scored research submission", "None", "Pending / unavailable"])
         table(receipt_rows, [3.1*inch,1.4*inch,1.9*inch], compact=True)
+        p("Recipe labels use a unique checkpoint/policy/40k-training match; raw run names remain in the snapshot.", "SmallProject")
+        outcome = scored_outcome_text(followup)
+        if outcome:
+            p(escape(outcome), "SmallProject")
         if len(receipts) > 8:
             p(f"The table shows the first 8 of {len(receipts)} scored research receipts in reference order; "
               "the executed notebook and public snapshot retain every scored receipt. The best values use all receipts.", "SmallProject")
@@ -1046,6 +1099,7 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
                 "original best, newly scored research best and best observed across both are distinct. "
                 "Public selection does not establish the private winner."),
             nbformat.v4.new_code_cell(
+                "from build_report import receipt_label, scored_outcome_text\n"
                 "print('Original primary public score:', accuracy(followup['original_primary_public']))\n"
                 "print('Best original public score:', accuracy(followup['original_best_public']))\n"
                 "print('Best newly scored research public score:', accuracy(followup['best_new_public']))\n"
@@ -1053,7 +1107,10 @@ def create_notebook(evidence, selected, plots, output_dir, execute=True):
                 "print('Unscored receipt records:', followup['unscored_receipts_count'])\n"
                 "print('Newly scored research receipts:', len(followup['official_submissions']))\n"
                 "for receipt in followup['official_submissions']:\n"
+                "    print('DISPLAY RECIPE LABEL:', receipt_label(followup, receipt))\n"
                 "    print('OFFICIAL RESEARCH RECEIPT:', json.dumps(receipt, indent=2))\n"
+                "outcome = scored_outcome_text(followup)\n"
+                "if outcome:\n    print(outcome)\n"
                 "if not followup['official_submissions']:\n"
                 "    print('No newly scored research submission in this reporting snapshot.')\n"
                 "print('Missing private scores remain unknown; no original confirmation result is assigned to these entries.')"),
