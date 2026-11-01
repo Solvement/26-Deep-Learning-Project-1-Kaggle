@@ -3,6 +3,8 @@
 Default makes no account calls. Dataset staging and kernel launch each require
 an explicit action, immutable source-bound intent and shared cloud lease.
 Account permissions and execution are established only by real receipts.
+Only this new cloud controller uses kaggle_supervisor.json, outside the frozen
+local supervisor.json budget namespace; remote child proof names are unchanged.
 """
 from __future__ import annotations
 
@@ -79,6 +81,50 @@ def object_refs(run,nonce):
     stem=run.replace('_','-')[:18].rstrip('-')
     return ('kevin1220/saber-augmix-'+stem+'-'+nonce,
             'kevin1220/saber-augmix-base-'+stem+'-'+nonce)
+
+
+def validate_reuse_archive(root,archive):
+    """Only the fresh, fully reconciled archive of our failed v1 is eligible."""
+    from research.kaggle_research_transport import REUSE_REF,REUSE_ID,REUSE_SOURCE_SHA,REUSE_TITLE,canonical_hash
+    root,archive=Path(root).resolve(),Path(archive).resolve()
+    require(archive.is_relative_to(root/'results/research'),"Parent archive must remain private under ignored research results")
+    manifest_path=archive/'complete_reconciled_hash_manifest.json'; manifest=read(manifest_path)
+    require(manifest.get('schema')=='private_parent_version_complete_archive_v1' and manifest.get('readonly') is True and
+        manifest.get('account_mutations')==0 and isinstance(manifest.get('files_sha256'),dict),"Complete readonly parent archive manifest is required")
+    files={}
+    for name,h in manifest['files_sha256'].items():
+        relative=PurePosixPath(name); path=archive/name
+        require(not relative.is_absolute() and '..' not in relative.parts and '\\' not in name and ':' not in name and
+            path.is_file() and not path.is_symlink() and digest(path)==h,"Original parent archive bytes or paths changed")
+        files[str(path.resolve())]=h
+    files[str(manifest_path)]=digest(manifest_path)
+    record=read(archive/'parent_verification_reconciled.json'); assessment=read(archive/'local_complete_archive_assessment.json')
+    require(record.get('schema')=='research_owned_failed_kernel_parent_reconciliation_v1' and record.get('status')=='verified_readonly_reconciled' and
+        record.get('readonly') is True and record.get('account_mutations')==0 and record.get('training_started') is False and
+        record.get('confirmation_evaluated') is False and record.get('hidden_predictions_generated') is False and record.get('pinned_v1_status')=='ERROR',
+        "Only the archived pre-training failed v1 can be reused")
+    require(record.get('preserved_original_probe_report_sha256')==digest(archive/'parent_verification.json') and
+        record.get('preserved_initial_archive_manifest_sha256')==digest(archive/'archive_hash_manifest.json') and
+        record.get('local_assessment_sha256')==digest(archive/'local_complete_archive_assessment.json') and
+        assessment.get('all_original_known_bytes_unchanged') is True and assessment.get('all_extra_source_bytes_explained') is True and
+        assessment.get('old_cache_was_partial') is True,"Partial historical cache reconciliation must remain explicit and preserved")
+    metadata={}
+    for label in ('current','pinned_v1'):
+        value=read(archive/(label+'.metadata.json')); metadata[label]=canonical_hash(value)
+        require(value.get('id')==REUSE_ID and value.get('ref')==REUSE_REF and value.get('currentVersionNumber')==1 and
+            value.get('isPrivate') is True and value.get('enableInternet') is False and value.get('title')==REUSE_TITLE and
+            digest(archive/(label+'.source.py'))==REUSE_SOURCE_SHA,"Archived parent positive identity/source differs")
+    expected={REUSE_REF.split('/')[1]+'.log','repeat-seed2027/launch_manifest.json','repeat-seed2027/repeat_status.json',
+        *('saber/'+n for n in ('train.py','model.py','data.py','runtime.py','prepare_data.py','predict.py','configs/wrn_final.json','configs/repeat_seed2027.json','__pycache__/runtime.cpython-313.pyc'))}
+    outputs=record.get('fresh_complete_v1_output_sha256',{})
+    require(set(outputs)==expected and record.get('fresh_complete_v1_output_count')==12 and
+        all(digest(archive/'fresh_pinned_v1_outputs'/n)==h for n,h in outputs.items()),"The complete fresh v1 output set is not the old partial cache")
+    quota=record.get('raw_gpu_quota',{})
+    require(quota.get('time_reserved')==0 and quota.get('pay_to_scale_enabled') is False,"Parent archive did not prove inactive free quota")
+    return {'schema':'explicit_owned_failed_kernel_reuse_v1','ref':REUSE_REF,'kernel_id':REUSE_ID,'parent_version':1,'expected_next_version':2,
+        'title':REUSE_TITLE,'source_sha256':REUSE_SOURCE_SHA,'current_metadata_sha256':metadata['current'],'pinned_metadata_sha256':metadata['pinned_v1'],
+        'v1_outputs_sha256':outputs,'archive_path':str(archive),'archive_manifest_sha256':digest(manifest_path),'archive_files_sha256':files,
+        'partial_cache_reconciliation_preserved':True,'no_atomic_version_precondition':True}
 
 
 def committed_bundle(root, commit):
@@ -307,7 +353,7 @@ def remote_program(plan, payload, deadline_unix):
     return code
 
 
-def prepare(root, output, run, source_commit="HEAD", max_seconds=MAX_SECONDS):
+def prepare(root, output, run, source_commit="HEAD", max_seconds=MAX_SECONDS,reuse_owned_failed_kernel=None):
     from research.run_colab_augmix import SIGNATURE, CACHE_SHA, CORE, COMPLETE_OUTPUTS, POOL_OUTPUTS
     root, output = Path(root).resolve(), Path(output).resolve()
     require(re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,29}",run) is not None, "Run identifier must be 2..30 safe characters so all platform slugs/titles fit")
@@ -324,16 +370,19 @@ def prepare(root, output, run, source_commit="HEAD", max_seconds=MAX_SECONDS):
         "Previously audited official training metadata differs")
     nonce=uuid.uuid4().hex[:12]
     kernel_id,baseline_id=object_refs(run,nonce)
+    reuse=validate_reuse_archive(root,reuse_owned_failed_kernel) if reuse_owned_failed_kernel is not None else None
+    if reuse: kernel_id=reuse['ref']
     bm={'schema':'research_private_baseline_payload_v1','files_sha256':baseline,'official_images_included':False,'checkpoint_sha256':BASELINE_SHA}
     # New Kaggle controller logs live outside trainer directories; final audit
     # uses the unchanged typed validator and preserves every worker-pool proof.
     trainer_outputs={n for n in COMPLETE_OUTPUTS if n not in ('remote_receipt.json','preflight/preflight.log','baseline/benchmark.log','candidate/training.log','candidate/benchmark.log')}
     required=trainer_outputs|{'remote_receipt.json','hardware.json','prepare.log','preflight.log','baseline.log','training.log','benchmark.log'}
-    plan={'schema':SCHEMA,'run':run,'source_commit':commit,'source_sha256':hashes,'source_bundle_sha256':hashlib.sha256(payload).hexdigest(),
+    plan={'schema':SCHEMA,'run':run,'workspace_root':str(root),'source_commit':commit,'source_sha256':hashes,'source_bundle_sha256':hashlib.sha256(payload).hexdigest(),
         'host_source_sha256':digest(Path(__file__)),'config':config,'raw_config_sha256':RAW_CONFIG_SHA,'data_signature':SIGNATURE,
         'cache_sha256':CACHE_SHA,'training_indices_sha256':training_manifest['split']['train_indices_sha256'],
         'training_source_sha256':{n:h for n,h in hashes.items() if n in CORE or n in ('research/train_augmix.py','research/augmix.py','research/train_shadow.py','research/augmentations.py')},
         'kernel_id':kernel_id,'baseline_dataset_id':baseline_id,'object_nonce':nonce,'dataset_creation_policy':'create_new_only_no_update',
+        'kernel_mode':'reuse_owned_failed_v1' if reuse else 'new_unique','reuse_parent':reuse,
         'baseline_manifest':bm,'max_seconds':max_seconds,'server_session_timeout_seconds':max_seconds,
         'campaign_stop_unix':STOP.timestamp(),'conservative_gpu_reservation_multiplier':GPU_RESERVATION_MULTIPLIER,'train_export':TRAIN_EXPORT,'kernel_private':True,'internet_enabled':False,'confirmation_evaluated':False,
         'hidden_input_attached':False,'required_outputs':sorted(required),'output_allowlist':sorted(required|{'controller.log'}),'guard_output_files':sorted(GUARD_FILES),'launch_blockers':list(BLOCKERS),
@@ -349,9 +398,11 @@ def prepare(root, output, run, source_commit="HEAD", max_seconds=MAX_SECONDS):
     exclusive(private/'dataset-metadata.json',{'id':baseline_id,'title':baseline_id.split('/')[1],'licenses':[{'name':'other'}]})
     (output/'source.private.zip').write_bytes(payload)
     (output/'augmix_entry.py').write_text(code,encoding='utf-8')
-    exclusive(output/'kernel-metadata.json',{'id':kernel_id,'title':kernel_id.split('/')[1],'code_file':'augmix_entry.py','language':'python',
+    kernel_metadata={'id':kernel_id,'title':reuse['title'] if reuse else kernel_id.split('/')[1],'code_file':'augmix_entry.py','language':'python',
         'kernel_type':'script','is_private':True,'enable_gpu':True,'enable_internet':False,'machine_shape':'NvidiaTeslaT4',
-        'competition_sources':[],'kernel_sources':[TRAIN_EXPORT],'dataset_sources':[baseline_id]})
+        'competition_sources':[],'kernel_sources':[TRAIN_EXPORT],'dataset_sources':[baseline_id]}
+    if reuse: kernel_metadata['id_no']=reuse['kernel_id']
+    exclusive(output/'kernel-metadata.json',kernel_metadata)
     exclusive(output/'kaggle_plan.json',plan)
     exclusive(output/'prepared_files.json',{str(p.relative_to(output)).replace('\\','/'):digest(p) for p in output.rglob('*') if p.is_file()})
     return plan
@@ -365,23 +416,33 @@ def validate_prepared(folder):
     def known_output(name):
         relative=name.removeprefix('outputs/')
         return relative in set(preview['output_allowlist']) or re.fullmatch(r'process_tree_[0-9a-f]{32}/(?:spec|ready|watchdog_ready|completion|host_result)\.json',relative) is not None
+    def known_reuse_check(name):
+        pieces=name.split('/',2)
+        if len(pieces)!=3 or pieces[0]!='reuse_checks' or not re.fullmatch(r'(?:prestage|stage|prelaunch|prepush|postpush)_[0-9a-f]{12}',pieces[1]): return False
+        return pieces[2] in {'current.metadata.json','current.source.py','pinned_v1.metadata.json','pinned_v1.source.py','pinned_v1.status.json','quota.json','proof.json'} or (
+            preview.get('reuse_parent') is not None and pieces[2].startswith('outputs/') and pieces[2][8:] in preview['reuse_parent']['v1_outputs_sha256'])
     operational={'baseline_stage_intent.json','baseline_stage_progress.json','baseline_receipt.json','baseline_stage_unknown.json',
-        'baseline_transport_claim.json','kernel_transport_claim.json','launch_intent.json','kernel_push_progress.json','supervisor.json','kernel_launch/augmix_entry.py','kernel_launch/kernel-metadata.json'}
+        'baseline_transport_claim.json','kernel_transport_claim.json','launch_intent.json','kernel_push_progress.json','kaggle_supervisor.json','kernel_launch/augmix_entry.py','kernel_launch/kernel-metadata.json'}
     require(all(n in set(fingerprints)|{'prepared_files.json'}|operational or
         (n.startswith('download/') and Path(n).name in ('augmix_artifacts.private.zip','augmix_output_manifest.json')) or
         n=='download/'+preview['kernel_id'].split('/')[1]+'.log' or
-        (n.startswith('outputs/') and known_output(n)) for n in actual),"Prepared folder members changed")
+        (n.startswith('outputs/') and known_output(n)) or known_reuse_check(n) for n in actual),"Prepared folder members changed")
     p=read(folder/'kaggle_plan.json'); require(p.get('schema')==SCHEMA and p.get('launch_supported') is True and
         p.get('remote_execution_authorized') is False and p.get('hidden_input_attached') is False,"Unverified Kaggle plan schema")
-    require((p['kernel_id'],p['baseline_dataset_id'])==object_refs(p['run'],p.get('object_nonce')) and
-        p.get('dataset_creation_policy')=='create_new_only_no_update',"Fresh owned object identity/create-only policy differs")
+    new_kernel,new_dataset=object_refs(p['run'],p.get('object_nonce'))
+    require(p['baseline_dataset_id']==new_dataset and p.get('dataset_creation_policy')=='create_new_only_no_update',"Fresh private baseline identity/create-only policy differs")
+    if p.get('kernel_mode')=='reuse_owned_failed_v1':
+        require(p.get('reuse_parent')==validate_reuse_archive(Path(p['workspace_root']),p['reuse_parent']['archive_path']) and
+            p['kernel_id']==p['reuse_parent']['ref'],"Explicit failed parent archive changed")
+    else: require(p.get('kernel_mode')=='new_unique' and p.get('reuse_parent') is None and p['kernel_id']==new_kernel,"New kernel identity policy differs")
     require(p.get('host_source_sha256')==digest(Path(__file__)),"Offline preparation/audit source changed")
     require(hashlib.sha256(json.dumps({k:v for k,v in p.items() if k!='input_plan_sha256'},sort_keys=True,separators=(',',':')).encode()).hexdigest()==p['input_plan_sha256'],"Prepared canonical plan identity differs")
     metadata=read(folder/'kernel-metadata.json')
     require(metadata.get('id')==p['kernel_id'] and metadata.get('is_private') is True and metadata.get('enable_internet') is False and
-        metadata.get('title')==p['kernel_id'].split('/')[1] and 6<=len(metadata['title'])<=50 and
+        metadata.get('title')==(p['reuse_parent']['title'] if p.get('reuse_parent') else p['kernel_id'].split('/')[1]) and 6<=len(metadata['title'])<=50 and
         metadata.get('competition_sources')==[] and metadata.get('kernel_sources')==[TRAIN_EXPORT] and
         metadata.get('dataset_sources')==[p['baseline_dataset_id']],"Only private TRAIN export and separate private baseline may be attached")
+    require(metadata.get('id_no')==(p['reuse_parent']['kernel_id'] if p.get('reuse_parent') else None),"Kernel numeric locator differs from explicit reuse mode")
     dataset=read(folder/'baseline_dataset/dataset-metadata.json')
     require(dataset.get('id')==p['baseline_dataset_id'] and dataset.get('title')==p['baseline_dataset_id'].split('/')[1] and
         6<=len(dataset['title'])<=50 and dataset.get('licenses')==[{'name':'other'}],"Private baseline staging metadata changed")
@@ -533,6 +594,8 @@ class Client:
         except ValueError: raise RuntimeError('Official operation outcome unknown; do not retry') from None
         if response.get('error_code')=='visible_identity_ambiguous':
             raise RuntimeError('visible_identity_ambiguous: complete own-kernel identity proof unavailable; no staging/push is permitted')
+        if response.get('error_code')=='reuse_parent_drift':
+            raise RuntimeError('reuse_parent_drift: the explicitly archived parent failed fresh positive verification; do not retry')
         require(result.returncode==0 and response.get('ok') is True,'Official operation failed/unknown; do not retry')
         return response['result']
 
@@ -580,8 +643,10 @@ def bound_intent(root,folder,plan,kind,extra):
     files[str((folder/'prepared_files.json').resolve())]=digest(folder/'prepared_files.json')
     files[str(Path(__file__).resolve())]=digest(__file__)
     transport=root/'research/kaggle_research_transport.py'; files[str(transport.resolve())]=digest(transport)
+    if plan.get('reuse_parent'): files.update(plan['reuse_parent']['archive_files_sha256'])
     intent={'schema':'research_kaggle_durable_intent_v1',**value,'run':plan['run'],'kernel_ref':plan['kernel_id'],'lease_path':str(lease.resolve()),'files_sha256':files,
         'transport_sha256':digest(transport),'prepared_folder':str(folder.resolve()),'plan_sha256':plan['input_plan_sha256'],**extra}
+    if plan.get('reuse_parent'): intent['reuse_parent']=plan['reuse_parent']
     return intent,lease
 
 
@@ -590,14 +655,27 @@ def release_matching(lease,intent):
     Path(lease).unlink()
 
 
+def verify_target(plan,folder,client,phase):
+    if plan.get('reuse_parent'):
+        path=Path(folder)/'reuse_checks'/(phase+'_'+uuid.uuid4().hex[:12])
+        proof=client.call('verify-reuse-parent',{'contract':plan['reuse_parent'],'proof_folder':str(path)})
+        require(proof.get('status')=='verified' and proof.get('kernel_id')==plan['reuse_parent']['kernel_id'] and
+            proof.get('ref')==plan['kernel_id'] and proof.get('latest_version')==1 and proof.get('parent_complete_outputs_unchanged') is True and
+            proof.get('parent_source_unchanged') is True and proof.get('parent_metadata_unchanged') is True,
+            "Fresh positive failed-parent identity/source/output proof is required")
+        return proof
+    identity=client.call('kernel-inventory',{'ref':plan['kernel_id']})
+    require(identity.get('inventory_complete') is True and identity.get('authenticated_owner')=='kevin1220' and identity.get('exists') is False,
+        "A complete positively controlled own-kernel inventory is required")
+    return identity
+
+
 def stage_baseline(root,folder,client=None):
     root,folder=Path(root),Path(folder).resolve(); plan=validate_prepared(folder); intent_path=folder/'baseline_stage_intent.json'
     require(not intent_path.exists(),"Existing or unknown baseline staging intent forbids metadata retry")
     client=client or Client()
     require(not (root/'results/research/cloud_lease.json').exists(),"Shared cloud lease is occupied")
-    identity=client.call('kernel-inventory',{'ref':plan['kernel_id']})
-    require(identity.get('inventory_complete') is True and identity.get('authenticated_owner')=='kevin1220' and identity.get('exists') is False,
-        "A complete positively controlled own-kernel inventory is required before baseline staging")
+    identity=verify_target(plan,folder,client,'prestage')
     # An exact GET may return 403 for an uncreated private slug. Never infer
     # absence from that response. The official create/new endpoint is distinct
     # from version/update; use a fresh source-bound nonce and fail on collision.
@@ -607,7 +685,7 @@ def stage_baseline(root,folder,client=None):
     payload={**plan['baseline_manifest']['files_sha256'],'saber_baseline_manifest.json':digest(folder/'baseline_dataset/saber_baseline_manifest.json')}
     intent,lease=bound_intent(root,folder,plan,'baseline_stage',{'dataset_ref':plan['baseline_dataset_id'],'payload_sha256':payload,
         'creation_policy':'create_new_only_no_update','object_nonce':plan['object_nonce'],
-        'kernel_absence_proof':identity,
+        'kernel_identity_proof':identity,
         'upload_folder':str((folder/'baseline_dataset').resolve()),'progress_path':str((folder/'baseline_stage_progress.json').resolve())})
     exclusive(intent_path,intent); args={'intent_path':str(intent_path),'intent_sha256':digest(intent_path)}
     receipt={'status':'stage_attempt_started','intent_sha256':args['intent_sha256'],'started_at':datetime.now(timezone.utc).isoformat()}
@@ -656,9 +734,7 @@ def launch(folder,root=ROOT,client=None,ledger_path=None,baseline_receipt=None,p
     quota_before_raw=client.last_raw_quota
     # A new handle is never silently updated. Existing versions, even terminal,
     # require another explicit run/plan rather than overwriting the same kernel.
-    existing=client.call('kernel-inventory',{'ref':plan['kernel_id']})
-    require(existing.get('inventory_complete') is True and existing.get('authenticated_owner')=='kevin1220' and existing.get('exists') is False,
-        "Complete authenticated owner inventory must prove the target kernel is absent")
+    existing=verify_target(plan,folder,client,'prelaunch')
     sealed={**plan,'remote_execution_authorized':True}
     launch_folder=folder/'kernel_launch'; require(not launch_folder.exists(),"Sealed launch source is immutable")
     launch_folder.mkdir()
@@ -668,7 +744,7 @@ def launch(folder,root=ROOT,client=None,ledger_path=None,baseline_receipt=None,p
         'baseline_pinned_ref':plan['baseline_dataset_id']+'/1','train_export':train_pinned,'server_timeout_seconds':budget['server_session_timeout_seconds'],
         'absolute_deadline_unix':budget['absolute_deadline_unix'],'reserve_gpu_seconds':budget['reserve_seconds'],'ledger_path':str(ledger_path.resolve())})
     intent['progress_path']=str((folder/'kernel_push_progress.json').resolve())
-    intent['kernel_absence_proof']=existing
+    intent['parent_target_proof' if plan.get('reuse_parent') else 'kernel_absence_proof']=existing
     # Earlier readonly account checks did not own the cloud lease. Another
     # legitimate controller may have finalized its ledger in that interval.
     # Re-read under our exclusive lease before reserving or making an intent.
@@ -689,15 +765,21 @@ def launch(folder,root=ROOT,client=None,ledger_path=None,baseline_receipt=None,p
     receipt={'schema':'research_kaggle_augmix_supervisor_v1','run':plan['run'],'status':'push_attempt_started','intent_sha256':args['intent_sha256'],
         'started_at':current.isoformat(),**budget,'runtime_stop_verified':False,'confirmation_evaluated':False,'submitted':False,
         'stop_or_cancel_requested':False,'backend':'kaggle','kernel_ref':plan['kernel_id']}
+    if plan.get('reuse_parent'):
+        receipt.update(expected_parent_version=1,expected_new_version=2,parent_archive_manifest_sha256=plan['reuse_parent']['archive_manifest_sha256'],
+            no_atomic_version_precondition=True,explicit_existing_failed_container=True)
     receipt['quota_before_raw']=quota_before_raw
-    receipt_path=folder/'supervisor.json'
+    receipt_path=folder/'kaggle_supervisor.json'
     def save():
         temporary=receipt_path.with_suffix('.writing'); temporary.write_text(json.dumps(receipt,indent=2)); temporary.replace(receipt_path)
     save()
     release_ready=False
     try:
         accepted=client.call('push',args)
-        require(accepted.get('ref')==plan['kernel_id'] and accepted.get('version')==1 and accepted.get('private_verified') is True,"Actual accepted private kernel version differs")
+        expected_version=2 if plan.get('reuse_parent') else 1
+        require(accepted.get('ref')==plan['kernel_id'] and accepted.get('version')==expected_version and accepted.get('private_verified') is True and
+            (not plan.get('reuse_parent') or (accepted.get('kernel_id')==plan['reuse_parent']['kernel_id'] and accepted.get('parent_v1_content_unchanged') is True)),
+            "Actual accepted private kernel identity/version or preserved parent differs")
         receipt.update(status='running',accepted=accepted); save(); pinned=accepted['ref']+'/'+str(accepted['version'])
         terminal_at=None
         while time.time()<budget['absolute_deadline_unix']+180:
@@ -747,7 +829,9 @@ def main():
     modes.add_argument('--stage-baseline',action='store_true'); modes.add_argument('--initialize-ledger',action='store_true')
     parser.add_argument('--folder',type=Path); parser.add_argument('--run'); parser.add_argument('--source-commit',default='HEAD'); parser.add_argument('--max-seconds',type=int,default=MAX_SECONDS)
     parser.add_argument('--ledger',type=Path); parser.add_argument('--baseline-receipt',type=Path); parser.add_argument('--initial-audit',type=Path); parser.add_argument('--initial-audit-sha256'); parser.add_argument('--kaggle-python',type=Path)
+    parser.add_argument('--reuse-owned-failed-kernel',type=Path,help='Explicit complete private archive of the one approved failed v1; prepare only')
     args=parser.parse_args()
+    if args.reuse_owned_failed_kernel and not args.prepare: parser.error('--reuse-owned-failed-kernel is selected only during a new immutable --prepare')
     if not any((args.prepare,args.validate,args.launch,args.stage_baseline,args.initialize_ledger)):
         print(json.dumps({'status':'no_action','account_calls':0,'prerequisites':list(BLOCKERS)})); return
     if args.initialize_ledger:
@@ -756,7 +840,7 @@ def main():
     if not args.folder: parser.error('An explicit private --folder is required')
     if args.prepare:
         if not args.run: parser.error('--prepare requires --run')
-        result=prepare(ROOT,args.folder,args.run,args.source_commit,args.max_seconds)
+        result=prepare(ROOT,args.folder,args.run,args.source_commit,args.max_seconds,args.reuse_owned_failed_kernel)
         print(json.dumps({'status':'offline_prepared','run':result['run'],'account_calls':0,'prerequisites':result['launch_blockers']}))
     elif args.validate: print(json.dumps({'status':'offline_validated','run':validate_prepared(args.folder)['run'],'account_calls':0}))
     elif args.stage_baseline: print(json.dumps(stage_baseline(ROOT,args.folder,Client(args.kaggle_python))))
