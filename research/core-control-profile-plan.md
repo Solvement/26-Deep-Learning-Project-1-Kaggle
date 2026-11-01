@@ -17,6 +17,10 @@ schedule, augmentation, MixUp, SGD, EMA, complete gradient/state/optimizer
 finite checks, parameter/EMA probes and every BN-counter proof. Do not optimize,
 remove or move proof work outside timing. There must be23 actual successful
 updates, zero skips,31 BN layers and4,166,298 total/trainable parameters.
+Run the three complete warmup steps before entering the profiler, then capture
+exactly twenty complete steps. Both windows call one unchanged local step body;
+all23 steps retain their whole-step timer and count toward the supervisor's
+reservation. Do not proportionally subtract warmup costs from an aggregate.
 
 The new entry authenticates its own source, manifest, process identity,
 bootstrap arguments, nonce and actual native Job/session membership before
@@ -35,6 +39,11 @@ operator/range aggregates, timed wall aggregates, hardware/package hashes and
 observed positive-duration CUDA-activity counts. Capability is not evidence of
 captured device activity; an empty capture explicitly disables device
 decomposition. CPU inclusive ranges overlap and are not additive GPU costs.
+Operator aggregates and reported wall aggregates both cover only the twenty
+post-warmup steps. Each of the five named CPU ranges must have exactly twenty
+captured calls, independently of whether CUDA activities were captured. This
+prevents cuDNN autotuning and first-step allocation from being attributed to the
+steady-state operator breakdown. Warmup still performs all original proofs.
 Never export traces, tensors, images, labels, IDs, predictions or weights.
 
 Every result states `formal_admission_evidence=False`; there is no training

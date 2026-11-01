@@ -31,9 +31,9 @@ RESULT_SCHEMA = "research_core_control_profile_v1"
 RECIPE = "wrn34_3_300_bf16"
 CORE_SHA = "85d24f743f547ff6914fc8e03cf3388394d3c70b4c7e7ebcf7d282948d16a761"
 PLAN = "research/core-control-profile-plan.md"
-PLAN_SHA = "f1a4be25fd6044a812992d5d91e6a67542617d474cff0acf34bfc6a5e2f69b09"
+PLAN_SHA = "05bcf22ce267d1e867131b8271fe65b526e738eb407bbc28664c9ebfb329dd4c"
 STAGES = ("probe_snapshots", "BN_before", "original_core_step", "state_and_probes", "BN_after")
-INTERPRETATION = "Diagnostic only. Profiler overhead is included. Whole-step timings retain all proofs; inclusive CPU ranges are not additive GPU costs. Operators cover all23 steps; wall aggregates omit three warmups. Missing observed CUDA activity means device decomposition unavailable, never zero GPU work. No training admission, traces, tensors or accuracy results are produced."
+INTERPRETATION = "Diagnostic only. Profiler overhead is included. All23 steps retain whole-step timing and every proof. Three complete warmups run outside capture; operator and wall aggregates cover exactly20 subsequent steps. Inclusive CPU ranges are not additive GPU costs. Missing observed CUDA activity means device decomposition unavailable, never zero GPU work. No training admission, traces, tensors or accuracy results are produced."
 
 
 def source_snapshot():
@@ -149,6 +149,7 @@ def validate_result(result, manifest):
              "parameter_count":4166298, "bn_modules":31, "batch_size":128, "source_examples_seen":2944,
              "unique_source_examples":2944,
              "warmup_updates":3, "timed_updates":20, "successful_updates":23, "skipped_updates":0,
+             "captured_updates":20, "excluded_warmup_updates":3,
              "parameter_changed_steps":23, "ema_changed_steps":23, "finite_proof_steps":23,
              "bn_forward_counts":[23]*31, "ema_buffer_copies":0,
              "source_sha256":manifest["source_sha256"], "config_sha256":manifest["config_sha256"],
@@ -173,6 +174,9 @@ def validate_result(result, manifest):
             c.require(set(row) == {"name","calls","cpu_total_ms","cpu_self_ms","device_total_ms","device_self_ms"} and
                       isinstance(row["name"],str) and len(row["name"]) <= 256 and type(row["calls"]) is int and row["calls"] >= 0 and
                       all(type(row[k]) in (int,float) and math.isfinite(row[k]) and row[k] >= 0 for k in ("cpu_total_ms","cpu_self_ms","device_total_ms","device_self_ms")), "Only scalar operator aggregates may be exported")
+    ranges = result["operators"]["instrumented_ranges"]
+    c.require(len(ranges) == len(STAGES) and {r["name"] for r in ranges} == {"core_profile."+s for s in STAGES} and
+              all(r["calls"] == 20 for r in ranges), "All five actual captured CPU ranges must have exactly20 calls")
     activity = result["cuda_activity"]
     c.require(set(activity) == {"cuda_activity_observed","positive_device_event_count","cuda_decomposition_available"} and
               type(activity["positive_device_event_count"]) is int and activity["positive_device_event_count"] >= 0 and
@@ -213,29 +217,35 @@ def worker(folder, manifest_sha):
     selected = train_ids[order[:23*128].cpu().numpy()]
     c.require(len(np.unique(selected)) == 2944, "2944 unique actual training sources required")
     samples, durations = [], []
+    def run_step(index):
+        # One original body for both windows: proof, RNG and SGD/EMA order stay unchanged.
+        torch.cuda.synchronize()
+        began = time.perf_counter()
+        with stage(samples, index, "probe_snapshots", torch.profiler.record_function):
+            before, before_ema = parameters[0].detach().clone(), averages[0].detach().clone()
+        with stage(samples, index, "BN_before", torch.profiler.record_function):
+            counters = [m.num_batches_tracked.item() for m in bns]
+        with stage(samples, index, "original_core_step", torch.profiler.record_function):
+            row = c.core_step(core, torch, model, ema, optimizer, train_x, train_y, order, index, config, index, "shadow", scaler)
+        with stage(samples, index, "state_and_probes", torch.profiler.record_function):
+            state_values = [*model.state_dict().values(), *ema.state_dict().values(),
+                            *(value for state in optimizer.state.values() for value in state.values() if torch.is_tensor(value))]
+            finite = bool(torch.stack([torch.isfinite(q).all() for q in state_values]).all().item())
+            changed = (parameters[0]-before).abs().max().item()
+            ema_changed = (averages[0]-before_ema).abs().max().item()
+        with stage(samples, index, "BN_after", torch.profiler.record_function):
+            c.require(finite and changed > 0 and ema_changed > 0 and row["updates"] == index+1 and
+                      all(m.num_batches_tracked.item() == old+1 for m, old in zip(bns, counters)), "Original full finite/update/BN proofs required")
+            row.update(parameter_probe_max_delta=changed, ema_probe_max_delta=ema_changed, all_parameters_finite=True, bn_single_forward=True)
+        torch.cuda.synchronize()
+        durations.append(time.perf_counter()-began)
+        return row
+    for index in range(3):
+        row = run_step(index)
     with torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
             record_shapes=False, profile_memory=False, with_stack=False) as profiler:
-        for index in range(23):
-            torch.cuda.synchronize()
-            began = time.perf_counter()
-            with stage(samples, index, "probe_snapshots", torch.profiler.record_function):
-                before, before_ema = parameters[0].detach().clone(), averages[0].detach().clone()
-            with stage(samples, index, "BN_before", torch.profiler.record_function):
-                counters = [m.num_batches_tracked.item() for m in bns]
-            with stage(samples, index, "original_core_step", torch.profiler.record_function):
-                row = c.core_step(core, torch, model, ema, optimizer, train_x, train_y, order, index, config, index, "shadow", scaler)
-            with stage(samples, index, "state_and_probes", torch.profiler.record_function):
-                state_values = [*model.state_dict().values(), *ema.state_dict().values(),
-                                *(value for state in optimizer.state.values() for value in state.values() if torch.is_tensor(value))]
-                finite = bool(torch.stack([torch.isfinite(q).all() for q in state_values]).all().item())
-                changed = (parameters[0]-before).abs().max().item()
-                ema_changed = (averages[0]-before_ema).abs().max().item()
-            with stage(samples, index, "BN_after", torch.profiler.record_function):
-                c.require(finite and changed > 0 and ema_changed > 0 and row["updates"] == index+1 and
-                          all(m.num_batches_tracked.item() == old+1 for m, old in zip(bns, counters)), "Original full finite/update/BN proofs required")
-                row.update(parameter_probe_max_delta=changed, ema_probe_max_delta=ema_changed, all_parameters_finite=True, bn_single_forward=True)
-            torch.cuda.synchronize()
-            durations.append(time.perf_counter()-began)
+        for index in range(3,23):
+            row = run_step(index)
     env = runtime.environment()
     hardware = {k: env[k] for k in ("device","gpu","cuda_runtime","cudnn","packages","amp_dtype","cudnn_benchmark","deterministic_algorithms")}
     result = {"schema": RESULT_SCHEMA, "status":"complete", "diagnostic_only":True,
@@ -245,6 +255,7 @@ def worker(folder, manifest_sha):
         "parameter_count":count_parameters(model), "bn_modules":len(bns), "batch_size":128, "source_examples_seen":23*128,
         "unique_source_examples":len(np.unique(selected)),
         "warmup_updates":3, "timed_updates":20, "successful_updates":row["updates"], "skipped_updates":0,
+        "captured_updates":20, "excluded_warmup_updates":3,
         "parameter_changed_steps":23, "ema_changed_steps":23, "finite_proof_steps":23,
         "bn_forward_counts":[int(m.num_batches_tracked.item()) for m in bns], "ema_buffer_copies":0,
         "source_sha256":manifest["source_sha256"], "config_sha256":manifest["config_sha256"], "input_manifest_sha256":manifest_sha,

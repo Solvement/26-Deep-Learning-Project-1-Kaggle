@@ -65,12 +65,15 @@ class ProfileContracts(unittest.TestCase):
             recipe=profile.RECIPE,seed=2026,precision="bf16",grad_scaler_enabled=False,grad_scaler_scale=1.,
             parameter_count=4166298,bn_modules=31,batch_size=128,source_examples_seen=2944,unique_source_examples=2944,
             warmup_updates=3,timed_updates=20,successful_updates=23,skipped_updates=0,parameter_changed_steps=23,
+            captured_updates=20,excluded_warmup_updates=3,
             ema_changed_steps=23,finite_proof_steps=23,bn_forward_counts=[23]*31,ema_buffer_copies=0,
             source_sha256=manifest["source_sha256"],config_sha256=manifest["config_sha256"],
             input_manifest_sha256=manifest["manifest_sha256"],source_git_commit=manifest["source_git_commit"],data_identity=manifest["data_identity"],
             wall_stages=profile.wall_aggregates(self.samples()),instrumented_whole_step={"calls":20,"median_seconds":.1,"total_seconds":2.},
             operators={k:[] for k in ("top_self_cpu","top_self_device","synchronization_and_copy_operators","instrumented_ranges")},
             cuda_activity=profile.p.cuda_activity_summary([]),interpretation=profile.INTERPRETATION)
+        result["operators"]["instrumented_ranges"]=[dict(name="core_profile."+name,calls=20,cpu_total_ms=1.,
+            cpu_self_ms=.5,device_total_ms=0.,device_self_ms=0.) for name in profile.STAGES]
         env=dict(device="cuda",gpu="Synthetic fixture",cuda_runtime="test",cudnn=1,packages={},amp_dtype="torch.bfloat16",cudnn_benchmark=True,deterministic_algorithms=False)
         result.update(environment=env,environment_sha256=profile.c.json_sha(env))
         return result,manifest
@@ -79,6 +82,7 @@ class ProfileContracts(unittest.TestCase):
         result,manifest=self.result_fixture()
         profile.validate_result(result,manifest)
         for key,value in (("formal_admission_evidence",True),("successful_updates",22),("finite_proof_steps",22),
+                          ("captured_updates",23),("excluded_warmup_updates",0),
                           ("batch_size",384),("grad_scaler_scale",256.),("precision","fp16"),("predictions",[]),("trace",{})):
             with self.assertRaises(ValueError): profile.validate_result({**result,key:value},manifest)
         altered=copy.deepcopy(result)
@@ -88,6 +92,48 @@ class ProfileContracts(unittest.TestCase):
         altered["operators"]["top_self_cpu"]=[{"tensor":[1,2]}]
         with self.assertRaises(ValueError): profile.validate_result(altered,manifest)
 
+    def test_capture_ranges_require_twenty_real_calls_even_when_cuda_capture_is_empty(self):
+        result,manifest=self.result_fixture()
+        self.assertFalse(result["cuda_activity"]["cuda_decomposition_available"])
+        profile.validate_result(result,manifest)
+        for count in (0,19,23):
+            altered=copy.deepcopy(result)
+            next(r for r in altered["operators"]["instrumented_ranges"] if r["name"]=="core_profile.original_core_step")["calls"]=count
+            with self.assertRaises(ValueError): profile.validate_result(altered,manifest)
+        altered=copy.deepcopy(result)
+        altered["operators"]["instrumented_ranges"].pop()
+        with self.assertRaises(ValueError): profile.validate_result(altered,manifest)
+
+    def test_actual_worker_control_flow_runs_three_complete_warmups_before_twenty_captured_steps(self):
+        tree=ast.parse(Path(profile.__file__).read_text())
+        worker=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=="worker")
+        step=next(n for n in worker.body if isinstance(n,ast.FunctionDef) and n.name=="run_step")
+        # Execute the real window-control AST with fake callbacks, not GPU math.
+        offset=worker.body.index(step)
+        windows=worker.body[offset+1:offset+3]
+        self.assertIsInstance(windows[0],ast.For)
+        self.assertIsInstance(windows[1],ast.With)
+        active=False; calls=[]
+        class Capture:
+            def __enter__(self):
+                nonlocal active
+                active=True
+            def __exit__(self,*args):
+                nonlocal active
+                active=False
+        fake=SimpleNamespace(profiler=SimpleNamespace(profile=lambda **kwargs:Capture(),ProfilerActivity=SimpleNamespace(CPU="cpu",CUDA="cuda")))
+        def run_step(index):
+            calls.append((index,active))
+            return {"updates":index+1}
+        namespace={"torch":fake,"run_step":run_step}
+        exec(compile(ast.Module(body=windows,type_ignores=[]),"actual_profile_windows","exec"),namespace)
+        self.assertEqual(calls,[(i,i>=3) for i in range(23)])
+        self.assertEqual(namespace["row"]["updates"],23)
+        self.assertFalse(active)
+        # Both windows call one body retaining all five proofs and the original timer.
+        stages=[n.args[2].value for n in ast.walk(step) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=="stage"]
+        self.assertEqual(stages,list(profile.STAGES))
+        self.assertEqual(sum(isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=="synchronize" for n in ast.walk(step)),2)
     def test_worker_invokes_original_core_step_without_replacing_learning_primitives(self):
         tree=ast.parse(Path(profile.__file__).read_text())
         worker=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=="worker")
