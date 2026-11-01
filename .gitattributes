@@ -46,3 +46,6 @@ research/wrn300_refit_delivery.py text eol=lf
 research/submit_wrn300_refit.py text eol=lf
 tests/test_wrn300_refit.py text eol=lf
 tests/test_wrn300_refit_delivery.py text eol=lf
+research/wrn16-5-plan.md text eol=lf
+research/configs/wrn16_5.json text eol=lf
+research/configs/wrn16_5_seed2027.json text eol=lf
