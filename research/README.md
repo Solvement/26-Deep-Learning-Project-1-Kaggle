@@ -14,6 +14,14 @@ WRN16-5完整weighted结果为clean96.10%/stress79.264%，虽过旧基线门槛�
 后续只允许独立来源的有证据修复，不放宽计数断言、预算或原训练proof。
 具体健康任务/lease与最新结果以私有durable state和实际supervisor为准。
 
+独立v2修复随后实际通过：CPU与CUDA有同名的五个区间，各20calls；明确按CPU身份审计后，
+23次真实SGD/EMA和全部finite/probe/31BN证明完整，监督94.86秒且进程树回收。
+20步记录13,560次isfinite和77,828次kernel launch，支持下一步测试外围proof批量化；
+插桩耗时不是实际训练速度或准入，不将CUDA annotation跨度与子内核时间相加。
+见[完整范围的聚合证据](../docs/core-control-profile-v2-results.json)。
+新[finite/BN proof helper](batched-finite-proof-plan.md)的16项CPU等价测试通过，
+仍未接正式训练或证明CUDA速度；后续必须新独立、无插桩、含全部proof的真实图像预检。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。
