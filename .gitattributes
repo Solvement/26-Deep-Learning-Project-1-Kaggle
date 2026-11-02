@@ -96,3 +96,7 @@ research/trivialaugment-training-plan.md text eol=lf
 research/configs/wrn34_3_trivialaugment.json text eol=lf
 research/configs/wrn34_3_trivialaugment_seed2027.json text eol=lf
 tests/test_trivialaugment_training.py text eol=lf
+research/run_trivialaugment_primary.py text eol=lf
+research/trivialaugment-primary-plan.md text eol=lf
+tests/test_trivialaugment_primary.py text eol=lf
+research/scratch-distillation-followup.md text eol=lf
