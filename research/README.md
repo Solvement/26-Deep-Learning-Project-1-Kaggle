@@ -36,6 +36,16 @@ WRN16-5完整weighted结果为clean96.10%/stress79.264%，虽过旧基线门槛�
 见[当前准入与启动范围](../docs/se-resumed-native-preflight-results.json)；尚无本候选完整准确率、独立repeat或提交，
 通用WRN incumbent builder不支持SE，未来若合格仍需独立typed配对/复测/交付路径，不能改名绕过。
 
+SE主2026已于11月2日19:56:01UTC完整结束，监督4,048.48秒；160轮、50,080成功更新、
+100,160次SAM passes、0跳步，原规则选中epoch151在线model。完整5,000 dev weighted为
+clean **96.80%**、NLL **0.1093275**、五种synthetic stress均值 **80.536%**，原baseline/SAM双门通过。
+但相对冻结best300同policy，noise下降 **2.98pp**，超过训练前prospective plan逐case下降不超过1pp的限制；
+因此停止该候选，不配对、seed重复、预测或提交，不修改旧双门或新门槛。完整结果与范围见
+[se-sam-completed-results.json](../docs/se-sam-completed-results.json)。
+预检23步的逐门梯度/变化证明不冒称正式50,080步均逐门记录；正式typed benchmark执行tensor/SGD/RNG审核，
+独立结束审计仅核JSON/算术/实际SHA。所有进程已停，lease已回收；实际Kaggle最佳仍0.878。
+后续研究准备更轻的WRN22-4/300 ResizeMix nativeBF16及独立单视图TA实现，均无新准确率或准入结论。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。
