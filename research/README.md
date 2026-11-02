@@ -55,6 +55,23 @@ WRN22-4/300 ResizeMix随后完成真实official40k图像预检：23成功/0跳�
 旧160T4FP16与本新300BF16另有precision/platform差别，不把任何未来变化只归因轮数。
 新primary回执不自动成为旧delivery合法输入，pair/freeze/新27及显式typed交付仍未完成。
 
+该ResizeMix300主实验现已完整结束：300轮、93,900成功更新/0跳步、1,200万训练来源，
+监督5,177.77秒，原规则选中epoch295在线model。固定weighted clean96.92%/NLL0.1084637/
+stress78.812%；原baseline门通过，但相对冻结best300，stress下降0.904pp、noise下降13.80pp，
+同时未过同policy均值门和每stress不退超过1pp门。因此停止，不配对/复测/预测/提交，
+不把更高clean当作隐藏分提升，原160轮ResizeMix的0.875保持独立。
+完整聚合结果与来源范围见[resizemix300-completed-results.json](../docs/resizemix300-completed-results.json)。
+
+TrivialAugment独立入口随后完成真实official40k完整流水线预检：23更新/0跳步、
+2,944来源/单视图/14op完整计数、480state/31BN及98项原梯度检查全部在计时内，
+PIL/CPU gather/GPU索引传回CPU/H2D未移出timer。中位118.561ms、固定guard9,206.33秒
+低于三小时，监督12.34秒，OSJob/进程树/lease清理验证后，于11月2日22:09:20UTC
+启动WRN34-3/160主2026正式scratch训练，4,166,298参数/nativeBF16。
+见[真实预检和启动范围](../docs/trivialaugment-native-preflight-results.json)；这仍不是准确率结论。
+TA保留父Mixup/Cutout，只在原始RGB图片前新增fixed_standard单视图增强。
+正式完成后才以完整5000 dev、固定weighted原门及同policy incumbent/每stress门判断；
+任何通过仍需独立typed配对/冻结/新27/交付链，不能使用旧未知TA的uploader绕过。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。
