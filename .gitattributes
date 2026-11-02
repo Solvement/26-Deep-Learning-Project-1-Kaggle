@@ -77,3 +77,5 @@ tests/test_paired_incumbent.py text eol=lf
 research/preflight_batched_core_control.py text eol=lf
 research/batched-core-control-plan.md text eol=lf
 tests/test_preflight_batched_core_control.py text eol=lf
+docs/batched-core-control-preflight-results.json text eol=lf
+docs/se-resumed-native-preflight-results.json text eol=lf

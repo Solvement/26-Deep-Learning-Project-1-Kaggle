@@ -22,6 +22,20 @@ WRN16-5完整weighted结果为clean96.10%/stress79.264%，虽过旧基线门槛�
 新[finite/BN proof helper](batched-finite-proof-plan.md)的16项CPU等价测试通过，
 仍未接正式训练或证明CUDA速度；后续必须新独立、无插桩、含全部proof的真实图像预检。
 
+新的无插桩预检已实际完成：23更新/0跳步、480份完整state、31BN和所有原proof通过，
+中位117.034ms，固定guard **16,784.22秒 > 10,800秒**，监督10.87秒且清理核实。
+因此本轮外围proof批量化没有获得300轮正式准入，不启动该长训练，也不从跨时间旧测量声称加速。
+负结果见[batched-core-control-preflight-results.json](../docs/batched-core-control-preflight-results.json)。
+保留原guard及所有失败证据，下一步转向预算可容纳的受控准确率实验。
+
+11月2日18:48:32UTC已启动SE-WRN22-4/r16+SAM主2026正式160轮训练。
+此前按其冻结原协议重新完成native BF16**合成工程预检**：23更新/46遍、9门梯度与实际变化及第二遍BN通过，
+中位82.155ms，固定guard6,471.46秒低于三小时，17份来源和当日预算核验后fresh scratch。
+这是该独立SE协议原先允许的合成预检，不是official-image时长或准确率证明；不改变WRN300拒绝结论。
+正式训练使用官方40k/5k，完成后自动跑完整v3及原baseline/SAM两个参照的固定weighted门槛。
+见[当前准入与启动范围](../docs/se-resumed-native-preflight-results.json)；尚无本候选完整准确率、独立repeat或提交，
+通用WRN incumbent builder不支持SE，未来若合格仍需独立typed配对/复测/交付路径，不能改名绕过。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。
