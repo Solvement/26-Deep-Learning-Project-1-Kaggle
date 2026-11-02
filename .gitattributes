@@ -66,3 +66,6 @@ docs/research-reassessment-20261102.json text eol=lf
 research/profile_core_control_v2.py text eol=lf
 research/core-control-profile-v2-plan.md text eol=lf
 tests/test_profile_core_control_v2.py text eol=lf
+research/batched_finite_proof.py text eol=lf
+research/batched-finite-proof-plan.md text eol=lf
+tests/test_batched_finite_proof.py text eol=lf
