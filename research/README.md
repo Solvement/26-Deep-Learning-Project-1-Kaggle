@@ -72,6 +72,16 @@ TA保留父Mixup/Cutout，只在原始RGB图片前新增fixed_standard单视图�
 正式完成后才以完整5000 dev、固定weighted原门及同policy incumbent/每stress门判断；
 任何通过仍需独立typed配对/冻结/新27/交付链，不能使用旧未知TA的uploader绕过。
 
+TA主2026已完整结束：160轮、50,080成功更新/0跳步、640万来源与单视图，
+监督4,564.40秒，原规则选中epoch159 EMA。完整固定weighted clean96.70%/
+NLL0.1120498/stress91.168%；相对同policy best300，clean+0.16pp、stress+11.452pp，
+noise+7.40pp，最小逐case差为brightness-0.02pp，原门与所有新增point/case门均通过。
+见[trivialaugment-completed-results.json](../docs/trivialaugment-completed-results.json)。
+这是复用dev的初步结果，尚无配对区间、冻结/独立27或隐藏预测/新Kaggle评分；
+现仅推进独立typed配对、冻结、fresh27与交付支持，不把stress等同隐藏分或宣称显著提分。
+独立结束审计的1,127项JSON/来源/哈希检查不含tensor重载或PCG64重放，
+实际tensor/SGD/RNG审计由已执行的typed benchmark完成。原主研究与confirmation保持冻结。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。

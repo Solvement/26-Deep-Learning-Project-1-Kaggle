@@ -1,0 +1,267 @@
+{
+  "schema": "research_trivialaugment_completed_public_results_v1",
+  "recorded_at": "2026-11-02T23:41:40.006074+00:00",
+  "status": "primary_scalar_screen_passed_pending_pair_and_repeat",
+  "run": "wrn34_trivialaugment_bf16_s2026",
+  "role": "exploratory_primary",
+  "team": "Saber",
+  "training_source_commit": "975c53c151d4369ea316d4c2057d2d3bc20ca9dc",
+  "benchmark_source_commit": "23f09bd1c4a6824452736bd5c3a7eb4bb2ec18b3",
+  "raw_evidence_sha256": {
+    "supervisor": "c68aa1aefa366d1088ba5bff7216de17b85a8ff3767f583a834ca98b44fbe4b7",
+    "inputs": "3ab09cf6e58a899d88922f2b230b437a0659714352844e200ca3f21dab8c5cd7",
+    "primary_result": "98c40dae54689db3b5f502c0ded0645d83b6f4d2c63d7d3f16f3f1dc46d061bd",
+    "benchmark": "47cfe0ebedbd3f01be162648e8362c71df7607dd5389929d67da14342e79b205",
+    "incumbent_comparison": "099bfcf4aba6bcdec8ce06c9f68c31f171c752e23482a38721e8ad79d1fcc06e",
+    "metrics": "9f465c4bf48fc838312d2cf13fd6cec0e2a67a6205d8b2a885d6cc6ce959992d",
+    "history": "8069bca223e5cc2c4a8787e096606eef6bb226123602d6c096c6b501ffb53109",
+    "provenance": "8922ea8a782cfdc101f862b3eff631e592652c0d2163509e480f295c2aba2ecc",
+    "environment": "b80c2d3fec9cbc49314c07bfbf6ed803ff72428035ce4db20e022f535e382c36",
+    "config": "3307b8940b336bf6cfcfc3a1010ac889250997e29e453b9ccd786a559905023b",
+    "input_config": "8447aaf8356f692d317e5a13d37ab2faf76f5c6f20700055e263d277ad58f764"
+  },
+  "independent_stdlib_audit_sha256": "aed709131cdeb4df4bdecbcce72dcd580472f1ac438294d9ba97e410838bc7fb",
+  "raw_input_config_sha256": "8447aaf8356f692d317e5a13d37ab2faf76f5c6f20700055e263d277ad58f764",
+  "planned_seed2027_raw_config_sha256": "9686ddea85d0f56ba1f58ff8668056c146a78b675f12f0624799f2fd0b2f4981",
+  "effective_config_sha256": "29c9c7baa3056689f1eebd791ac21b3322ae245bb05f8b7dc2960dd8d8eca3ee",
+  "selected_checkpoint": {
+    "recorded_sha256": "dcfe213533481aa6c90d2fdd9ac853dc291c124098c9fe0ab8866337ab3f0fba",
+    "epoch": 159,
+    "weight_variant": "ema",
+    "selection_rule": "Original best completed development accuracy with NLL tie-break, over original online/EMA epoch choice."
+  },
+  "source_sha256": {
+    "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+    "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+    "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+    "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4",
+    "research/train_shadow.py": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061",
+    "research/augmentations.py": "718530d2c56c556eb65508915126e0f5f0964a9c03d4937df74d3e3798551873",
+    "research/train_trivialaugment.py": "0d4e1458b8a0bc8c30805371f43dfff42a690398d07cfca405e07bfe8e5e0f0c",
+    "research/benchmark_trivialaugment.py": "0aed38f1d6957b22cf4d59294ee34dc85109b8da58ca091d7dadee25d22e548d",
+    "research/trivialaugment.py": "1f81246a4e6f045d5f4beb2198b6d2db9ca3a32662f02829a350062f72d20806",
+    "research/incumbent-promotion-plan.md": "10e59e56f8c2a3c1f9ae0ad2681c3db5b3129ffd2d33c6f4d3087710e2860ec7",
+    "research/trivialaugment-primary-plan.md": "72e2f204509b952d8c0cf4b498ddd61fa3e719980b83eac9d3959635fdec7fd7",
+    "research/run_trivialaugment_primary.py": "2463387debe4bbb9850e0e605c335d4df0a3b87279b8b1d08e993bc07bb10f43"
+  },
+  "config": {
+    "depth": 34,
+    "widen_factor": 3,
+    "dropout": 0.0,
+    "num_classes": 10,
+    "epochs": 160,
+    "batch_size": 128,
+    "lr": 0.1,
+    "min_lr": 0.0001,
+    "warmup_epochs": 5,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "label_smoothing": 0.0,
+    "cutout": 16,
+    "mixup_alpha": 0.2,
+    "mixup_probability": 0.5,
+    "ema_decay": 0.995,
+    "seed": 2026,
+    "split_seed": 2026,
+    "train_all": false,
+    "final_variant": "ema",
+    "fixed_flip_tta": false,
+    "ta_space": "fixed_standard",
+    "ta_strengths": 31
+  },
+  "parameter_count": 4166298,
+  "training": {
+    "official_training_examples": 40000,
+    "development_examples": 5000,
+    "epochs_completed": 160,
+    "updates_per_epoch": 313,
+    "successful_updates": 50080,
+    "skipped_updates": 0,
+    "forward_passes": 50080,
+    "source_examples_seen": 6400000,
+    "model_views_seen": 6400000,
+    "views_per_source": 1,
+    "ta_operation_counts": {
+      "identity": 457643,
+      "autocontrast": 457356,
+      "equalize": 457011,
+      "rotate": 457444,
+      "solarize": 457578,
+      "color": 457922,
+      "posterize": 457778,
+      "contrast": 455980,
+      "brightness": 456680,
+      "sharpness": 457088,
+      "shear_x": 457396,
+      "shear_y": 457255,
+      "translate_x": 456738,
+      "translate_y": 456131
+    },
+    "ta_rng_algorithm": "PCG64",
+    "ta_rng_seed": 2026,
+    "final_rng_state_sha256": "ac6b272a7fd1eb7ca2a4434b62e38f37fbe21ff4cdd1b949b070bb8ead64ad13",
+    "precision": "bf16",
+    "native_bf16": true,
+    "master_parameter_dtype": "torch.float32",
+    "ema_parameter_dtype": "torch.float32",
+    "grad_scaler_enabled": false,
+    "method": "One fixed_standard TrivialAugment operation per raw RGB image,31 strengths,then original crop/flip/normalize/Cutout and Mixup."
+  },
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+    "torch": "2.12.0+cu130",
+    "torchvision": "0.27.0+cu130",
+    "cuda_runtime": "13.0",
+    "cudnn": 92000,
+    "numpy": "2.3.4",
+    "Pillow": "12.0.0",
+    "evaluation_amp_dtype": "torch.bfloat16"
+  },
+  "timing": {
+    "started_at": "2026-11-02T22:09:20.407916+00:00",
+    "finished_at": "2026-11-02T23:25:24.796130+00:00",
+    "supervisor_elapsed_seconds": 4564.4007337,
+    "training_elapsed_seconds": 4518.220146399999,
+    "benchmark_elapsed_seconds": 35.60981730000276,
+    "reserved_seconds": 10800,
+    "supervisor_reported_process_tree_cleanup_verified": true
+  },
+  "benchmark": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "development_images_disjoint_from_training": 5000,
+    "development_reused_for_selection": true,
+    "training_examples": 40000,
+    "batch_size": 128,
+    "bn_recalibrated": false,
+    "policies": [
+      "plain",
+      "flip",
+      "center80_shift20"
+    ],
+    "cases": [
+      "clean",
+      "noise_004",
+      "boxblur3",
+      "contrast065",
+      "brightness080",
+      "resize24"
+    ],
+    "completed_policy_case_pairs": 18,
+    "examples_per_policy_case": 5000,
+    "pixel_fingerprints_match_incumbent_all18": true,
+    "native_context_matches_incumbent": true,
+    "fixed_primary_policy": "center80_shift20",
+    "weighted_clean_accuracy": 0.967,
+    "weighted_clean_nll": 0.11204981346130372,
+    "weighted_mean_stress_accuracy": 0.9116799999999999,
+    "weighted_cases": {
+      "clean": {
+        "examples": 5000,
+        "accuracy": 0.967,
+        "nll": 0.11204981346130372
+      },
+      "noise_004": {
+        "examples": 5000,
+        "accuracy": 0.8508,
+        "nll": 0.4866578017234802
+      },
+      "boxblur3": {
+        "examples": 5000,
+        "accuracy": 0.8608,
+        "nll": 0.4301640810608864
+      },
+      "contrast065": {
+        "examples": 5000,
+        "accuracy": 0.9638,
+        "nll": 0.11672310000360012
+      },
+      "brightness080": {
+        "examples": 5000,
+        "accuracy": 0.9646,
+        "nll": 0.11536228461265564
+      },
+      "resize24": {
+        "examples": 5000,
+        "accuracy": 0.9184,
+        "nll": 0.2624847999036312
+      }
+    }
+  },
+  "original_baseline_screen": {
+    "candidate_policy": "center80_shift20",
+    "baseline_policy": "flip",
+    "passed": true,
+    "clean_accuracy_delta": 0.0041999999999999815,
+    "mean_stress_accuracy_delta": 0.13539999999999985
+  },
+  "incumbent_screen": {
+    "policy": "center80_shift20",
+    "incumbent_checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+    "incumbent_benchmark_sha256": "e3c586afc302d1422c80eb3831562f6b67f684d53c7b2b5390c9d4623001570b",
+    "incumbent_clean_accuracy": 0.9654,
+    "incumbent_clean_nll": 0.11753104768097401,
+    "incumbent_mean_stress_accuracy": 0.7971600000000001,
+    "clean_accuracy_delta": 0.0016,
+    "clean_delta_percentage_points": 0.16,
+    "mean_stress_accuracy_delta": 0.11452,
+    "mean_stress_delta_percentage_points": 11.452,
+    "clean_nll_delta": -0.005481234219670297,
+    "mean_gate_passed": true,
+    "individual_stress_floor": -0.01,
+    "individual_stress_gate_passed": true,
+    "individual_stress_floor_violations": [],
+    "correct_count_deltas": {
+      "clean": 8,
+      "noise_004": 370,
+      "boxblur3": 2107,
+      "contrast065": 22,
+      "brightness080": -1,
+      "resize24": 365
+    },
+    "stress_correct_count_delta": 2863,
+    "case_accuracy_deltas": {
+      "noise_004": 0.074,
+      "boxblur3": 0.4214,
+      "contrast065": 0.0044,
+      "brightness080": -0.0002,
+      "resize24": 0.073
+    },
+    "brightness_regression_percentage_points": -0.02,
+    "noise_gain_percentage_points": 7.4,
+    "passed": true
+  },
+  "decision": {
+    "outcome": "scalar_screen_passed_only",
+    "paired": false,
+    "independent_repeat": false,
+    "qualified_for_submission": false,
+    "hidden_prediction": false,
+    "kaggle_submission": false,
+    "submission_authorized": false,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded": false,
+    "external_data_loaded": false,
+    "next_required": [
+      "Actual original-ID paired comparison with10000 clustered bootstrap resamples",
+      "Freeze exact primary/policy/source and planned27 configuration",
+      "Fresh scratch seed2027 same-protocol full benchmark and gates",
+      "Explicit typed TA delivery and strict submission validation"
+    ]
+  },
+  "official_scores": {
+    "this_run_public_score": null,
+    "this_run_private_score": null,
+    "best_observed_public_score": 0.878,
+    "best_observed_public_submission_ref": 57854294,
+    "private_scores_unreleased": true
+  },
+  "audit_scope": {
+    "independent_audit": "Stdlib JSON/source/file-hash/recorded-process consistency only",
+    "independent_tensor_reload_performed": false,
+    "independent_PCG64_replay_performed": false,
+    "executed_typed_benchmark_loaded_tensors_and_audited_saved_state": true,
+    "bootstrap_performed": false,
+    "interpretation": "Exploratory reused-development scalar screening. Synthetic stresses are engineering proxies,not CIFAR-C,hidden scores,an independent confirmation or a hidden-distribution diagnosis. No Kaggle improvement has yet been established."
+  }
+}
