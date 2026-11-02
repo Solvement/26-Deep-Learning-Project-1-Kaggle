@@ -1,5 +1,19 @@
 # 五天探索研究：先 benchmark，再晋级
 
+11月2日用户明确恢复自动研究。新增教授 `data.zip` 已与官方输入逐字节/逐像素核对，
+没有新增训练样本，原始包保持私有。复盘与聚合证据见
+[research-reassessment-20261102.json](../docs/research-reassessment-20261102.json)。
+WRN16-5完整weighted结果为clean96.10%/stress79.264%，虽过旧基线门槛，
+但相对当前最佳WRN34-3/300的同policy clean低0.44pp、stress低0.452pp，不优先复测或提交。
+新[incumbent comparison](incumbent-comparison-plan.md)只作完整native-v3同policy聚合对照，
+保留原gate，不生成配对区间或提交资格。scratch蒸馏另有
+[预登记草案](scratch-distillation-plan.md)，尚无训练结果或现成交付入口。
+
+单次core proof-cost profiler已实际运行，但五个CPU计时区间的完整性验证失败；
+135.71秒后进程树回收，原失败来源/回执保留，没有可用性能结论或训练准入。
+后续只允许独立来源的有证据修复，不放宽计数断言、预算或原训练proof。
+具体健康任务/lease与最新结果以私有durable state和实际supervisor为准。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。

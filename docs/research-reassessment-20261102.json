@@ -1,0 +1,83 @@
+{
+  "schema": "research_reassessment_scalar_v1",
+  "recorded_on": "2026-11-02",
+  "issue": 7,
+  "new_professor_archive": {
+    "filename": "data.zip",
+    "bytes": 125358316,
+    "sha256": "397e06e5752bfe0576d1258765bbe1d020cca02db2fc21442cbab6d50257ca51",
+    "training_images": 50000,
+    "unlabeled_evaluation_images": 2000,
+    "csv_files": 3,
+    "csv_bytes_match_official": true,
+    "all_png_content_hashes_match_official": true,
+    "decoded_pixel_mismatches": 0,
+    "additional_training_images": 0,
+    "hidden_labels_loaded": false,
+    "archive_and_raw_inputs_published": false
+  },
+  "requirements_review": {
+    "all_pdf_pages_read_and_rendered": 3,
+    "live_official_pages_refetched": 5,
+    "live_pages_equal_prior_cache": true,
+    "staff_permitted_training_data_allowed": true,
+    "scratch_teacher_student_distillation_allowed": true,
+    "external_data_and_pretrained_weights_prohibited": true,
+    "teacher_over_5m_permission_established": false,
+    "hidden_dataset_specific_origin_established": false
+  },
+  "official_feedback": {
+    "original_best_public": 0.874,
+    "current_best_public": 0.878,
+    "current_best_reference": 57854294,
+    "public_rows": 1000,
+    "net_additional_correct_public_predictions": 4,
+    "statistically_significant_improvement_established": false,
+    "private_score_released": false
+  },
+  "wrn16_completed": {
+    "training_examples": 40000,
+    "development_examples": 5000,
+    "parameter_count": 4289754,
+    "policy": "center80_shift20",
+    "clean_accuracy": 0.961,
+    "clean_nll": 0.12432746449932457,
+    "mean_synthetic_stress_accuracy": 0.79264,
+    "old_baseline_gate_passed": true,
+    "incumbent_same_policy_clean_delta": -0.0044,
+    "incumbent_same_policy_mean_stress_delta": -0.00452,
+    "incumbent_same_policy_noise_delta": -0.0708,
+    "paired_comparison_performed": false,
+    "repeat_performed": false,
+    "hidden_predictions_produced": false,
+    "submitted": false,
+    "decision": "Do not prioritize further spend: the old-baseline gate is not proof of an incumbent breakthrough."
+  },
+  "prospective_comparison": {
+    "same_policy_incumbent": "WRN34-3/300 primary2026",
+    "same_policy": "center80_shift20",
+    "reference_checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+    "reference_benchmark_sha256": "e3c586afc302d1422c80eb3831562f6b67f684d53c7b2b5390c9d4623001570b",
+    "reference_clean_accuracy": 0.9654,
+    "reference_clean_nll": 0.11753104768097401,
+    "reference_mean_synthetic_stress_accuracy": 0.79716,
+    "old_gates_and_frozen_results_modified": false,
+    "scalar_comparison_creates_qualification": false
+  },
+  "core_profile_attempt": {
+    "date_utc": "2026-11-02",
+    "status": "failed_validation",
+    "elapsed_seconds": 135.70829109999977,
+    "failure": "Captured instrumented ranges did not satisfy five CPU ranges with exactly20 calls each.",
+    "root_cause_established": false,
+    "complete_profile_result_available": false,
+    "process_tree_cleanup_verified": true,
+    "formal_admission_evidence": false
+  },
+  "next_research_priorities": [
+    "Best300 full50k only after valid unchanged-budget admission",
+    "WRN34-3/300 ResizeMix controlled combination",
+    "Scratch primary teacher to fresh <=5M residual student, with matched hard-label control"
+  ],
+  "no_credentials_weights_predictions_or_raw_images": true
+}
