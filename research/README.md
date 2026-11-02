@@ -46,6 +46,15 @@ clean **96.80%**、NLL **0.1093275**、五种synthetic stress均值 **80.536%**�
 独立结束审计仅核JSON/算术/实际SHA。所有进程已停，lease已回收；实际Kaggle最佳仍0.878。
 后续研究准备更轻的WRN22-4/300 ResizeMix nativeBF16及独立单视图TA实现，均无新准确率或准入结论。
 
+WRN22-4/300 ResizeMix随后完成真实official40k图像预检：23成功/0跳步、6次实际mix、
+62项原梯度检查及300完整state/19BN/geometry/SGD/EMA证明全部计时，中位69.325ms，
+固定guard10,064.40秒低于10,800秒；监督10.14秒，旧进程/lease清理核实后，
+于11月2日20:28:57UTC启动全新scratch主2026正式300轮，4,298,970参数/nativeBF16。
+见[预检和启动范围](../docs/resizemix300-native-preflight-results.json)。这不是准确率结果；
+完成后仍需完整5000 dev、固定weighted原门与同policy incumbent/每stress门，失败则停。
+旧160T4FP16与本新300BF16另有precision/platform差别，不把任何未来变化只归因轮数。
+新primary回执不自动成为旧delivery合法输入，pair/freeze/新27及显式typed交付仍未完成。
+
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，
 旧回执及环境记录已保留，该次中断按预留上限保守计入本地预算。

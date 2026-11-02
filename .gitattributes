@@ -89,3 +89,4 @@ research/trivialaugment.py text eol=lf
 research/trivialaugment-implementation-plan.md text eol=lf
 research/licenses/TrivialAugment-MIT.txt text eol=lf
 tests/test_trivialaugment.py text eol=lf
+docs/resizemix300-native-preflight-results.json text eol=lf
