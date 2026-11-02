@@ -103,3 +103,6 @@ research/scratch-distillation-followup.md text eol=lf
 docs/trivialaugment-native-preflight-results.json text eol=lf
 docs/resizemix300-completed-results.json text eol=lf
 docs/trivialaugment-completed-results.json text eol=lf
+research/trivialaugment_paired.py text eol=lf
+research/trivialaugment_delivery_plan.md text eol=lf
+tests/test_trivialaugment_paired.py text eol=lf
