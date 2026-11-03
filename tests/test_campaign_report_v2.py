@@ -195,10 +195,25 @@ class PureContracts(unittest.TestCase):
                 self.assertNotIn("stdout",result)
 
     def test_33_current_actual_source_closure_still_pins_both_old_wrappers_and_adapter(self):
-        source=report.source_snapshot(report.descriptor())
-        self.assertEqual(source["build_campaign_report.py"],report.OLD_SHA)
-        self.assertEqual(source[report.DEFAULT_ADAPTER],report.DEFAULT_ADAPTER_SHA)
-        self.assertIn("build_campaign_report_v2.py",source);self.assertIn(report.PLAN,source)
+        """CI audits tracked code; private primary PDF/manifest stay runtime-only."""
+        original_read=Path.read_bytes
+        def public_code_only(path):
+            if path.resolve().is_relative_to(report.ROOT/report.old.PRIMARY_DIR):
+                raise AssertionError("CI must not read ignored primary runtime artifacts")
+            return original_read(path)
+        with patch.object(report,"source_snapshot",side_effect=AssertionError("Private runtime snapshot is not a CI fixture")) as runtime,patch.object(Path,"read_bytes",public_code_only):
+            source=report.adapter_closure(report.descriptor())
+            self.assertEqual(source[report.DEFAULT_ADAPTER],report.DEFAULT_ADAPTER_SHA)
+            self.assertEqual(source["scripts/research_report_evidence.py"],report.old.FROZEN["scripts/research_report_evidence.py"])
+            tracked_pins={name:digest for name,digest in report.old.FROZEN.items() if Path(name).suffix==".py"}
+            tracked_pins["build_campaign_report.py"]=report.OLD_SHA
+            for name,digest in tracked_pins.items():
+                self.assertEqual(report.sha(report.ROOT/name),digest)
+            self.assertTrue((report.ROOT/"build_campaign_report_v2.py").is_file())
+            self.assertTrue((report.ROOT/report.PLAN).is_file())
+        runtime.assert_not_called()
+        self.assertEqual({name for name in report.old.FROZEN if name.startswith(report.old.PRIMARY_DIR+"/")},
+            {report.old.PRIMARY_DIR+"/report_manifest.json",report.old.PRIMARY_DIR+"/ky2738_Project1_Report.pdf"})
 
     def test_34_prepare_does_not_query_processes_claim_lease_or_execute_old_worker(self):
         primary=report.old.read(report.ROOT/"notebooks/Project1_Results_Executed.ipynb")
