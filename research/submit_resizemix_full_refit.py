@@ -53,7 +53,13 @@ def validate_manifest(path, root=ROOT):
     result.update(csv_path=str(csv_path), delivery_schema=SCHEMA,
         uploader_source_sha256=shared.sha256(Path(__file__)),
         delivery_validator_source_sha256=shared.sha256(root/"research/resizemix_full_refit_delivery.py"))
-    return result
+    # The shared ledger owns status, timestamps, and submission reference.
+    # Pass only validated artifact fields that can remain equal in the intent.
+    fingerprints = ("submission_sha256", "checkpoint_sha256", "manifest_sha256",
+                    "frozen_manifest_sha256", "parent_delivery_sha256")
+    fields = (*expected, *fingerprints, "run", "csv_path", "delivery_schema",
+              "uploader_source_sha256", "delivery_validator_source_sha256")
+    return {key: result[key] for key in fields}
 
 
 def submit_once(manifest_path, api, root=ROOT, validator=None, timeout=180, poll_seconds=7):
