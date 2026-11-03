@@ -21,6 +21,13 @@ public **0.867**，低于当前最佳WRN34-3/300的 **0.878**。此前fresh seed
 该候选仍须完整benchmark、配对/冻结、预先登记的fresh160对照支持及独立200/27重复，
 目前没有完整准确率或提交资格。见[实际预检与正式启动范围](../docs/wrn16-200-preflight-results.json)。
 
+200轮任务于11月3日03:05:29UTC完整结束，监督2,389.99秒；原规则选epoch199在线model。
+完整weighted clean **96.44%**、NLL **0.1211307**、stress **78.652%**，旧baseline门虽过，
+相对固定incumbent的mean门失败，noise下降6.94pp、resize下降2.22pp，均破逐case下限。
+因此停止200候选，不配对/fresh160对照/seed重复/预测/提交/full50k；不改policy或阈值。
+详见[完整结果与审核范围](../docs/wrn16-200-completed-results.json)。更新与8M来源计数由完整日志/history和
+冻结direct-SGD代码推导；独审只JSON/算术/hash，未重载last tensor，不夸称优化器/RNG独立审核或时长因果。
+
 11月2日用户明确恢复自动研究。新增教授 `data.zip` 已与官方输入逐字节/逐像素核对，
 没有新增训练样本，原始包保持私有。复盘与聚合证据见
 [research-reassessment-20261102.json](../docs/research-reassessment-20261102.json)。
