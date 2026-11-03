@@ -1,5 +1,15 @@
 # 五天探索研究：先 benchmark，再晋级
 
+11月3日01:41UTC，冻结的TrivialAugment primary2026实际提交 **57928377** 已评分：
+public **0.867**，低于当前最佳WRN34-3/300的 **0.878**。此前fresh seed2027完整160轮复测
+为clean96.62%/stress90.70%，全部固定weighted旧门、incumbent均值与逐case门通过；
+只有预先冻结的primary2026生成2,000条官方ID预测，repeat权重没有用于隐藏推理。
+本地大幅synthetic-stress提升未带来线上提升，保留该负反馈，不更换policy或重传。
+见[复测范围](../docs/trivialaugment-repeat-results.json)、
+[官方标量回执](../docs/research-submission-receipts/57928377.json)与
+[评分和真实配额快照](../docs/research-official-scores.json)。11月3日01:46UTC全队已用1次、剩4次，
+下次上传前仍需实时重查。Private分数尚未公布；研究继续至原定内部截止。
+
 11月2日用户明确恢复自动研究。新增教授 `data.zip` 已与官方输入逐字节/逐像素核对，
 没有新增训练样本，原始包保持私有。复盘与聚合证据见
 [research-reassessment-20261102.json](../docs/research-reassessment-20261102.json)。

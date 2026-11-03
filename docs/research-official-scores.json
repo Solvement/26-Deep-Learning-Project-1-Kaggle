@@ -1,6 +1,6 @@
 {
   "schema": "official_research_score_aggregate_v1",
-  "recorded_at": "2026-11-01T00:58:46.951542+00:00",
+  "recorded_at": "2026-11-03T01:47:49.264445+00:00",
   "team": "Saber",
   "source": "Actual official complete research receipts; public copies differ only in JSON serialization, preserve all original parsed scalar metadata.",
   "original_primary_public": 0.871,
@@ -76,25 +76,79 @@
       "original_private_receipt_sha256": "ef18ed97e4c8174418cb6b2c230e50735647dc8a77e7eb26dedb4417b78535d3",
       "public_canonical_receipt_sha256": "cbd71d697d91e443bd8e78bee61dfa90bcc0bc13f7c3fa95455d79be64892b27",
       "same_parsed_receipt": true
+    },
+    {
+      "label": "TrivialAugment/WRN34-3/160",
+      "actual_receipt_run": "wrn34_trivialaugment_bf16_s2026",
+      "submission_ref": 57928377,
+      "status": "complete",
+      "public_score": 0.867,
+      "private_score": null,
+      "checkpoint_sha256": "dcfe213533481aa6c90d2fdd9ac853dc291c124098c9fe0ab8866337ab3f0fba",
+      "submission_sha256": "3a4835690418abb52eb138d01d1eff30a68ef03939796b22aa115404f5b8baef",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 40000,
+      "validation_examples": 5000,
+      "parameter_count": 4166298,
+      "delivery_schema": "research_trivialaugment_prediction_delivery_v1",
+      "repeat_receipt_schema": "research_trivialaugment_repeat_supervisor_v1",
+      "repeat_receipt_sha256": "a624a6ee0568f3bbd5945013ca2249d8859c8397db103c5e56a453ddd08de06d",
+      "repeat_validator_source_sha256": "81b824218a71f8c2cac3acda5a9c711ea1a75d357b917c9e97092d2f223fe489",
+      "frozen_manifest_sha256": "88682c6f719ccc4791adaaa26086bd0fa3e0778de526d463da89da1721099e9a",
+      "original_private_receipt_sha256": "1bdca85f22e182eca389d9fc263b72aa56ce1193cce1b0764d5c09a2adaf7cb6",
+      "public_canonical_receipt_sha256": "9c3f6d8f5c329723413de0540af29e8b86ea6053973d964b46ba6d8abba49c2d",
+      "same_parsed_receipt": true
     }
   ],
   "quota_last_verified": {
-    "checked_at": "2026-11-01T00:58:24.425823+00:00",
-    "UTC_day": "2026-11-01",
-    "used": 4,
-    "remaining": 1,
-    "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
-    "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
+    "checked_at": "2026-11-03T01:46:34.949509+00:00",
+    "UTC_day": "2026-11-03",
+    "used": 1,
+    "remaining": 4,
+    "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
+    "snapshot_note": "Actual read-only official whole-team post-TrivialAugment-submission API response. Recheck live immediately before another upload; this point-in-time snapshot is not a future quota guarantee."
   },
   "no_hidden_prediction_rows_or_weights_or_credentials": true,
   "current_team_quota_verified_after_latest_submission": true,
   "current_team_quota": {
-    "checked_at": "2026-11-01T00:58:24.425823+00:00",
-    "UTC_day": "2026-11-01",
-    "used": 4,
-    "remaining": 1,
-    "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
-    "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
+    "checked_at": "2026-11-03T01:46:34.949509+00:00",
+    "UTC_day": "2026-11-03",
+    "used": 1,
+    "remaining": 4,
+    "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
+    "snapshot_note": "Actual read-only official whole-team post-TrivialAugment-submission API response. Recheck live immediately before another upload; this point-in-time snapshot is not a future quota guarantee."
   },
-  "latest_feedback": "Frozen primary SAM scored0.871 public after its independent repeat passed the local development gate. This did not improve the observed best0.878; reused development/synthetic stress does not guarantee hidden-test gains. Preserve the frozen policy and thresholds."
+  "latest_feedback": "Frozen TrivialAugment primary2026 scored0.867 public after its exact fresh2027 repeat passed all fixed local gates. It did not improve the observed best0.878 (WRN34-3/300). The large synthetic-stress gains and successful repeat did not establish a hidden-test improvement; preserve the frozen primary, policy, thresholds and all negative evidence. Private scores remain unreleased.",
+  "quota_before_latest_submission": {
+    "UTC_day": "2026-11-03",
+    "used": 0,
+    "remaining": 5,
+    "actual_saved_intent_sha256": "70eeda0a54e935149a51ba50582fe0e364f765e686e9947ea112cec3b9a828f1",
+    "recorded_at_upload_intent": "2026-11-03T01:40:33.957021+00:00",
+    "snapshot_note": "Saved actual official pre-upload whole-team quota response. This is not a post-upload live quota or a future quota guarantee."
+  },
+  "current_team_quota_note": "Current quota comes from the saved actual post-TA official response, not an inferred increment from the pre-upload intent.",
+  "prior_quota_snapshots": [
+    {
+      "checked_at": "2026-11-01T00:58:24.425823+00:00",
+      "UTC_day": "2026-11-01",
+      "used": 4,
+      "remaining": 1,
+      "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
+      "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
+    }
+  ],
+  "latest_official_status_check": {
+    "checked_at": "2026-11-03T01:46:34.949509+00:00",
+    "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
+    "official_submission_count": 10,
+    "latest_submission_ref": 57928377,
+    "latest_status": "COMPLETE",
+    "latest_public_score": 0.867,
+    "best_submission_ref": 57854294,
+    "best_status": "COMPLETE",
+    "best_public_score": 0.878,
+    "team": "Saber"
+  }
 }

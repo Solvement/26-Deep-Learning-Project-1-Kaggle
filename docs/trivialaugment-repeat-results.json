@@ -1,0 +1,190 @@
+{
+  "schema": "research_trivialaugment_repeat_public_results_v1",
+  "recorded_at": "2026-11-03T01:38:32.806715+00:00",
+  "status": "complete_independent_repeat_screen_passed",
+  "run": "wrn34_trivialaugment_bf16_s2027",
+  "role": "development_repeat",
+  "seed": 2027,
+  "training_source_commit": "f96280644710edee34fad31e99f262822da9fa7b",
+  "parameter_count": 4166298,
+  "selected_checkpoint": {
+    "sha256": "f0743c3a003df5fcb6ba0a48d86ba5cafad8071ca1f66eb9b77bdda749a55eca",
+    "epoch": 156,
+    "variant": "ema",
+    "hidden_prediction_authorized": false
+  },
+  "frozen_primary": {
+    "sha256": "dcfe213533481aa6c90d2fdd9ac853dc291c124098c9fe0ab8866337ab3f0fba",
+    "epoch": 159,
+    "variant": "ema",
+    "seed": 2026,
+    "policy": "center80_shift20",
+    "freeze_sha256": "88682c6f719ccc4791adaaa26086bd0fa3e0778de526d463da89da1721099e9a",
+    "frozen_at": "2026-11-03T00:07:37.052306+00:00",
+    "only_this_primary_may_supply_prediction_weights": true
+  },
+  "raw_evidence_sha256": {
+    "repeat_result": "7447b17fed9d0cfb3f0ab0dcb51e718719826c9ac290ef0da1b998a477bf26f4",
+    "benchmark": "653ccc849fa464d62ce083a449f9b245e02933174ef34a196269d3e65104dd19",
+    "supervisor": "a624a6ee0568f3bbd5945013ca2249d8859c8397db103c5e56a453ddd08de06d",
+    "metrics": "f6b50e3b08ca402a29ec6ba6d65cb53a0cbaa07d0383fdf48b0e6a8ad87b701d",
+    "history": "edfa1858e18aec3284481a6d602ef087eb88d13295d1cd75ea0e9ead272fcb48",
+    "inputs": "5b48e00daf9c8678179b7d7ba07d6c18837ca2d9110ad83a53e3ad648ee15bc5",
+    "environment": "9694ff5e086abc069e8e1d272e13d341dd56bb60ac7bd736e124da2d83db95c3",
+    "provenance": "14f149a6d6b018e320715ebbe214e2ff8e51d11da5e421fc6d1669c2d0e1951a",
+    "config": "dcb4bebd837d31b4f89d8d5ec709fa7211c5d2116af301c6212d85373049eb24",
+    "input_config": "9686ddea85d0f56ba1f58ff8668056c146a78b675f12f0624799f2fd0b2f4981",
+    "incumbent_comparison": "25d4b6ae998aefdadcb6bc53ed36b0e331d5202697e283ff4aa47844d649cf23"
+  },
+  "planned_repeat_raw_config_sha256": "9686ddea85d0f56ba1f58ff8668056c146a78b675f12f0624799f2fd0b2f4981",
+  "effective_config_sha256": "3b84ba17d4383ce6e3870dadc929040d3caacd6d4bfc2d440a21fb407e784c1c",
+  "source_files_checked": 50,
+  "recorded_formal_input_bindings": 96,
+  "training": {
+    "epochs_completed": 160,
+    "training_examples": 40000,
+    "development_examples": 5000,
+    "successful_updates": 50080,
+    "skipped_updates": 0,
+    "forward_passes": 50080,
+    "source_examples_seen": 6400000,
+    "model_views_seen": 6400000,
+    "views_per_source": 1,
+    "ta_operation_counts": {
+      "identity": 456680,
+      "autocontrast": 457493,
+      "equalize": 457740,
+      "rotate": 456196,
+      "solarize": 456690,
+      "color": 457462,
+      "posterize": 457579,
+      "contrast": 458098,
+      "brightness": 458092,
+      "sharpness": 457832,
+      "shear_x": 456909,
+      "shear_y": 456183,
+      "translate_x": 457077,
+      "translate_y": 455969
+    },
+    "ta_rng_algorithm": "PCG64",
+    "ta_rng_seed": 2027,
+    "final_rng_state_sha256": "39a0c4177062c64c1ee2be4120ea22f8d41b6eec5f41982730ed64b5fc2ec85f",
+    "precision": "native_bf16",
+    "master_weights": "float32",
+    "ema_weights": "float32",
+    "grad_scaler_enabled": false
+  },
+  "timing": {
+    "started_at": "2026-11-03T00:09:05.314785+00:00",
+    "finished_at": "2026-11-03T01:31:46.391813+00:00",
+    "supervisor_elapsed_seconds": 4961.104912700001,
+    "training_elapsed_seconds": 4870.681748499999,
+    "benchmark_elapsed_seconds": 43.77659129999665,
+    "reserved_seconds": 10800,
+    "admitted_preflight_guard_seconds": 9407.210760052112,
+    "preflight_state_discarded": true,
+    "recorded_native_host_completion_and_cleanup_verified": true,
+    "matching_recorded_owner_child_inactive_at_audit": true
+  },
+  "evaluation": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "native_context_matches_primary_baseline_incumbent": true,
+    "torch": "2.12.0+cu130",
+    "cuda_runtime": "13.0",
+    "cudnn": 92000,
+    "amp_dtype": "torch.bfloat16",
+    "bn_recalibrated": false,
+    "policy": "center80_shift20",
+    "completed_policy_case_pairs": 18,
+    "examples_per_policy_case": 5000,
+    "all18_pixel_fingerprints_match_primary_baseline_incumbent": true,
+    "weighted_clean_accuracy": 0.9662,
+    "weighted_clean_nll": 0.11145309873223305,
+    "weighted_mean_synthetic_stress_accuracy": 0.907,
+    "weighted_cases": {
+      "clean": {
+        "examples": 5000,
+        "accuracy": 0.9662,
+        "nll": 0.11145309873223305
+      },
+      "noise_004": {
+        "examples": 5000,
+        "accuracy": 0.8402,
+        "nll": 0.508481417798996
+      },
+      "boxblur3": {
+        "examples": 5000,
+        "accuracy": 0.8454,
+        "nll": 0.47523611817359923
+      },
+      "contrast065": {
+        "examples": 5000,
+        "accuracy": 0.964,
+        "nll": 0.11458828091919422
+      },
+      "brightness080": {
+        "examples": 5000,
+        "accuracy": 0.9654,
+        "nll": 0.1132658872872591
+      },
+      "resize24": {
+        "examples": 5000,
+        "accuracy": 0.92,
+        "nll": 0.2571987456083298
+      }
+    }
+  },
+  "fixed_screens": {
+    "original_baseline_policy": "flip",
+    "original_baseline_gate_passed": true,
+    "incumbent_policy": "center80_shift20",
+    "incumbent_checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+    "incumbent_mean_gate_passed": true,
+    "each_stress_minimum_delta": -0.01,
+    "per_case_gate_passed": true,
+    "failed_cases": [],
+    "correct_count_deltas_vs_incumbent": {
+      "clean": 4,
+      "noise_004": 317,
+      "boxblur3": 2030,
+      "contrast065": 23,
+      "brightness080": 3,
+      "resize24": 373
+    },
+    "stress_correct_count_delta_vs_incumbent": 2746,
+    "clean_accuracy_delta_vs_incumbent": 0.0008,
+    "mean_stress_accuracy_delta_vs_incumbent": 0.10984,
+    "case_accuracy_deltas_vs_incumbent": {
+      "noise_004": 0.0634,
+      "boxblur3": 0.406,
+      "contrast065": 0.0046,
+      "brightness080": 0.0006,
+      "resize24": 0.0746
+    }
+  },
+  "decision": {
+    "independent_repeat_complete": true,
+    "independent_repeat_screen_passed": true,
+    "repeat_weights_used_for_hidden_prediction": false,
+    "primary_weights_replaced": false,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded_by_repeat": false,
+    "submission_authorized_by_repeat_result": false,
+    "prediction_and_submission_status_not_assessed_by_this_audit": true,
+    "separate_frozen_primary_delivery_and_strict_submission_validation_required": true
+  },
+  "official_scores_in_this_repeat_snapshot": {
+    "new_TA_public_score": null,
+    "new_TA_private_score": null,
+    "best_preexisting_public_score": 0.878,
+    "best_preexisting_public_submission_ref": 57854294,
+    "private_scores_unreleased": true
+  },
+  "interpretation": {
+    "development": "Independent fresh scratch training seed;the same selected development partition is reused for recipe screening. This is not an independent confirmation or a training-seed variance interval.",
+    "stress": "Five synthetic engineering stresses are not CIFAR-C or hidden competition scores. No Kaggle improvement is established by this repeat result.",
+    "selection": "Primary26 checkpoint/policy were frozen before every seed27 attempt. Repeat27 validates the recipe and must not replace primary26 or supply hidden predictions.",
+    "audit_scope": "Independent stdlib JSON arithmetic,50 small source-file hashes,selected checkpoint hash and direct recorded native-proof linkage only. No tensors were reloaded,PCG64 replayed,or inference/bootstrap rerun by this audit. The archived typed benchmark performed selected/final tensor,SGD and RNG validation. The113-evidence delivery tree and large input archives were not recursively rehashed here;daily ledger and current prediction/submission state were not read or modified."
+  }
+}

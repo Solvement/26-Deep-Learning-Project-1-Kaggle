@@ -126,3 +126,4 @@ research/campaign-report-plan.md text eol=lf
 build_campaign_report.py text eol=lf
 tests/test_campaign_report.py text eol=lf
 notebooks/Project1_Results_Executed.ipynb text eol=crlf
+docs/trivialaugment-repeat-results.json text eol=lf
