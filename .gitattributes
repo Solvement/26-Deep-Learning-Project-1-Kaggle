@@ -170,3 +170,5 @@ research/development-error-slices-plan.md text eol=lf
 research/development_error_slices.py text eol=lf
 research/run_development_error_slices.py text eol=lf
 tests/test_development_error_slices.py text eol=lf
+research/development-error-slices-stable-plan.md text eol=lf
+research/run_development_error_slices_stable.py text eol=lf
