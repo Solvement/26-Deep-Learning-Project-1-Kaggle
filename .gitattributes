@@ -151,3 +151,6 @@ research/configs/wrn16_scratch_kd_seed2027.json text eol=lf
 tests/test_scratch_kd.py text eol=lf
 tests/test_scratch_kd_lineage.py text eol=lf
 tests/test_scratch_kd_training.py text eol=lf
+research/run_scratch_kd.py text eol=lf
+research/scratch-kd-controller-plan.md text eol=lf
+tests/test_scratch_kd_controller.py text eol=lf
