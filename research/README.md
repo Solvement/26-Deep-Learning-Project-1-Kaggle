@@ -10,6 +10,11 @@ public **0.867**，低于当前最佳WRN34-3/300的 **0.878**。此前fresh seed
 [评分和真实配额快照](../docs/research-official-scores.json)。11月3日01:46UTC全队已用1次、剩4次，
 下次上传前仍需实时重查。Private分数尚未公布；研究继续至原定内部截止。
 
+新[WRN16-5/300受控计划](wrn16-5-300-plan.md)的首次实际官方图像预检于11月3日02:06UTC完成：
+23次正常更新、全部44梯度/210state/13BN与native BF16证明通过，但固定guard为13,801.03秒，
+超过10,800秒单任务上限。因此不启动正式300轮训练，不使用旧160轮速度准入或调整安全倍率。
+见[负工程结果与审核范围](../docs/wrn16-300-preflight-results.json)；该预检没有准确率或新提交。
+
 11月2日用户明确恢复自动研究。新增教授 `data.zip` 已与官方输入逐字节/逐像素核对，
 没有新增训练样本，原始包保持私有。复盘与聚合证据见
 [research-reassessment-20261102.json](../docs/research-reassessment-20261102.json)。

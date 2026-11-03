@@ -132,3 +132,4 @@ research/configs/wrn16_5_300.json text eol=lf
 research/configs/wrn16_5_300_seed2027.json text eol=lf
 research/preflight_wrn16_300.py text eol=lf
 tests/test_preflight_wrn16_300.py text eol=lf
+docs/wrn16-300-preflight-results.json text eol=lf
