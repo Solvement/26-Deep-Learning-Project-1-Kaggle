@@ -77,10 +77,21 @@ TA主2026已完整结束：160轮、50,080成功更新/0跳步、640万来源与
 NLL0.1120498/stress91.168%；相对同policy best300，clean+0.16pp、stress+11.452pp，
 noise+7.40pp，最小逐case差为brightness-0.02pp，原门与所有新增point/case门均通过。
 见[trivialaugment-completed-results.json](../docs/trivialaugment-completed-results.json)。
-这是复用dev的初步结果，尚无配对区间、冻结/独立27或隐藏预测/新Kaggle评分；
-现仅推进独立typed配对、冻结、fresh27与交付支持，不把stress等同隐藏分或宣称显著提分。
+这是复用dev的探索结果，不把stress等同隐藏分或宣称显著提分。
 独立结束审计的1,127项JSON/来源/哈希检查不含tensor重载或PCG64重放，
 实际tensor/SGD/RNG审计由已执行的typed benchmark完成。原主研究与confirmation保持冻结。
+
+随后新v2配对实际完成94.61秒，三个模型的18项像素hash/正确数全部精确复现，
+两组10,000次原图ID聚类bootstrap均完成。相对同policy incumbent，clean条件95%区间
+为[-0.28,+0.60]pp、stress为[+10.984,+11.9321]pp；clean跨零，不能确认clean显著提高。
+原baseline.flip另列区间，五个stress视图按原图一起抽，不将25,000视图视为独立样本。
+原v1失败回执/源码保留；v2修复runtime导入顺序并精确核实际环境，没有放宽像素或准确率门槛。
+见[trivialaugment-paired-results.json](../docs/trivialaugment-paired-results.json)。
+主epoch159EMA、固定weighted、完整50来源及精确27配置于11月3日00:07:37UTC冻结，
+早于任何27预检或训练结果。新的真实27预检23成功/0跳步，中位121.2355ms，
+固定guard9,407.21秒低于三小时；原生清理、七文件bundle及环境核验后，00:09:05UTC
+启动全新scratch160轮seed27复测。尚无完整repeat准确率、隐藏预测或新Kaggle分；
+所有固定门槛及显式typed交付/严格提交核验仍须通过，线上最佳保持0.878。
 
 首个 WD 对照已完成 160 轮及完整 benchmark，未通过晋级门槛。
 该训练曾中断在第 119 轮，经源码/数据/检查点核验后恢复。中断原因未知，

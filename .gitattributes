@@ -112,3 +112,4 @@ tests/test_trivialaugment_paired_v2.py text eol=lf
 research/run_trivialaugment_repeat.py text eol=lf
 research/trivialaugment-repeat-plan.md text eol=lf
 tests/test_trivialaugment_repeat.py text eol=lf
+docs/trivialaugment-paired-results.json text eol=lf
