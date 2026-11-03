@@ -15,6 +15,12 @@ public **0.867**，低于当前最佳WRN34-3/300的 **0.878**。此前fresh seed
 超过10,800秒单任务上限。因此不启动正式300轮训练，不使用旧160轮速度准入或调整安全倍率。
 见[负工程结果与审核范围](../docs/wrn16-300-preflight-results.json)；该预检没有准确率或新提交。
 
+另行预登记的[200轮完整schedule与fresh160对照](wrn16-5-200-plan.md)随后通过自己的首次实际预检：
+23次正常更新、native BF16和完整证明通过，固定guard8,796.40秒低于三小时；
+实际日余与清理/来源核实后，02:25:39UTC启动独立scratch primary2026正式200轮。
+该候选仍须完整benchmark、配对/冻结、预先登记的fresh160对照支持及独立200/27重复，
+目前没有完整准确率或提交资格。见[实际预检与正式启动范围](../docs/wrn16-200-preflight-results.json)。
+
 11月2日用户明确恢复自动研究。新增教授 `data.zip` 已与官方输入逐字节/逐像素核对，
 没有新增训练样本，原始包保持私有。复盘与聚合证据见
 [research-reassessment-20261102.json](../docs/research-reassessment-20261102.json)。
