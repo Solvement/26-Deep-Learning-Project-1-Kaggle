@@ -1,12 +1,12 @@
 {
   "schema": "official_research_score_aggregate_v1",
-  "recorded_at": "2026-11-03T01:47:49.264445+00:00",
+  "recorded_at": "2026-11-03T19:57:19.994723+00:00",
   "team": "Saber",
   "source": "Actual official complete research receipts; public copies differ only in JSON serialization, preserve all original parsed scalar metadata.",
   "original_primary_public": 0.871,
   "original_best_public": 0.874,
-  "best_new_public": 0.878,
-  "best_observed_public": 0.878,
+  "best_new_public": 0.88,
+  "best_observed_public": 0.88,
   "private_scores_released": false,
   "scored_candidates": [
     {
@@ -99,36 +99,55 @@
       "original_private_receipt_sha256": "1bdca85f22e182eca389d9fc263b72aa56ce1193cce1b0764d5c09a2adaf7cb6",
       "public_canonical_receipt_sha256": "9c3f6d8f5c329723413de0540af29e8b86ea6053973d964b46ba6d8abba49c2d",
       "same_parsed_receipt": true
+    },
+    {
+      "label": "WRN34-3/160 full50k fixed refit",
+      "actual_receipt_run": "wrn34_3_full50k_s2026",
+      "submission_ref": 57959211,
+      "status": "complete",
+      "public_score": 0.88,
+      "private_score": null,
+      "checkpoint_sha256": "a1f63d160c5b40972e4493e3fa076ede3acc646e57ae9d6011ae93458f1c8bfa",
+      "submission_sha256": "6456a4f53910e803df58571bdf7e96f5608bfe0ac42ea839dc6ed53079f4bcf6",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 50000,
+      "parameter_count": 4166298,
+      "validation_examples": 0,
+      "independent_development_evaluated": false,
+      "original_private_receipt_sha256": "85ba6a26de5ff927bbc90317f67b5bd81bff961bb2e22c19717649d269dadc91",
+      "public_canonical_receipt_sha256": "aca71e8481e741eba55935556a76eae857b80a59ded6743c99b08949277e065c",
+      "same_parsed_receipt": true
     }
   ],
   "quota_last_verified": {
-    "checked_at": "2026-11-03T01:46:34.949509+00:00",
+    "checked_at": "2026-11-03T19:57:19.994723+00:00",
     "UTC_day": "2026-11-03",
-    "used": 1,
-    "remaining": 4,
-    "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
-    "snapshot_note": "Actual read-only official whole-team post-TrivialAugment-submission API response. Recheck live immediately before another upload; this point-in-time snapshot is not a future quota guarantee."
+    "used": 2,
+    "remaining": 3,
+    "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
+    "snapshot_note": "Actual read-only official whole-team quota after full refit scoring. Recheck before upload."
   },
   "no_hidden_prediction_rows_or_weights_or_credentials": true,
   "current_team_quota_verified_after_latest_submission": true,
   "current_team_quota": {
-    "checked_at": "2026-11-03T01:46:34.949509+00:00",
+    "checked_at": "2026-11-03T19:57:19.994723+00:00",
     "UTC_day": "2026-11-03",
-    "used": 1,
-    "remaining": 4,
-    "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
-    "snapshot_note": "Actual read-only official whole-team post-TrivialAugment-submission API response. Recheck live immediately before another upload; this point-in-time snapshot is not a future quota guarantee."
+    "used": 2,
+    "remaining": 3,
+    "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
+    "snapshot_note": "Actual read-only official whole-team quota after full refit scoring. Recheck before upload."
   },
   "latest_feedback": "Frozen TrivialAugment primary2026 scored0.867 public after its exact fresh2027 repeat passed all fixed local gates. It did not improve the observed best0.878 (WRN34-3/300). The large synthetic-stress gains and successful repeat did not establish a hidden-test improvement; preserve the frozen primary, policy, thresholds and all negative evidence. Private scores remain unreleased.",
   "quota_before_latest_submission": {
     "UTC_day": "2026-11-03",
-    "used": 0,
-    "remaining": 5,
-    "actual_saved_intent_sha256": "70eeda0a54e935149a51ba50582fe0e364f765e686e9947ea112cec3b9a828f1",
-    "recorded_at_upload_intent": "2026-11-03T01:40:33.957021+00:00",
-    "snapshot_note": "Saved actual official pre-upload whole-team quota response. This is not a post-upload live quota or a future quota guarantee."
+    "used": 1,
+    "remaining": 4,
+    "actual_saved_intent_sha256": "6fd821390c004302ff57ea15fab029230c393eea3452e7075cb3af021969c513",
+    "recorded_at_upload_intent": "2026-11-03T19:56:39.480535+00:00",
+    "snapshot_note": "Actual pre-upload official whole-team quota saved in the upload intent."
   },
-  "current_team_quota_note": "Current quota comes from the saved actual post-TA official response, not an inferred increment from the pre-upload intent.",
+  "current_team_quota_note": "Actual post-refit official quota response.",
   "prior_quota_snapshots": [
     {
       "checked_at": "2026-11-01T00:58:24.425823+00:00",
@@ -137,18 +156,25 @@
       "remaining": 1,
       "raw_official_probe_sha256": "d206cfa7dcf8d36aa2e0a32d0d239fcfe174678348a193240cd8a4dfd591d47e",
       "snapshot_note": "Actual read-only official whole-team API response after SAM scoring. Recheck live immediately before another upload; this snapshot is not a future quota guarantee."
+    },
+    {
+      "checked_at": "2026-11-03T01:46:34.949509+00:00",
+      "UTC_day": "2026-11-03",
+      "used": 1,
+      "remaining": 4,
+      "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
+      "snapshot_note": "Actual read-only official whole-team post-TrivialAugment-submission API response. Recheck live immediately before another upload; this point-in-time snapshot is not a future quota guarantee."
     }
   ],
   "latest_official_status_check": {
-    "checked_at": "2026-11-03T01:46:34.949509+00:00",
-    "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
-    "official_submission_count": 10,
-    "latest_submission_ref": 57928377,
+    "checked_at": "2026-11-03T19:57:19.994723+00:00",
+    "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
+    "latest_submission_ref": 57959211,
     "latest_status": "COMPLETE",
-    "latest_public_score": 0.867,
-    "best_submission_ref": 57854294,
+    "latest_public_score": 0.88,
+    "best_submission_ref": 57959211,
     "best_status": "COMPLETE",
-    "best_public_score": 0.878,
+    "best_public_score": 0.88,
     "team": "Saber"
   }
 }

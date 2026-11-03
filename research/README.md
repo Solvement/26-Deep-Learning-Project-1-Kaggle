@@ -1,7 +1,13 @@
 # 五天探索研究：先 benchmark，再晋级
 
+11月3日19:57UTC，WRN34-3/160 的固定末轮 50k 全量重训提交
+**57959211** 已评分，public **0.880**。对应 40k/160 父模型为 **0.869**，
+此前全队最佳为 40k/300 的 **0.878**。全量重训使用 50,000 张官方训练图和零验证图，
+因此没有独立开发准确率。Private 尚未公布。
+见[官方标量回执](../docs/research-submission-receipts/57959211.json)。
+
 11月3日01:41UTC，冻结的TrivialAugment primary2026实际提交 **57928377** 已评分：
-public **0.867**，低于当前最佳WRN34-3/300的 **0.878**。此前fresh seed2027完整160轮复测
+public **0.867**，低于当时最佳WRN34-3/300的 **0.878**。此前fresh seed2027完整160轮复测
 为clean96.62%/stress90.70%，全部固定weighted旧门、incumbent均值与逐case门通过；
 只有预先冻结的primary2026生成2,000条官方ID预测，repeat权重没有用于隐藏推理。
 本地大幅synthetic-stress提升未带来线上提升，保留该负反馈，不更换policy或重传。
