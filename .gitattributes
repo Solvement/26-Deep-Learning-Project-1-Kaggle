@@ -154,3 +154,7 @@ tests/test_scratch_kd_training.py text eol=lf
 research/run_scratch_kd.py text eol=lf
 research/scratch-kd-controller-plan.md text eol=lf
 tests/test_scratch_kd_controller.py text eol=lf
+docs/scratch-kd-control-preflight-results.json text eol=lf
+scripts/campaign_report_evidence_v2.py text eol=lf
+tests/test_campaign_report_evidence_v2.py text eol=lf
+research/campaign-report-evidence-v2-plan.md text eol=lf
