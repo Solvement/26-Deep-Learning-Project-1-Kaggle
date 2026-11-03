@@ -178,3 +178,5 @@ research/run_development_shift_probe.py text eol=lf
 tests/test_development_shift_stats.py text eol=lf
 research/development-periphery-probe-plan.md text eol=lf
 research/run_development_periphery_probe.py text eol=lf
+research/development-architecture-pair-plan.md text eol=lf
+research/run_development_architecture_pair.py text eol=lf
