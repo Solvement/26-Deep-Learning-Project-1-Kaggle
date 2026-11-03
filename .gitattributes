@@ -158,3 +158,6 @@ docs/scratch-kd-control-preflight-results.json text eol=lf
 scripts/campaign_report_evidence_v2.py text eol=lf
 tests/test_campaign_report_evidence_v2.py text eol=lf
 research/campaign-report-evidence-v2-plan.md text eol=lf
+build_campaign_report_v2.py text eol=lf
+research/campaign-report-v2-plan.md text eol=lf
+tests/test_campaign_report_v2.py text eol=lf
