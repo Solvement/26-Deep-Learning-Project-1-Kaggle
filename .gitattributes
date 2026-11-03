@@ -172,3 +172,7 @@ research/run_development_error_slices.py text eol=lf
 tests/test_development_error_slices.py text eol=lf
 research/development-error-slices-stable-plan.md text eol=lf
 research/run_development_error_slices_stable.py text eol=lf
+research/development-shift-probe-plan.md text eol=lf
+research/development_shift_stats.py text eol=lf
+research/run_development_shift_probe.py text eol=lf
+tests/test_development_shift_stats.py text eol=lf
