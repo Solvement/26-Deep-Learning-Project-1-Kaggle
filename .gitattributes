@@ -193,3 +193,4 @@ research/sam_full_refit_delivery.py text eol=lf
 research/submit_sam_full_refit.py text eol=lf
 tests/test_submit_sam_full_refit.py text eol=lf
 docs/resizemix-full-refit-preflight-results.json text eol=lf
+docs/sam-full-refit-preflight-results.json text eol=lf
