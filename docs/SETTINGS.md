@@ -12,7 +12,7 @@
 | Kaggle Notebook | 项目过去使用过免费 T4，分配、额度和比赛数据挂载须在 Notebook 实际核验。Kaggle 提交 API 的认证和 Notebook 的 GPU 分配是两项独立检查。本机核对时共享云端 lease 不存在。 |
 | 开发和 CI | Linux CI 跑 CPU 回归，本机 Torch 训练环境和 Kaggle API 工具环境分离。GPU 上正在训练时，只用现有回执做配置核对。 |
 
-原始数据及校验过的缓存位于 `data/`。本机监督回执、日志、权重、预测和提交记录位于私有 `results/research/`。本机使用该环境完成了 `sam_full_refit_nov04_train_20261104_v1`。20:31 UTC 核验时，训练与预测的进程树均已退出，本机共享 lease 已释放。读 `local_lease.json` 或 `cloud_lease.json` 确认占用，读对应的 `supervisor.json` 和 `environment.json` 确认实际运行。未知清理状态需要先对照原有回执与进程身份。 [平台开发说明](cloud-development.md) · [Colab 固定版本](../requirements/colab.txt)
+原始数据及校验过的缓存位于 `data/`。本机监督回执、日志、权重、预测和提交记录位于私有 `results/research/`。本机使用该环境完成了 `sam_full_refit_nov04_train_20261104_v1`。SAM 训练与预测的进程树均已退出。20:41 UTC 核验时，本机共享 lease 由 `trivialaugment_full_refit_train_20261104_v1` 持有。读 `local_lease.json` 或 `cloud_lease.json` 确认占用，读对应的 `supervisor.json` 和 `environment.json` 确认实际运行。未知清理状态需要先对照原有回执与进程身份。 [平台开发说明](cloud-development.md) · [Colab 固定版本](../requirements/colab.txt)
 
 ## Kaggle API 凭据默认值
 
