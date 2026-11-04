@@ -197,3 +197,5 @@ docs/sam-full-refit-preflight-results.json text eol=lf
 research/run_sam_full_refit_nov04.py text eol=lf
 research/sam-full-refit-nov04-plan.md text eol=lf
 tests/test_sam_full_refit_nov04.py text eol=lf
+research/sam_full_refit_nov04_delivery.py text eol=lf
+research/submit_sam_full_refit_nov04.py text eol=lf
