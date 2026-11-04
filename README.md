@@ -8,8 +8,12 @@ The repository is public. The primary pipeline was merged into `main` through
 [PR 6](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/pull/6)
 with the owner's explicit merge authorization. The original feature branch is
 retained as the report's reproducibility link. The separate five-day exploratory
-campaign is documented in [research/README.md](research/README.md) and Issue 7;
-it does not rewrite the primary study or reuse its confirmation split.
+campaign is documented in [research/README.md](research/README.md) and Issue 7.
+The campaign keeps the primary study and its confirmation split frozen.
+
+[Implementation notes](docs/IMPLEMENTATION_NOTES.md) record the decisions and
+full timeline. [Settings](docs/SETTINGS.md) describe the runtime and Kaggle
+credential setup.
 
 The main model is a scratch-initialized **WideResNet-22-4 with 4,298,970 total and
 trainable parameters**. Its constructor rejects models above the 5,000,000
@@ -33,9 +37,11 @@ The exploratory T4 run completed
 
 The independent one-time confirmation result is **96.64%** for the selected
 40,000-image `regularized` candidate. It is not a confirmation score for either
-full-data model. The current highest completed public score is 87.40%; the
-primary 160-epoch full-data result is separately reported as 87.10%. The
-exploratory 86.20% result did not improve the best observed public score. The
+full-data model. The original study peaked at 87.40% public accuracy. Its
+primary 160-epoch full-data result scored 87.10%, and its exploratory refit
+scored 86.20%. The later campaign reached 88.00% with a fixed 160-epoch
+WRN34-3 full-data refit, as recorded in
+[the official score ledger](docs/research-official-scores.json). The
 primary study and its one-time confirmation remain unchanged; no individual
 cause is inferred from this bundled extension. Private leaderboard scores are
 not yet available. The cause of the development/public gap has not been established.

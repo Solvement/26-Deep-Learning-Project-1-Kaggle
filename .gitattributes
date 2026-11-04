@@ -200,3 +200,5 @@ tests/test_sam_full_refit_nov04.py text eol=lf
 research/sam_full_refit_nov04_delivery.py text eol=lf
 research/submit_sam_full_refit_nov04.py text eol=lf
 docs/sam-full-refit-nov04-admission.json text eol=lf
+docs/IMPLEMENTATION_NOTES.md text eol=lf
+docs/SETTINGS.md text eol=lf
