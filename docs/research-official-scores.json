@@ -1,6 +1,6 @@
 {
   "schema": "official_research_score_aggregate_v1",
-  "recorded_at": "2026-11-04T20:31:44.719564+00:00",
+  "recorded_at": "2026-11-04T22:17:20.664333+00:00",
   "team": "Saber",
   "source": "Actual official complete research receipts; public copies differ only in JSON serialization, preserve all original parsed scalar metadata.",
   "original_primary_public": 0.871,
@@ -138,33 +138,53 @@
       "original_private_receipt_sha256": "4cce3d22cd4e37202bc103bbbba3cf28955958e93cfd18f54cf90928ecb37668",
       "public_canonical_receipt_sha256": "b726f16c1334093c34e7864969e96649625fc4fa230a3de92e915e922a1b4565",
       "same_parsed_receipt": true
+    },
+    {
+      "submission_ref": 58000296,
+      "status": "complete",
+      "public_score": 0.871,
+      "private_score": null,
+      "checkpoint_sha256": "1b8605898e56967e271a5e5d6ac067bd52b93607b91137f5d6fd11049d612586",
+      "submission_sha256": "c3632c4c9b48e249d82356983c51470ade0510c05582e026b67b734640260ee7",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 50000,
+      "parameter_count": 4166298,
+      "validation_examples": 0,
+      "independent_development_evaluated": false,
+      "delivery_schema": "research_trivialaugment_full_refit_delivery_v1",
+      "label": "WRN34-3/TrivialAugment/160 full50k fixed refit",
+      "actual_receipt_run": "trivialaugment_full_refit_train_20261104_v1",
+      "original_private_receipt_sha256": "893921b948f1c7a31d94f347da41e0dc25fa3139c13b36603c2ae3ddd6d80f4a",
+      "public_canonical_receipt_sha256": "0598d9e15408f140a83591fcdad01d9f9f948e2292b2f6d122e7e8366d9e562d",
+      "same_parsed_receipt": true
     }
   ],
   "quota_last_verified": {
-    "checked_at": "2026-11-04T20:31:44.719564+00:00",
+    "checked_at": "2026-11-04T22:17:20.664333+00:00",
     "UTC_day": "2026-11-04",
-    "used": 1,
-    "remaining": 4,
-    "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
-    "snapshot_note": "Official read-only whole-team quota after November 4 SAM full refit scoring. Recheck before upload."
+    "used": 2,
+    "remaining": 3,
+    "raw_official_probe_sha256": "b38a6f4172db4fc6cd648764fbd6a638fa1d0e3e76c37121091ff6fc7f0fff28",
+    "snapshot_note": "Official read-only whole-team quota after November 4 TrivialAugment full refit scoring. Recheck before upload."
   },
   "no_hidden_prediction_rows_or_weights_or_credentials": true,
   "current_team_quota_verified_after_latest_submission": true,
   "current_team_quota": {
-    "checked_at": "2026-11-04T20:31:44.719564+00:00",
+    "checked_at": "2026-11-04T22:17:20.664333+00:00",
+    "UTC_day": "2026-11-04",
+    "used": 2,
+    "remaining": 3,
+    "raw_official_probe_sha256": "b38a6f4172db4fc6cd648764fbd6a638fa1d0e3e76c37121091ff6fc7f0fff28",
+    "snapshot_note": "Official read-only whole-team quota after November 4 TrivialAugment full refit scoring. Recheck before upload."
+  },
+  "latest_feedback": "November 4 TrivialAugment full-data refit scored 0.871, +0.4 percentage points versus its 40k parent and -1.0 versus the team best SAM full refit. Coverage, update count and checkpoint selection changed together.",
+  "quota_before_latest_submission": {
     "UTC_day": "2026-11-04",
     "used": 1,
     "remaining": 4,
-    "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
-    "snapshot_note": "Official read-only whole-team quota after November 4 SAM full refit scoring. Recheck before upload."
-  },
-  "latest_feedback": "November 4 SAM full-data refit scored 0.881, +1.0 percentage point versus its 40k parent and +0.1 versus the prior team best. Coverage, update count and checkpoint selection changed together.",
-  "quota_before_latest_submission": {
-    "UTC_day": "2026-11-04",
-    "used": 0,
-    "remaining": 5,
-    "actual_saved_intent_sha256": "5eace5045e3f9a9b037ff395b7a5985006f4d98d99d106e9e1d478ca56297d78",
-    "recorded_at_upload_intent": "2026-11-04T20:30:06.589674+00:00",
+    "actual_saved_intent_sha256": "8d39ce25f7bbd493eb2cd61b32926feac1d7026a5c5a273fcd2e439c6e5548e9",
+    "recorded_at_upload_intent": "2026-11-04T22:15:27.127835+00:00",
     "snapshot_note": "Actual pre-upload official whole-team quota saved in the upload intent."
   },
   "current_team_quota_note": "Actual post-refit official quota response.",
@@ -192,14 +212,22 @@
       "remaining": 3,
       "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
       "snapshot_note": "Actual read-only official whole-team quota after full refit scoring. Recheck before upload."
+    },
+    {
+      "checked_at": "2026-11-04T20:31:44.719564+00:00",
+      "UTC_day": "2026-11-04",
+      "used": 1,
+      "remaining": 4,
+      "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
+      "snapshot_note": "Official read-only whole-team quota after November 4 SAM full refit scoring. Recheck before upload."
     }
   ],
   "latest_official_status_check": {
-    "checked_at": "2026-11-04T20:31:44.719564+00:00",
-    "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
-    "latest_submission_ref": 57998038,
+    "checked_at": "2026-11-04T22:17:20.664333+00:00",
+    "raw_official_probe_sha256": "b38a6f4172db4fc6cd648764fbd6a638fa1d0e3e76c37121091ff6fc7f0fff28",
+    "latest_submission_ref": 58000296,
     "latest_status": "COMPLETE",
-    "latest_public_score": 0.881,
+    "latest_public_score": 0.871,
     "best_submission_ref": 57998038,
     "best_status": "COMPLETE",
     "best_public_score": 0.881,

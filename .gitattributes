@@ -211,3 +211,5 @@ research/trivialaugment_full_refit_delivery.py text eol=lf
 research/submit_trivialaugment_full_refit.py text eol=lf
 tests/test_trivialaugment_full_refit.py text eol=lf
 docs/trivialaugment-full-refit-nov04-admission.json text eol=lf
+docs/trivialaugment-full-refit-nov04-completed.json text eol=lf
+docs/research-submission-receipts/58000296.json text eol=lf
