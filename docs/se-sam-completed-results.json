@@ -1,0 +1,170 @@
+{
+  "schema": "se_sam_completed_public_scalar_v1",
+  "recorded_at": "2026-11-02T20:05:10.749872+00:00",
+  "status": "complete_prospective_gate_rejected",
+  "development_examples": 5000,
+  "training_examples": 40000,
+  "epochs": 160,
+  "parameters": 4332654,
+  "seed": 2026,
+  "precision": "native_bf16",
+  "primary_policy": "center80_shift20",
+  "checkpoint_epoch": 151,
+  "checkpoint_variant": "model",
+  "checkpoint_sha256": "e89ff49fd143dd93e3e75f48b7ce15a5d79dcf9ec8ba6eb1f6f4936c451c595e",
+  "benchmark_sha256": "efb0760b33b7b989acd6cc0e2bec2d604706389e24235b030764195b3261cadd",
+  "private_supervisor_sha256": "30754def594580ed25b2d6f451936af37d5cd8334da4e1c91e17223a21cfed29",
+  "private_independent_stdlib_audit_sha256": "048cb722b6190aa69053d7db46f0fe51254131e6479a45e085434046726fe47f",
+  "supervisor_elapsed_seconds": 4048.4829706,
+  "successful_updates": 50080,
+  "skipped_updates": 0,
+  "sam_forward_passes": 100160,
+  "source_examples_processed": 6400000,
+  "policies": {
+    "plain": {
+      "clean_accuracy": 0.9678,
+      "clean_nll": 0.1139943931877613,
+      "mean_synthetic_stress_accuracy": 0.80088,
+      "cases": {
+        "clean": {
+          "examples": 5000,
+          "accuracy": 0.9678,
+          "nll": 0.1139943931877613
+        },
+        "noise_004": {
+          "examples": 5000,
+          "accuracy": 0.7404,
+          "nll": 0.8551119051933288
+        },
+        "boxblur3": {
+          "examples": 5000,
+          "accuracy": 0.488,
+          "nll": 1.7008085861206055
+        },
+        "contrast065": {
+          "examples": 5000,
+          "accuracy": 0.9584,
+          "nll": 0.1351362515091896
+        },
+        "brightness080": {
+          "examples": 5000,
+          "accuracy": 0.964,
+          "nll": 0.12049376246333122
+        },
+        "resize24": {
+          "examples": 5000,
+          "accuracy": 0.8536,
+          "nll": 0.4475865503311157
+        }
+      }
+    },
+    "flip": {
+      "clean_accuracy": 0.9678,
+      "clean_nll": 0.10993751966953277,
+      "mean_synthetic_stress_accuracy": 0.8048399999999999,
+      "cases": {
+        "clean": {
+          "examples": 5000,
+          "accuracy": 0.9678,
+          "nll": 0.10993751966953277
+        },
+        "noise_004": {
+          "examples": 5000,
+          "accuracy": 0.7444,
+          "nll": 0.8408280639648438
+        },
+        "boxblur3": {
+          "examples": 5000,
+          "accuracy": 0.4956,
+          "nll": 1.6868172958374024
+        },
+        "contrast065": {
+          "examples": 5000,
+          "accuracy": 0.9588,
+          "nll": 0.1308679698705673
+        },
+        "brightness080": {
+          "examples": 5000,
+          "accuracy": 0.9664,
+          "nll": 0.11651156018972397
+        },
+        "resize24": {
+          "examples": 5000,
+          "accuracy": 0.859,
+          "nll": 0.43765305700302126
+        }
+      }
+    },
+    "center80_shift20": {
+      "clean_accuracy": 0.968,
+      "clean_nll": 0.10932745951414108,
+      "mean_synthetic_stress_accuracy": 0.80536,
+      "cases": {
+        "clean": {
+          "examples": 5000,
+          "accuracy": 0.968,
+          "nll": 0.10932745951414108
+        },
+        "noise_004": {
+          "examples": 5000,
+          "accuracy": 0.747,
+          "nll": 0.8335461299896241
+        },
+        "boxblur3": {
+          "examples": 5000,
+          "accuracy": 0.4956,
+          "nll": 1.6822460521697997
+        },
+        "contrast065": {
+          "examples": 5000,
+          "accuracy": 0.959,
+          "nll": 0.13042881653904914
+        },
+        "brightness080": {
+          "examples": 5000,
+          "accuracy": 0.9652,
+          "nll": 0.11595527918338776
+        },
+        "resize24": {
+          "examples": 5000,
+          "accuracy": 0.86,
+          "nll": 0.4336954463005066
+        }
+      }
+    }
+  },
+  "original_fixed_weighted_gate_passed": true,
+  "fixed_SAM_incremental_weighted_gate_passed": true,
+  "dual_gate_passed": true,
+  "prospective_incumbent": {
+    "checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+    "same_context_and_data": true,
+    "clean_delta": 0.0025999999999999357,
+    "mean_stress_delta": 0.008199999999999874,
+    "clean_nll_delta": -0.008203588166832934,
+    "case_accuracy_deltas": {
+      "clean": 0.0025999999999999357,
+      "noise_004": -0.02980000000000005,
+      "boxblur3": 0.05619999999999997,
+      "contrast065": -0.00040000000000006697,
+      "brightness080": 0.00039999999999995595,
+      "resize24": 0.014599999999999946
+    },
+    "scalar_improvement_gate_passed": true,
+    "each_stress_minimum_delta": -0.01,
+    "per_case_gate_passed": false,
+    "rejected_case": "noise_004",
+    "final_decision": "stop_no_pair_repeat_prediction_or_submission"
+  },
+  "gate_parameters_positive_gradient_update_proof_scope": "23 synthetic engineering preflight updates only; formal history records full optimizer/pass totals, not stepwise nine-gate proofs",
+  "typed_tensor_state_audit_scope": "performed by actual complete benchmark engine; independent completion audit uses stdlib hashes/JSON/arithmetic without reloading tensors",
+  "existing_raw_evidence_and_thresholds_modified": false,
+  "confirmation_evaluated": false,
+  "hidden_images_loaded": false,
+  "paired": false,
+  "repeated": false,
+  "submitted": false,
+  "competition_score": null,
+  "best_observed_competition_public_unchanged": 0.878,
+  "interpretation": "Complete reused development and five synthetic stress views, not hidden-test accuracy or an established statistical improvement. Preserve the passed original dual gate and the failed separately preregistered per-case incumbent criterion."
+}

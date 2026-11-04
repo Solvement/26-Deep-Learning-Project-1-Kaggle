@@ -17,6 +17,7 @@ access_token
 
 # Private competition data, models, predictions, and generated documents
 /data/
+/data.zip
 /artifacts/
 /outputs/
 /checkpoints/

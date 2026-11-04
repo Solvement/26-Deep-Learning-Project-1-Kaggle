@@ -1,0 +1,271 @@
+{
+  "schema": "research_wrn16_200_public_results_v1",
+  "recorded_at": "2026-11-03T03:12:35.294286+00:00",
+  "issue": 7,
+  "status": "complete_rejected",
+  "run": "wrn16_5_200_s2026",
+  "role": "exploratory_primary",
+  "training_source_commit": "afc9ea25476725896d416fda2a35bf68f9d69dcb",
+  "benchmark_source_commit": "7ab3bf265eb4cc9e9f31d76d1c08e480a3271532",
+  "raw_evidence_sha256": {
+    "supervisor": "712047e3db7cd04f471496114bcf6caaa2f174c02feb3ffcd75b7f1924c49836",
+    "metrics": "7912c4084ac839b1a1959c304ec43c41f569be8c70499919b618a051c51aca1b",
+    "history": "9b8d9493c8cbb9df4f53b12b001023ceeac3c35066c2d055701bd89fcc397eda",
+    "provenance": "6e106b9fe8643f400e8e6de6cf66a20dfc411087d73382cbc6012c0902afc9c3",
+    "environment": "63f182c467c2d2126e6224363f5378d8105a5f6e272e6dbffad67f205e90d84c",
+    "config": "c82c71187d9ec946b17b31fb9c9f48f0c70833e8059533bdf81e308fcf8a846f",
+    "benchmark": "07ac967c6875ec2189d158ecb9059ef228e3dae7bf22d583923b508cb87aa1bc",
+    "incumbent_comparison": "9ec27d82bb734dc79a2a4cb0c04802b9213c9be13367928241300d655da43f2d",
+    "best": "3fb57b6d458bfd4310468d8aca8a02e3aa29b5a542e9bfe76ba80483bff59ce7",
+    "last": "5df95f5e24899fa255a44831193c642bae7112ba917143fabd6c142869b69b82",
+    "preflight_report": "754ffa1bd3051f87967e0d1ba8046305aef3af5c3d93e40aec99d6d2ed3ac109",
+    "preflight_supervisor": "d4b0722189afca0d9520eda127c4ab25de5d5b0bff08e0843a9f00988c9b08c7",
+    "preflight_inputs": "5089fa99ddd001ad191960bc58cba4604028185d3b7c5a5b665ca99503aebc38",
+    "manual_admission": "31fb473b0ad455a979b794b312a0c9449a325d941d250745930ac1c5a858c2d1"
+  },
+  "raw_input_config_sha256": "31746b142b0759471aaf2d0cbd13038cfd2440751a06cea8c7b0ab250c128173",
+  "planned_seed2027_raw_config_sha256": "30ae6f9eb91a865651c35faa9fcd3b76a0b4a0480daced26b3e1344eaefb3892",
+  "effective_config_sha256": "dee210f86be92dc671c1ffe26f97bef9e2775c559b1218e90d315c548c45e337",
+  "selected_checkpoint": {
+    "recorded_sha256": "3fb57b6d458bfd4310468d8aca8a02e3aa29b5a542e9bfe76ba80483bff59ce7",
+    "epoch": 199,
+    "weight_variant": "model",
+    "weight_description": "online model",
+    "selection_rule": "Original completed development online/EMA accuracy with loss tie-break; epoch199 online selected."
+  },
+  "source_sha256": {
+    "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+    "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+    "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+    "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4",
+    "research/run_local.py": "6c42cfd08aaad6b39c1acd23ed788044a68c31b047a677a0218308a1dd15a069",
+    "research/profile_augmix.py": "82af320b33b9778c2c32877e272d9e87a8265b70a313001d4775f267f7917c66",
+    "research/process_tree_guard.py": "5a5f79365308a987330bb6a91064173e7deb63da8583294585f254ed7f8b3d80",
+    "research/train_shadow.py": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061",
+    "research/augmentations.py": "718530d2c56c556eb65508915126e0f5f0964a9c03d4937df74d3e3798551873",
+    "research/wrn16-5-plan.md": "1d7485c64f4911defad68ecc0b5d3b14ac4e35c65f3dfc68e07734404c558559",
+    "research/wrn34-3-300-bf16-plan.md": "2678357b601d7cfcbb2eb6efc9920633920601b66f6551cba3a6b79c1384fd2e",
+    "research/configs/wrn34_3.json": "2901f0a7d717083c8811aac9cff1910c7a7493eb3c474c260bb9b7f7eb45df02",
+    "research/preflight_core_control.py": "85d24f743f547ff6914fc8e03cf3388394d3c70b4c7e7ebcf7d282948d16a761",
+    "research/configs/wrn16_5.json": "d2745cb8d36e7105cf13b0d32f4467024d36e69d9cc316368c45065063c18528",
+    "research/configs/wrn16_5_seed2027.json": "2b4d0e98b8357d930994957857522579d04c3b4af6af6c0bbbebfc2372ed49a7",
+    "research/incumbent-promotion-plan.md": "10e59e56f8c2a3c1f9ae0ad2681c3db5b3129ffd2d33c6f4d3087710e2860ec7",
+    "research/incumbent_compare.py": "277f7803d855a90a5bd92e582e2beda85cb18557402d9a4332428d2b70a49d0d",
+    "research/paired_compare_v2.py": "7218d65bd0f33ae6e3563763730d6ce161a9e90131cdfb21c9feb10ad5bb5199",
+    "research/paired_compare.py": "034c850037b71ef151ad1f3f168afb3c475f170ad2a436d70e406e329fba5e65",
+    "research/benchmark.py": "d30acccd66a18f8de198824a57b565cb8e16cd7044fa1cec6608007c80d37f16",
+    "research/configs/wrn16_5_200.json": "31746b142b0759471aaf2d0cbd13038cfd2440751a06cea8c7b0ab250c128173",
+    "research/configs/wrn16_5_200_seed2027.json": "30ae6f9eb91a865651c35faa9fcd3b76a0b4a0480daced26b3e1344eaefb3892",
+    "research/wrn16-5-200-plan.md": "7cceff3747e3c711d5f2fde81cd133df56e8b271996d28cfbb5a5366af11cc91",
+    "research/preflight_wrn16_200.py": "35aa51533d220d8d8e20aeec0d9833384fa316b80aa93d19c883683e0ae42a57",
+    "research/campaign.json": "0f8b45721a7b72a242ecde9019935172427ec51ef4720b76902ff4015bab4bf7"
+  },
+  "config": {
+    "depth": 16,
+    "widen_factor": 5,
+    "dropout": 0.0,
+    "num_classes": 10,
+    "epochs": 200,
+    "batch_size": 128,
+    "lr": 0.1,
+    "min_lr": 0.0001,
+    "warmup_epochs": 5,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "label_smoothing": 0.0,
+    "cutout": 16,
+    "mixup_alpha": 0.2,
+    "mixup_probability": 0.5,
+    "ema_decay": 0.995,
+    "seed": 2026,
+    "split_seed": 2026,
+    "train_all": false,
+    "final_variant": "ema",
+    "fixed_flip_tta": false
+  },
+  "parameter_count": 4289754,
+  "training": {
+    "epochs_completed": 200,
+    "training_examples": 40000,
+    "development_examples": 5000,
+    "updates_per_epoch": 313,
+    "successful_updates": 62600,
+    "skipped_updates": 0,
+    "attempted_updates": 62600,
+    "source_examples_seen": 8000000,
+    "count_scope": "Derived from200 complete matching history/log epochs and frozen full40k randperm/direct-SGD loop, with no GradScaler skip path; last.pt update tensor/state was not loaded.",
+    "parameter_count": 4289754,
+    "selected_epoch": 199,
+    "selected_variant": "model",
+    "selected_checkpoint_sha256": "3fb57b6d458bfd4310468d8aca8a02e3aa29b5a542e9bfe76ba80483bff59ce7"
+  },
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+    "torch": "2.12.0+cu130",
+    "torchvision": "0.27.0+cu130",
+    "cuda_runtime": "13.0",
+    "cudnn": 92000,
+    "numpy": "2.3.4",
+    "Pillow": "12.0.0",
+    "evaluation_device_type": "cuda",
+    "evaluation_amp_dtype": "torch.bfloat16"
+  },
+  "timing": {
+    "started_at": "2026-11-03T02:25:39.213453+00:00",
+    "finished_at": "2026-11-03T03:05:29.201491+00:00",
+    "supervisor_elapsed_seconds": 2389.9880973000036,
+    "training_elapsed_seconds": 2345.9512990000003,
+    "benchmark_elapsed_seconds": 33.266435500001535,
+    "reserved_seconds": 10800,
+    "formal_supervision": "Original PID/watchdog; no formal OSJob claim.",
+    "original_processes_observed_absent": true,
+    "canonical_lease_observed_absent": true
+  },
+  "benchmark": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "held_out_development_images": 5000,
+    "development_reused_for_exploration": true,
+    "training_examples": 40000,
+    "batch_size": 128,
+    "bn_recalibrated": false,
+    "policies": [
+      "plain",
+      "flip",
+      "center80_shift20"
+    ],
+    "cases": [
+      "clean",
+      "noise_004",
+      "boxblur3",
+      "contrast065",
+      "brightness080",
+      "resize24"
+    ],
+    "completed_policy_case_pairs": 18,
+    "examples_per_policy_case": 5000,
+    "recorded_pixel_hashes_match_references_all18_cases": true,
+    "recorded_evaluation_context_matches_incumbent": true,
+    "fixed_primary_policy": "center80_shift20",
+    "weighted_clean_accuracy": 0.9644,
+    "weighted_clean_nll": 0.12113073240071535,
+    "weighted_mean_stress_accuracy": 0.78652,
+    "weighted_cases": {
+      "clean": {
+        "examples": 5000,
+        "correct": 4822,
+        "accuracy": 0.9644,
+        "nll": 0.12113073240071535
+      },
+      "noise_004": {
+        "examples": 5000,
+        "correct": 3537,
+        "accuracy": 0.7074,
+        "nll": 0.9937639032363892
+      },
+      "boxblur3": {
+        "examples": 5000,
+        "correct": 2422,
+        "accuracy": 0.4844,
+        "nll": 1.5604671150207519
+      },
+      "contrast065": {
+        "examples": 5000,
+        "correct": 4778,
+        "accuracy": 0.9556,
+        "nll": 0.14412315103262663
+      },
+      "brightness080": {
+        "examples": 5000,
+        "correct": 4810,
+        "accuracy": 0.962,
+        "nll": 0.1279757438004017
+      },
+      "resize24": {
+        "examples": 5000,
+        "correct": 4116,
+        "accuracy": 0.8232,
+        "nll": 0.5393535388469696
+      }
+    },
+    "stress_scope": "Five self-generated synthetic proxies; neither CIFAR-C nor hidden-test evaluation."
+  },
+  "original_baseline_screen": {
+    "candidate_policy": "center80_shift20",
+    "baseline_policy": "flip",
+    "passed": true,
+    "clean_accuracy_delta": 0.0016000000000000458,
+    "mean_stress_accuracy_delta": 0.010239999999999916,
+    "passing_is_not_promotion": true
+  },
+  "incumbent_screen": {
+    "policy": "center80_shift20",
+    "incumbent_checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+    "incumbent_benchmark_sha256": "e3c586afc302d1422c80eb3831562f6b67f684d53c7b2b5390c9d4623001570b",
+    "incumbent_clean_accuracy": 0.9654,
+    "incumbent_clean_nll": 0.11753104768097401,
+    "incumbent_mean_stress_accuracy": 0.7971600000000001,
+    "clean_accuracy_delta": -0.001,
+    "mean_stress_accuracy_delta": -0.01064,
+    "correct_count_deltas": {
+      "clean": -5,
+      "noise_004": -347,
+      "boxblur3": 225,
+      "contrast065": -19,
+      "brightness080": -14,
+      "resize24": -111
+    },
+    "mean_gate_passed": false,
+    "stress_case_floor": -0.01,
+    "failed_stress_cases": [
+      "noise_004",
+      "resize24"
+    ],
+    "per_case_accuracy_deltas": {
+      "clean": -0.001,
+      "noise_004": -0.0694,
+      "boxblur3": 0.045,
+      "contrast065": -0.0038,
+      "brightness080": -0.0028,
+      "resize24": -0.0222
+    },
+    "all_required_point_and_case_gates_passed": false
+  },
+  "decision": {
+    "primary_gate_passed": false,
+    "promoted": false,
+    "paired": false,
+    "frozen": false,
+    "fresh160_control_executed": false,
+    "repeat_executed": false,
+    "hidden_prediction": false,
+    "submission": false,
+    "full50k_refit": false,
+    "reason": "Incumbent mean criterion fails; noise loses6.94pp and resize loses2.22pp, each beyond predeclared1pp floor. Stop before pairing, fresh160 control, repeat or delivery.",
+    "policy_and_thresholds_unchanged": true,
+    "schedule_causality_established": false,
+    "historical160_is_not_fresh_control": true
+  },
+  "official_scores": {
+    "candidate_submitted": false,
+    "candidate_public_score": null,
+    "actual_best_public_unchanged": 0.878,
+    "best_reference": 57854294,
+    "latest_TA_public": 0.867,
+    "private_scores_unreleased": true
+  },
+  "audit_scope": {
+    "JSON_text_and_byte_hash_audit": true,
+    "source_files_verified": 25,
+    "input_bindings_verified": 32,
+    "all18_recorded_metric_pixel_context_and_gate_arithmetic_verified": true,
+    "selected_checkpoint_tensor_reloaded_by_independent_audit": false,
+    "last_checkpoint_update_state_independently_loaded": false,
+    "typed_benchmark_selected_tensor_and_architecture_audit_recorded": true,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded": false,
+    "external_data_loaded": false,
+    "interpretation": "Frozen typed benchmark itself loaded and validated the selected checkpoint; independent audit checked JSON/text/byte hashes without tensor loading. Work counts are derived from completed epochs and original direct-SGD source. No paired interval, fresh160 control, independent seed variance or causal schedule conclusion."
+  },
+  "independent_stdlib_audit_sha256": "b89aa09718e9d805ab0b17bfe907b45da70e4b84db9353b5f545274a96c12c7d"
+}

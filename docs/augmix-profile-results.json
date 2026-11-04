@@ -1,0 +1,114 @@
+{
+  "schema": "augmix_native_pipeline_profile_aggregate_v1",
+  "recorded_at": "2026-10-31T23:25:38.967499+00:00",
+  "source_commit": "d2a7094d7303fa9e555ba8f47fa8f9aae5aadaad",
+  "private_summary_sha256": "fb288e65e77e9a75512b370bfd39bdf80aa9fde3f5a4aa5cc8f4105b7d458dc3",
+  "source_sha256": {
+    "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+    "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+    "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+    "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4",
+    "research/train_augmix.py": "4b975f8132f0608d7088a1d66a13008b702dac0387abe9ed8ff8cc15735689b0",
+    "research/augmix.py": "9786de01bcbe170d99f40d7681220732946348e933297b7bd600be8932e04f5f",
+    "research/train_shadow.py": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061",
+    "research/augmentations.py": "718530d2c56c556eb65508915126e0f5f0964a9c03d4937df74d3e3798551873",
+    "research/run_augmix_local.py": "61aee851bb6f2bbff757b83d80c8710c1437c330810f8408505227b31d9fe776",
+    "research/process_tree_guard.py": "5a5f79365308a987330bb6a91064173e7deb63da8583294585f254ed7f8b3d80",
+    "research/profile_augmix.py": "82af320b33b9778c2c32877e272d9e87a8265b70a313001d4775f267f7917c66",
+    "research/run_local.py": "6c42cfd08aaad6b39c1acd23ed788044a68c31b047a677a0218308a1dd15a069",
+    "research/campaign.json": "0f8b45721a7b72a242ecde9019935172427ec51ef4720b76902ff4015bab4bf7"
+  },
+  "config_sha256": "c7ba91cb25ff128dfe816b303cde43cd4678673e0847a9f5b5bca7c4c4541df8",
+  "status": "complete",
+  "engineering_only": true,
+  "formal_admission_evidence": false,
+  "accuracy_measured": false,
+  "official_training_only": true,
+  "confirmation_evaluated": false,
+  "hidden_images_loaded": false,
+  "normal_updates": 23,
+  "separate_overflow_passed": true,
+  "actual_CUDA_activity_observed": true,
+  "positive_CUDA_event_count": 15280,
+  "supervisor_elapsed_seconds": 33.70279909999954,
+  "OS_process_tree_cleanup_verified": true,
+  "local_lease_released": true,
+  "timed_wall_boundaries": {
+    "normal.backward_and_optimizer": {
+      "calls": 20,
+      "total_seconds": 4.5705698000019765,
+      "median_seconds": 0.22695765000025858,
+      "min_seconds": 0.22179330000290065,
+      "max_seconds": 0.24290800000017043
+    },
+    "normal.loss": {
+      "calls": 20,
+      "total_seconds": 3.258214000015869,
+      "median_seconds": 0.16259605000232114,
+      "min_seconds": 0.1513660999989952,
+      "max_seconds": 0.17006980000223848
+    },
+    "normal.model_forward": {
+      "calls": 20,
+      "total_seconds": 0.15969479999694158,
+      "median_seconds": 0.00807985000028566,
+      "min_seconds": 0.004581699999107514,
+      "max_seconds": 0.017349300000205403
+    },
+    "normal.queue_wait": {
+      "calls": 20,
+      "total_seconds": 0.00693689999752678,
+      "median_seconds": 0.000329250000504544,
+      "min_seconds": 0.00016349999714293517,
+      "max_seconds": 0.0005626999991363846
+    },
+    "normal.train_step_inclusive": {
+      "calls": 20,
+      "total_seconds": 8.020463900011237,
+      "median_seconds": 0.4008904000002076,
+      "min_seconds": 0.39217179999832297,
+      "max_seconds": 0.41944969999894965
+    }
+  },
+  "queue_fraction_of_queue_plus_train_step": 0.000864152690310319,
+  "CUDA_batchnorm_leaf_kernels": [
+    {
+      "name": "_ZN5cudnn24bn_fw_tr_1C11_singlereadI6__halfLi512ELb0ELi2ELi2ELi0EEEvNS_18bn_fw_tr_1C11_argsIT_EE",
+      "calls": 456,
+      "cpu_total_ms": 0.0,
+      "cpu_self_ms": 0.0,
+      "device_total_ms": 3455.300751000011,
+      "device_self_ms": 3455.300751000011
+    },
+    {
+      "name": "_ZN5cudnn21bn_bw_1C11_kernel_newI6__halff6float2Li128ELb0ELi3EEEvT0_S3_S3_S3_17cudnnTensorStructPKT_S4_S7_S4_PS5_PKS3_PS3_SB_SA_SA_S3_",
+      "calls": 168,
+      "cpu_total_ms": 0.0,
+      "cpu_self_ms": 0.0,
+      "device_total_ms": 2673.903669999999,
+      "device_self_ms": 2673.903669999999
+    },
+    {
+      "name": "_ZN5cudnn21bn_bw_1C11_singlereadI6__halfLi512ELb0ELi3ELi2ELi0EEEvNS_15bn_bw_1C11_argsIT_EE",
+      "calls": 288,
+      "cpu_total_ms": 0.0,
+      "cpu_self_ms": 0.0,
+      "device_total_ms": 1765.7032209999961,
+      "device_self_ms": 1765.7032209999961
+    }
+  ],
+  "CUDA_batchnorm_leaf_self_total_ms": 7894.907642000006,
+  "all24pass_parent_operator_device_total_ms": {
+    "aten::cudnn_batch_norm": 3459.9997030000313,
+    "aten::cudnn_batch_norm_backward": 4439.723463000008,
+    "aten::cudnn_convolution": 869.905340999933,
+    "aten::convolution_backward": 976.4930930000273
+  },
+  "interpretation": [
+    "The instrumented consumer queue wait is small in this prefetch/GPU context; worker PIL cost is not directly profiled and may become exposed after a GPU optimization.",
+    "Three concrete BatchNorm CUDA leaf kernels account for 7894.91ms across all24 model passes, including3 warmups and1 overflow. Parent and leaf times are alternative aggregations, never additive.",
+    "Host loss and synchronization ranges can wait for earlier asynchronous GPU work; the 162.6ms loss range is not evidence that JSD arithmetic itself costs162.6ms.",
+    "Profiler overhead and nested asynchronous ranges prevent formal runtime admission. This measurement does not establish a new training result or hidden-score improvement."
+  ],
+  "next_control": "Independent synthetic two-arm FP16 comparison changing only BatchNorm backend, preservingB128/single3B/objective/SGD/EMA; subsequent actual-image full-pipeline source-bound admission would still be required."
+}

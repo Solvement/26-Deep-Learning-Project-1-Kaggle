@@ -1,0 +1,9 @@
+# SAM full-data refit
+
+Extend the qualified WRN22-4/160 SAM primary, Kaggle reference 57855774 (87.1%), to all 50,000 official labeled images. Use one scratch residual network with 4,298,970 parameters, seed 2026, native BF16, the original nonadaptive radius of 0.05, and the original data transforms, SGD, schedule by epoch, and EMA update. Fix the final online weights at epoch 160 for inference with the frozen center80_shift20 policy. Train with zero validation and zero skipped steps.
+
+The independent review identified changes in data coverage, order, the final batch size, update count, schedule in update units, and the switch from development-selected epoch 157 to fixed epoch 160. The strongest scored refit is WRN34-3/160 at 88.0%. Its architecture and optimizer also differ. A score at or below 87.1% fails to improve the SAM parent. A score at or below 88.0% fails to advance the team best. Any improvement is an observed public result for the whole recipe.
+
+Admission requires actual 50k inputs, B128 and B80 updates, native BF16 and the original two-pass SAM path. Both passes consume the same prepared batch. Verify perturbation restoration, first-pass BN updates, second-pass BN restoration, and one SGD and EMA update per step. Include proof costs in the fixed 1.5 × median × 391 × 160 + 300 guard. Check the 10,800-second job cap, remaining local UTC-day budget, and 23:55 UTC stop. Start formal training from fresh state after the bounded preflight.
+
+Require 62,560 successful updates, 125,120 loss closures, and 8,000,000 original image exposures. Verify the terminal online weights against the final checkpoint, including buffers. Use an explicit typed delivery and the existing submission guards. Validation and confirmation remain outside the refit. Read the official hidden inputs only after the full parent lineage and refit qualify for prediction.

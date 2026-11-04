@@ -1,0 +1,289 @@
+"""Bounded diagnostic routing, shared GPU exclusion and accounting; mocked children."""
+from datetime import timedelta
+import json
+from pathlib import Path
+import tempfile
+from types import SimpleNamespace
+from types import ModuleType
+import sys
+import unittest
+from unittest.mock import patch
+
+import psutil
+from research import run_diagnostic as diagnostic
+from research.run_local import used_seconds
+
+
+class DiagnosticSupervisorTests(unittest.TestCase):
+    def test_refit_prediction_requires_plan_and_hashes_completed_refit_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            (root/"research/refit_delivery.py").write_text("mock refit delivery entrypoint")
+            job = root/"refit"
+            job.mkdir()
+            for name in ("best.pt", "last.pt", "input_config.json", "config.json", "metrics.json", "history.json",
+                         "provenance.json", "environment.json", "supervisor.json"):
+                (job/name).write_text("mock complete artifact")
+            plan = job/"refit_plan.json"
+            plan.write_text(json.dumps({"parent_delivery_path": str(root/"frozen.json"), "source_sha256": {}}))
+            with patch.object(diagnostic, "ROOT", root):
+                args = SimpleNamespace(mode="refit-predict", plan=None)
+                with self.assertRaisesRegex(ValueError, "requires --plan"):
+                    diagnostic.build_command(args, root/"new", root/"baseline.json")
+                args.plan = plan
+                command, output, inputs = diagnostic.build_command(args, root/"new", root/"baseline.json")
+                self.assertEqual(command[1], "research/refit_delivery.py")
+                self.assertEqual(command[command.index("--plan")+1], str(plan))
+                self.assertEqual(output.name, "delivery.json")
+                self.assertTrue({plan, job/"best.pt", job/"last.pt", job/"supervisor.json", root/"frozen.json"} <= set(inputs))
+
+    def setup_root(self, root, daily=21600):
+        (root/"research").mkdir()
+        (root/"results/regularized").mkdir(parents=True)
+        (root/"results/regularized/best.pt").write_bytes(b"trusted-presence-only")
+        (root/"research/campaign.json").write_text(json.dumps({
+            "stops_at": "2099-01-01T00:00:00+00:00", "local_gpu_seconds_per_utc_day": daily,
+            "local_job_timeout_seconds": 10800, "baseline_benchmark": "baseline.json"}))
+        for name in ("train_sam.py", "benchmark_shadow.py", "benchmark_sam.py", "benchmark_resizemix.py",
+                     "paired_compare.py", "paired_compare_v2.py", "delivery.py", "delivery_v2.py", "submit_candidate.py",
+                     "repeat_attestation.py"):
+            (root/"research"/name).write_text("mock child entrypoint")
+        for name in ("config.json", "baseline.json", "candidate.json", "frozen.json", "receipt.json",
+                     "metrics.json", "history.json", "provenance.json", "environment.json"):
+            (root/name).write_text("{}")
+        (root/"best.pt").write_bytes(b"checkpoint-presence-only")
+        return ["run_diagnostic.py", "--run", "check", "--mode", "sam-speed", "--config", str(root/"config.json")]
+
+    def test_all_modes_route_only_to_allowlisted_commands(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            args = SimpleNamespace(mode="sam-speed", config=root/"config.json", checkpoint=root/"best.pt",
+                                   candidate_benchmark=root/"candidate.json", policy="flip", manifest=root/"frozen.json",
+                                   repeat_checkpoint=root/"best.pt", repeat_benchmark=root/"candidate.json", repeat_receipt=root/"receipt.json")
+            entries = {"sam-speed": "research/train_sam.py", "shadow-benchmark": "research/benchmark_shadow.py",
+                       "sam-benchmark": "research/benchmark_sam.py", "resizemix-benchmark": "research/benchmark_resizemix.py",
+                       "paired": "research/paired_compare.py", "paired-v2": "research/paired_compare_v2.py",
+                       "predict": "research/delivery.py", "predict-v2": "research/delivery_v2.py"}
+            with patch.object(diagnostic, "ROOT", root), \
+                    patch.object(diagnostic, "validate_native_repeat_receipt", return_value={"repeat_receipt_schema": "native_local_repeat_v1"}):
+                for mode, entry in entries.items():
+                    args.mode = mode
+                    command, output, inputs = diagnostic.build_command(args, root/"new", root/"baseline.json")
+                    self.assertEqual(command[1], entry)
+                    self.assertTrue(all(path.is_file() for path in inputs))
+                    self.assertEqual(command[command.index("--device")+1], "cuda")
+                    if mode == "sam-speed":
+                        self.assertEqual(command[command.index("--benchmark-steps")+1], "20")
+                        self.assertEqual(command[command.index("--precision")+1], "bf16")
+                        self.assertEqual(output.name, "engineering_benchmark.json")
+                    elif mode in ("paired", "paired-v2"):
+                        self.assertEqual(command[command.index("--baseline-checkpoint")+1], str(root/"results/regularized/best.pt"))
+                        self.assertEqual(output.name, "paired.json")
+                    elif mode in ("predict", "predict-v2"):
+                        self.assertIn("--predict", command)
+                        self.assertEqual(command[command.index("--manifest")+1], str(root/"frozen.json"))
+                        self.assertEqual(command[command.index("--output-dir")+1], str(root/"new"))
+                        self.assertEqual(output.name, "delivery.json")
+                        self.assertTrue({root/"frozen.json", root/"best.pt", root/"candidate.json", root/"receipt.json",
+                                         root/"config.json", root/"metrics.json", root/"history.json", root/"provenance.json", root/"environment.json"} <= set(inputs))
+
+    def test_cloud_repeat_predict_deepchecks_attestation_and_hashes_all_original_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            attestation = root/"attestation.json"
+            attestation.write_text("{}")
+            evidence = root/"original_cloud_supervisor.json"
+            evidence.write_text("immutable original cloud evidence")
+            helper = root/"research/helper.py"
+            helper.write_text("pinned helper")
+            checked = {"schema": "research_cloud_repeat_attestation_v1", "attestation_path": str(attestation),
+                "attestation_sha256": diagnostic.sha256(attestation), "frozen_manifest_path": str(root/"frozen.json"),
+                "frozen_manifest_sha256": diagnostic.sha256(root/"frozen.json"),
+                "evidence_sha256": {str(evidence): diagnostic.sha256(evidence)},
+                "source_sha256": {"research/helper.py": diagnostic.sha256(helper)}}
+            module = ModuleType("research.repeat_attestation")
+            from unittest.mock import Mock
+            module.validate_attestation = Mock(return_value=checked)
+            args = SimpleNamespace(mode="cloud-repeat-predict", manifest=root/"frozen.json", attestation=attestation)
+            with patch.object(diagnostic, "ROOT", root), patch.dict(sys.modules, {"research.repeat_attestation": module}):
+                command, output, inputs = diagnostic.build_command(args, root/"new", root/"baseline.json")
+            module.validate_attestation.assert_called_once_with(attestation, manifest_path=root/"frozen.json")
+            self.assertEqual(command[1], "research/repeat_attestation.py")
+            self.assertEqual(command[command.index("--attestation")+1], str(attestation))
+            self.assertEqual(output.name, "delivery.json")
+            self.assertTrue({attestation, evidence, helper, root/"frozen.json", root/"research/repeat_attestation.py"} <= set(inputs))
+
+    def test_ordinary_v2_prediction_rejects_cloud_or_composed_receipts_before_a_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            for document in ({"schema": "research_cloud_repeat_attestation_v1"},
+                             {"backend": "local", "trainer": "resizemix", "composition": True},
+                             {"backend": "local", "trainer": "frozen", "session": "still-cloud"}):
+                (root/"receipt.json").write_text(json.dumps(document))
+                args = SimpleNamespace(mode="predict-v2", manifest=root/"frozen.json", repeat_checkpoint=root/"best.pt",
+                    repeat_benchmark=root/"candidate.json", repeat_receipt=root/"receipt.json")
+                with patch.object(diagnostic, "ROOT", root), patch.object(diagnostic, "acquire_lease") as lease:
+                    with self.assertRaisesRegex(ValueError, "original native"):
+                        diagnostic.build_command(args, root/"new", root/"baseline.json")
+                    lease.assert_not_called()
+
+    def test_cloud_repeat_prediction_rejects_original_evidence_change_during_child(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            attestation = root/"attestation.json"; attestation.write_text("{}")
+            evidence = root/"original_cloud_receipt.json"; evidence.write_text("original")
+            checked = {"schema": "research_cloud_repeat_attestation_v1", "attestation_path": str(attestation),
+                "attestation_sha256": diagnostic.sha256(attestation), "frozen_manifest_path": str(root/"frozen.json"),
+                "frozen_manifest_sha256": diagnostic.sha256(root/"frozen.json"),
+                "evidence_sha256": {str(evidence): diagnostic.sha256(evidence)}, "source_sha256": {}}
+            module = ModuleType("research.repeat_attestation")
+            from unittest.mock import Mock
+            module.validate_attestation = Mock(return_value=checked)
+            argv = ["run_diagnostic.py", "--run", "cloud_prediction", "--mode", "cloud-repeat-predict",
+                    "--manifest", str(root/"frozen.json"), "--attestation", str(attestation)]
+            def changed(command, log, timeout, receipt_path, receipt):
+                (receipt_path.parent/"delivery.json").write_text(json.dumps({"status": "complete"}))
+                evidence.write_text("changed during inference")
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                    patch.dict(sys.modules, {"research.repeat_attestation": module}), \
+                    patch.object(diagnostic, "supervised_command", side_effect=changed):
+                with self.assertRaisesRegex(RuntimeError, "evidence changed"):
+                    diagnostic.main()
+            receipt = json.loads((root/"results/research/cloud_prediction/supervisor.json").read_text())
+            self.assertEqual(receipt["status"], "failed")
+            self.assertFalse((root/"results/research/local_lease.json").exists())
+
+    def test_missing_required_mode_inputs_rejected_before_a_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            with patch.object(diagnostic, "ROOT", root), patch.object(diagnostic, "acquire_lease") as lease:
+                for mode in diagnostic.MODES:
+                    with patch("sys.argv", ["run_diagnostic.py", "--run", "missing", "--mode", mode]):
+                        with self.assertRaises(ValueError):
+                            diagnostic.main()
+            lease.assert_not_called()
+
+    def test_predict_requires_every_explicit_repeat_input_before_a_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.setup_root(root)
+            arguments = [("--manifest", str(root/"frozen.json")), ("--repeat-checkpoint", str(root/"best.pt")),
+                         ("--repeat-benchmark", str(root/"candidate.json")), ("--repeat-receipt", str(root/"receipt.json"))]
+            with patch.object(diagnostic, "ROOT", root), patch.object(diagnostic, "acquire_lease") as lease:
+                for omitted in range(len(arguments)):
+                    argv = ["run_diagnostic.py", "--run", "missing", "--mode", "predict"]
+                    argv += [value for index, pair in enumerate(arguments) if index != omitted for value in pair]
+                    with patch("sys.argv", argv):
+                        with self.assertRaisesRegex(ValueError, "predict requires"):
+                            diagnostic.main()
+            lease.assert_not_called()
+
+    def test_active_local_owner_refuses_without_creating_diagnostic_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = self.setup_root(root)
+            base = root/"results/research"
+            base.mkdir()
+            lease = base/"local_lease.json"
+            process = psutil.Process()
+            original = json.dumps({"pid": process.pid, "process_created_at": process.create_time()})
+            lease.write_text(original)
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                 patch.object(diagnostic, "supervised_command") as child:
+                with self.assertRaisesRegex(RuntimeError, "already holds"):
+                    diagnostic.main()
+            child.assert_not_called()
+            self.assertFalse((base/"check").exists())
+            self.assertEqual(lease.read_text(), original)
+
+    def test_complete_diagnostic_has_default_bound_and_counts_once_ignoring_cloud(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = self.setup_root(root)
+            cloud = root/"results/research/cloud"
+            cloud.mkdir(parents=True)
+            (cloud/"supervisor.json").write_text(json.dumps({"session": "owned-cloud", "assignment_attempts": 1,
+                                                           "status": "training_and_benchmarking"}))
+            def complete(command, log, timeout, receipt_path, receipt):
+                (receipt_path.parent/"engineering_benchmark.json").write_text(json.dumps({"status": "complete"}))
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                 patch.object(diagnostic, "supervised_command", side_effect=complete) as child:
+                diagnostic.main()
+            self.assertGreater(child.call_args.args[2], 0)
+            self.assertLessEqual(child.call_args.args[2], 180)
+            base = root/"results/research"
+            record = json.loads((base/"check/supervisor.json").read_text())
+            self.assertEqual((record["status"], record["role"], record["backend"]), ("complete", "diagnostic", "local"))
+            self.assertEqual(record["reserved_seconds"], 180)
+            day = diagnostic.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            self.assertAlmostEqual(used_seconds(base, day, day+timedelta(days=1)),
+                                   (diagnostic.datetime.fromisoformat(record["finished_at"])-
+                                    diagnostic.datetime.fromisoformat(record["started_at"])).total_seconds())
+            self.assertFalse((base/"local_lease.json").exists())
+
+    def test_exhausted_budget_refuses_child_and_releases_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = self.setup_root(root, daily=0)
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                 patch.object(diagnostic, "supervised_command") as child:
+                with self.assertRaisesRegex(RuntimeError, "runtime remains"):
+                    diagnostic.main()
+            child.assert_not_called()
+            self.assertFalse((root/"results/research/local_lease.json").exists())
+
+    def test_campaign_hardstop_caps_the_child_below_requested_duration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = self.setup_root(root)
+            current = diagnostic.now()
+            policy_path = root/"research/campaign.json"
+            policy = json.loads(policy_path.read_text())
+            policy["stops_at"] = (current+timedelta(seconds=5)).isoformat()
+            policy_path.write_text(json.dumps(policy))
+            def complete(command, log, timeout, receipt_path, receipt):
+                (receipt_path.parent/"engineering_benchmark.json").write_text(json.dumps({"status": "complete"}))
+            with patch.object(diagnostic, "ROOT", root), patch.object(diagnostic, "now", return_value=current), \
+                 patch("sys.argv", argv), patch.object(diagnostic, "supervised_command", side_effect=complete) as child:
+                diagnostic.main()
+            self.assertGreater(child.call_args.args[2], 0)
+            self.assertLessEqual(child.call_args.args[2], 5)
+
+    def test_existing_completed_output_is_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = self.setup_root(root)
+            folder = root/"results/research/check"
+            folder.mkdir(parents=True)
+            evidence = folder/"engineering_benchmark.json"
+            evidence.write_text("original immutable evidence")
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                 patch.object(diagnostic, "acquire_lease") as lease:
+                with self.assertRaisesRegex(FileExistsError, "immutable"):
+                    diagnostic.main()
+            lease.assert_not_called()
+            self.assertEqual(evidence.read_text(), "original immutable evidence")
+
+    def test_parent_exception_preserves_failure_receipt_and_releases_owned_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            argv = self.setup_root(root)
+            with patch.object(diagnostic, "ROOT", root), patch("sys.argv", argv), \
+                 patch.object(diagnostic, "supervised_command", side_effect=KeyboardInterrupt):
+                with self.assertRaises(KeyboardInterrupt):
+                    diagnostic.main()
+            record = json.loads((root/"results/research/check/supervisor.json").read_text())
+            self.assertEqual(record["status"], "failed")
+            self.assertEqual(record["error_type"], "KeyboardInterrupt")
+            self.assertIn("finished_at", record)
+            self.assertFalse((root/"results/research/local_lease.json").exists())
+
+
+if __name__ == "__main__":
+    unittest.main()
