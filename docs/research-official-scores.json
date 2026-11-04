@@ -1,12 +1,12 @@
 {
   "schema": "official_research_score_aggregate_v1",
-  "recorded_at": "2026-11-03T19:57:19.994723+00:00",
+  "recorded_at": "2026-11-04T20:31:44.719564+00:00",
   "team": "Saber",
   "source": "Actual official complete research receipts; public copies differ only in JSON serialization, preserve all original parsed scalar metadata.",
   "original_primary_public": 0.871,
   "original_best_public": 0.874,
-  "best_new_public": 0.88,
-  "best_observed_public": 0.88,
+  "best_new_public": 0.881,
+  "best_observed_public": 0.881,
   "private_scores_released": false,
   "scored_candidates": [
     {
@@ -118,33 +118,53 @@
       "original_private_receipt_sha256": "85ba6a26de5ff927bbc90317f67b5bd81bff961bb2e22c19717649d269dadc91",
       "public_canonical_receipt_sha256": "aca71e8481e741eba55935556a76eae857b80a59ded6743c99b08949277e065c",
       "same_parsed_receipt": true
+    },
+    {
+      "submission_ref": 57998038,
+      "status": "complete",
+      "public_score": 0.881,
+      "private_score": null,
+      "checkpoint_sha256": "9d8304037925ca41c2b10f90cd0ff8f573142e0de68b6ad1a8159f6abb1a6812",
+      "submission_sha256": "a442e318791a7a3294c8acee45a440d35b8afd15e8201887af72ed5d841f03c2",
+      "policy": "center80_shift20",
+      "seed": 2026,
+      "training_examples": 50000,
+      "parameter_count": 4298970,
+      "validation_examples": 0,
+      "independent_development_evaluated": false,
+      "delivery_schema": "research_sam_full_refit_delivery_nov04_v1",
+      "label": "WRN22-4/SAM/160 full50k fixed refit",
+      "actual_receipt_run": "sam_full_refit_nov04_train_20261104_v1",
+      "original_private_receipt_sha256": "4cce3d22cd4e37202bc103bbbba3cf28955958e93cfd18f54cf90928ecb37668",
+      "public_canonical_receipt_sha256": "b726f16c1334093c34e7864969e96649625fc4fa230a3de92e915e922a1b4565",
+      "same_parsed_receipt": true
     }
   ],
   "quota_last_verified": {
-    "checked_at": "2026-11-03T19:57:19.994723+00:00",
-    "UTC_day": "2026-11-03",
-    "used": 2,
-    "remaining": 3,
-    "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
-    "snapshot_note": "Actual read-only official whole-team quota after full refit scoring. Recheck before upload."
+    "checked_at": "2026-11-04T20:31:44.719564+00:00",
+    "UTC_day": "2026-11-04",
+    "used": 1,
+    "remaining": 4,
+    "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
+    "snapshot_note": "Official read-only whole-team quota after November 4 SAM full refit scoring. Recheck before upload."
   },
   "no_hidden_prediction_rows_or_weights_or_credentials": true,
   "current_team_quota_verified_after_latest_submission": true,
   "current_team_quota": {
-    "checked_at": "2026-11-03T19:57:19.994723+00:00",
-    "UTC_day": "2026-11-03",
-    "used": 2,
-    "remaining": 3,
-    "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
-    "snapshot_note": "Actual read-only official whole-team quota after full refit scoring. Recheck before upload."
-  },
-  "latest_feedback": "Frozen TrivialAugment primary2026 scored0.867 public after its exact fresh2027 repeat passed all fixed local gates. It did not improve the observed best0.878 (WRN34-3/300). The large synthetic-stress gains and successful repeat did not establish a hidden-test improvement; preserve the frozen primary, policy, thresholds and all negative evidence. Private scores remain unreleased.",
-  "quota_before_latest_submission": {
-    "UTC_day": "2026-11-03",
+    "checked_at": "2026-11-04T20:31:44.719564+00:00",
+    "UTC_day": "2026-11-04",
     "used": 1,
     "remaining": 4,
-    "actual_saved_intent_sha256": "6fd821390c004302ff57ea15fab029230c393eea3452e7075cb3af021969c513",
-    "recorded_at_upload_intent": "2026-11-03T19:56:39.480535+00:00",
+    "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
+    "snapshot_note": "Official read-only whole-team quota after November 4 SAM full refit scoring. Recheck before upload."
+  },
+  "latest_feedback": "November 4 SAM full-data refit scored 0.881, +1.0 percentage point versus its 40k parent and +0.1 versus the prior team best. Coverage, update count and checkpoint selection changed together.",
+  "quota_before_latest_submission": {
+    "UTC_day": "2026-11-04",
+    "used": 0,
+    "remaining": 5,
+    "actual_saved_intent_sha256": "5eace5045e3f9a9b037ff395b7a5985006f4d98d99d106e9e1d478ca56297d78",
+    "recorded_at_upload_intent": "2026-11-04T20:30:06.589674+00:00",
     "snapshot_note": "Actual pre-upload official whole-team quota saved in the upload intent."
   },
   "current_team_quota_note": "Actual post-refit official quota response.",
@@ -164,17 +184,25 @@
       "remaining": 4,
       "raw_official_probe_sha256": "66246da5fc6f22ca41efe394b3ae9ff8cea93f7912a63c751e1f261a5524bc81",
       "snapshot_note": "Actual read-only official whole-team post-TrivialAugment-submission API response. Recheck live immediately before another upload; this point-in-time snapshot is not a future quota guarantee."
+    },
+    {
+      "checked_at": "2026-11-03T19:57:19.994723+00:00",
+      "UTC_day": "2026-11-03",
+      "used": 2,
+      "remaining": 3,
+      "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
+      "snapshot_note": "Actual read-only official whole-team quota after full refit scoring. Recheck before upload."
     }
   ],
   "latest_official_status_check": {
-    "checked_at": "2026-11-03T19:57:19.994723+00:00",
-    "raw_official_probe_sha256": "e65e5eb83e4c05a055081c39a401611bf319b503fd5de27545cb08222cfaf21c",
-    "latest_submission_ref": 57959211,
+    "checked_at": "2026-11-04T20:31:44.719564+00:00",
+    "raw_official_probe_sha256": "39e4ef8bf2aae26a801342299bb60c75c90ea8f1b02be5b7b345c7588eb28906",
+    "latest_submission_ref": 57998038,
     "latest_status": "COMPLETE",
-    "latest_public_score": 0.88,
-    "best_submission_ref": 57959211,
+    "latest_public_score": 0.881,
+    "best_submission_ref": 57998038,
     "best_status": "COMPLETE",
-    "best_public_score": 0.88,
+    "best_public_score": 0.881,
     "team": "Saber"
   }
 }

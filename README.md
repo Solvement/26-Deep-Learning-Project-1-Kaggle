@@ -39,8 +39,8 @@ The independent one-time confirmation result is **96.64%** for the selected
 40,000-image `regularized` candidate. It is not a confirmation score for either
 full-data model. The original study peaked at 87.40% public accuracy. Its
 primary 160-epoch full-data result scored 87.10%, and its exploratory refit
-scored 86.20%. The later campaign reached 88.00% with a fixed 160-epoch
-WRN34-3 full-data refit, as recorded in
+scored 86.20%. The later campaign reached 88.10% with a fixed 160-epoch
+WRN22-4/SAM full-data refit, as recorded in
 [the official score ledger](docs/research-official-scores.json). The
 primary study and its one-time confirmation remain unchanged; no individual
 cause is inferred from this bundled extension. Private leaderboard scores are
