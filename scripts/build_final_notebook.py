@@ -11,7 +11,7 @@ from nbclient import NotebookClient
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "notebooks/Project1_Final_Results.ipynb"
-REPO = "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/five-day-autoresearch"
+REPO = "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle"
 
 md, code = nbformat.v4.new_markdown_cell, nbformat.v4.new_code_cell
 cells = [

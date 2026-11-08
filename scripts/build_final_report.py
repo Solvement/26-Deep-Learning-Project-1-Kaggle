@@ -9,6 +9,7 @@ import base64
 import json
 import shutil
 import subprocess
+import tempfile
 
 import matplotlib
 matplotlib.use("Agg")
@@ -18,7 +19,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports/final"
 FIG = ROOT / "docs/figures"
-REPO = "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/five-day-autoresearch"
+REPO = "https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle"
 scores = json.loads((ROOT / "docs/final-kaggle-scores.json").read_text())["submissions"]
 curves = json.loads((ROOT / "docs/final-curves.json").read_text())
 plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False})
@@ -242,8 +243,17 @@ def main():
     page = OUT / "report.html"
     page.write_text(html(), encoding="utf-8")
     pdf = OUT / "ky2738_Saber_Project1_Report.pdf"
-    subprocess.run([browser(), "--headless", "--disable-gpu", "--no-pdf-header-footer", f"--print-to-pdf={pdf}", page.as_uri()],
-                   check=True, capture_output=True, timeout=120)
+    # Print into a fresh temp dir (own browser profile), then copy: a PDF open in a viewer stays locked on Windows,
+    # and the browser exits 0 without writing, which would silently keep a stale PDF.
+    with tempfile.TemporaryDirectory() as tmp:
+        fresh = Path(tmp) / pdf.name
+        subprocess.run([browser(), "--headless", "--disable-gpu", f"--user-data-dir={tmp}/profile", "--no-pdf-header-footer",
+                        f"--print-to-pdf={fresh}", page.as_uri()], check=True, capture_output=True, timeout=120)
+        assert fresh.is_file(), "browser did not write the PDF"
+        try:
+            shutil.copyfile(fresh, pdf)
+        except PermissionError:
+            raise SystemExit(f"{pdf} is open in another program; close it and rerun") from None
     from pypdf import PdfReader
     pages = len(PdfReader(pdf).pages)
     assert pages <= 8, f"report has {pages} pages (limit 8)"

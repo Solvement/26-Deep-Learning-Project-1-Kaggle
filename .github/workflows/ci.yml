@@ -43,4 +43,8 @@ jobs:
         env:
           MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
           XDG_CACHE_HOME: ${{ runner.temp }}/cache
-        run: python -m unittest discover -s tests -v
+        # Campaign guards compare against the real clock; their hard stop (2026-11-05) has passed.
+        # Pin the clock to the last green run so the guard logic stays tested.
+        run: |
+          sudo apt-get install -y -qq faketime
+          faketime '2026-11-04 22:00:00' python -m unittest discover -s tests -v
