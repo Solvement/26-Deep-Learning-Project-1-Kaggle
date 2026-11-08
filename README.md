@@ -20,7 +20,34 @@ trainable parameters**. Its constructor rejects models above the 5,000,000
 parameter limit. Training uses only the official competition images and labels;
 no external data or pretrained weights are used.
 
-## Measured results
+## Final results (competition closed)
+
+| Final model | Params | Public | Private |
+|---|---:|---:|---:|
+| WRN-22-4 student, distilled from 8 scratch-trained teachers, 50k images, 160 epochs | 4,298,970 | 88.8% | 85.4% |
+| Best private entry: WRN-34-3 + TrivialAugment, 50k images | 4,166,298 | 87.1% | 86.8% |
+
+All 16 official public/private scores: [docs/final-kaggle-scores.json](docs/final-kaggle-scores.json).
+Executed notebook with printed parameter count, final accuracy and plots:
+[notebooks/Project1_Final_Results.ipynb](notebooks/Project1_Final_Results.ipynb)
+(rebuild with `python scripts/build_final_notebook.py`; the report PDF is built by
+`python scripts/build_final_report.py`).
+
+Reproduce the final model (official data only, one CUDA GPU):
+
+```bash
+python prepare_data.py
+python research/train_kd_ensemble.py --teachers full50k_8 --output-dir results/research/kd_full50k8_s2026_v1
+python research/predict_kd.py --checkpoint results/research/kd_full50k8_s2026_v1/final_model.pt --output-dir results/research/kd_full50k8_s2026_v1/pred_model
+```
+
+The teacher checkpoints listed in `TEACHER_SETS` of
+[research/train_kd_ensemble.py](research/train_kd_ensemble.py) are produced by the
+training routes described below and in [research/README.md](research/README.md).
+Distillation loss: `0.1*CE + 0.9*T^2*KL(mean teacher softmax_T || student softmax_T)`, `T=4`,
+with teachers evaluated on the same augmented MixUp batch as the student.
+
+## Measured results (original five-entry study)
 
 All **five official submissions are scored**, using the full daily allowance
 for **2026-10-31 UTC** (Kaggle reported 5 submitted and 0 remaining on that date).

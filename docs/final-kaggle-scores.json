@@ -1,0 +1,24 @@
+{
+  "schema": "final_kaggle_scores_v1",
+  "team": "Saber",
+  "retrieved_utc": "2026-11-07T23:55:00Z",
+  "source": "kaggle competitions submissions (official API) after the competition closed; public and private halves have 1,000 images each",
+  "submissions": [
+    {"ref": 57825539, "label": "baseline", "arch": "WRN-16-2", "params": 691674, "train_images": 40000, "epochs": 160, "method": "crop/flip", "public": 0.835, "private": 0.809},
+    {"ref": 57825558, "label": "architecture", "arch": "WRN-22-4", "params": 4298970, "train_images": 40000, "epochs": 160, "method": "crop/flip", "public": 0.854, "private": 0.833},
+    {"ref": 57825566, "label": "regularized", "arch": "WRN-22-4", "params": 4298970, "train_images": 40000, "epochs": 160, "method": "+Cutout +MixUp", "public": 0.874, "private": 0.845},
+    {"ref": 57825964, "label": "final_full (pre-declared primary)", "arch": "WRN-22-4", "params": 4298970, "train_images": 50000, "epochs": 160, "method": "regularized recipe, full-data refit", "public": 0.871, "private": 0.865},
+    {"ref": 57827678, "label": "robust_full", "arch": "WRN-22-4", "params": 4298970, "train_images": 50000, "epochs": 300, "method": "+RandAugment, EMA, 10-view TTA", "public": 0.862, "private": 0.842},
+    {"ref": 57853905, "label": "WRN34-3/160", "arch": "WRN-34-3", "params": 4166298, "train_images": 40000, "epochs": 160, "method": "regularized recipe", "public": 0.869, "private": 0.844},
+    {"ref": 57854107, "label": "ResizeMix", "arch": "WRN-22-4", "params": 4298970, "train_images": 40000, "epochs": 160, "method": "+ResizeMix", "public": 0.875, "private": 0.842},
+    {"ref": 57854294, "label": "WRN34-3/300", "arch": "WRN-34-3", "params": 4166298, "train_images": 40000, "epochs": 300, "method": "regularized recipe", "public": 0.878, "private": 0.847},
+    {"ref": 57855774, "label": "SAM", "arch": "WRN-22-4", "params": 4298970, "train_images": 40000, "epochs": 160, "method": "+SAM optimizer", "public": 0.871, "private": 0.858},
+    {"ref": 57928377, "label": "TrivialAugment", "arch": "WRN-34-3", "params": 4166298, "train_images": 40000, "epochs": 160, "method": "+TrivialAugment", "public": 0.867, "private": 0.857},
+    {"ref": 57959211, "label": "WRN34-3 full-data refit", "arch": "WRN-34-3", "params": 4166298, "train_images": 50000, "epochs": 160, "method": "regularized recipe", "public": 0.880, "private": 0.849},
+    {"ref": 57998038, "label": "SAM full-data refit", "arch": "WRN-22-4", "params": 4298970, "train_images": 50000, "epochs": 160, "method": "+SAM optimizer", "public": 0.881, "private": 0.856},
+    {"ref": 58000296, "label": "TrivialAugment full-data refit", "arch": "WRN-34-3", "params": 4166298, "train_images": 50000, "epochs": 160, "method": "+TrivialAugment", "public": 0.871, "private": 0.868},
+    {"ref": 58004369, "label": "KD 4 teachers", "arch": "WRN-22-4", "params": 4298970, "train_images": 50000, "epochs": 160, "method": "ensemble distillation, 4 scratch teachers", "public": 0.886, "private": 0.857},
+    {"ref": 58010328, "label": "KD 8 teachers", "arch": "WRN-22-4", "params": 4298970, "train_images": 50000, "epochs": 160, "method": "ensemble distillation, 8 scratch teachers", "public": 0.888, "private": 0.854},
+    {"ref": 58036221, "label": "KD 8 teachers / 300", "arch": "WRN-22-4", "params": 4298970, "train_images": 50000, "epochs": 300, "method": "ensemble distillation, 8 scratch teachers", "public": 0.881, "private": 0.858}
+  ]
+}
