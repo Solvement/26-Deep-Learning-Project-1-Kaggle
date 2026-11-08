@@ -4,17 +4,50 @@ Kevin Yang (`ky2738`) | Team **Saber** | NYU Deep Learning Project 1
 
 [Competition](https://www.kaggle.com/competitions/cifar-10-res-net-architecture-challenge-dl) · [Verified requirements](docs/competition.md) · [Experiment protocol](docs/experiment-plan.md) · [Delivery checklist](docs/requirements-checklist.md)
 
-The repository is public. The implemented pipeline is on
-[`feat/cifar10-resnet-submission`](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/tree/feat/cifar10-resnet-submission)
-and [PR 6](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/pull/6),
-pending human review; `main` still contains the earlier environment harness.
+The repository is public. The primary pipeline was merged into `main` through
+[PR 6](https://github.com/Solvement/26-Deep-Learning-Project-1-Kaggle/pull/6)
+with the owner's explicit merge authorization. The original feature branch is
+retained as the report's reproducibility link. The separate five-day exploratory
+campaign is documented in [research/README.md](research/README.md) and Issue 7.
+The campaign keeps the primary study and its confirmation split frozen.
+
+[Implementation notes](docs/IMPLEMENTATION_NOTES.md) record the decisions and
+full timeline. [Settings](docs/SETTINGS.md) describe the runtime and Kaggle
+credential setup.
 
 The main model is a scratch-initialized **WideResNet-22-4 with 4,298,970 total and
 trainable parameters**. Its constructor rejects models above the 5,000,000
 parameter limit. Training uses only the official competition images and labels;
 no external data or pretrained weights are used.
 
-## Measured results
+## Final results (competition closed)
+
+| Final model | Params | Public | Private |
+|---|---:|---:|---:|
+| WRN-22-4 student, distilled from 8 scratch-trained teachers, 50k images, 160 epochs | 4,298,970 | 88.8% | 85.4% |
+| Best private entry: WRN-34-3 + TrivialAugment, 50k images | 4,166,298 | 87.1% | 86.8% |
+
+All 16 official public/private scores: [docs/final-kaggle-scores.json](docs/final-kaggle-scores.json).
+Executed notebook with printed parameter count, final accuracy and plots:
+[notebooks/Project1_Final_Results.ipynb](notebooks/Project1_Final_Results.ipynb)
+(rebuild with `python scripts/build_final_notebook.py`; the report PDF is built by
+`python scripts/build_final_report.py`).
+
+Reproduce the final model (official data only, one CUDA GPU):
+
+```bash
+python prepare_data.py
+python research/train_kd_ensemble.py --teachers full50k_8 --output-dir results/research/kd_full50k8_s2026_v1
+python research/predict_kd.py --checkpoint results/research/kd_full50k8_s2026_v1/final_model.pt --output-dir results/research/kd_full50k8_s2026_v1/pred_model
+```
+
+The teacher checkpoints listed in `TEACHER_SETS` of
+[research/train_kd_ensemble.py](research/train_kd_ensemble.py) are produced by the
+training routes described below and in [research/README.md](research/README.md).
+Distillation loss: `0.1*CE + 0.9*T^2*KL(mean teacher softmax_T || student softmax_T)`, `T=4`,
+with teachers evaluated on the same augmented MixUp batch as the student.
+
+## Measured results (original five-entry study)
 
 All **five official submissions are scored**, using the full daily allowance
 for **2026-10-31 UTC** (Kaggle reported 5 submitted and 0 remaining on that date).
@@ -31,9 +64,11 @@ The exploratory T4 run completed
 
 The independent one-time confirmation result is **96.64%** for the selected
 40,000-image `regularized` candidate. It is not a confirmation score for either
-full-data model. The current highest completed public score is 87.40%; the
-primary 160-epoch full-data result is separately reported as 87.10%. The
-exploratory 86.20% result did not improve the best observed public score. The
+full-data model. The original study peaked at 87.40% public accuracy. Its
+primary 160-epoch full-data result scored 87.10%, and its exploratory refit
+scored 86.20%. The later campaign reached 88.10% with a fixed 160-epoch
+WRN22-4/SAM full-data refit, as recorded in
+[the official score ledger](docs/research-official-scores.json). The
 primary study and its one-time confirmation remain unchanged; no individual
 cause is inferred from this bundled extension. Private leaderboard scores are
 not yet available. The cause of the development/public gap has not been established.

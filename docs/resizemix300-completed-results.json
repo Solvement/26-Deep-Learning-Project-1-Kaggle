@@ -1,0 +1,252 @@
+{
+  "schema": "research_resizemix300_public_results_v1",
+  "recorded_at": "2026-11-02T22:11:55Z",
+  "status": "complete_rejected",
+  "run": "wrn22_resizemix300_bf16_s2026",
+  "role": "exploratory_primary",
+  "training_source_commit": "829dbb55b3029c77d01c758379e3e6e507756c47",
+  "benchmark_source_commit": "975c53c151d4369ea316d4c2057d2d3bc20ca9dc",
+  "raw_evidence_sha256": {
+    "supervisor": "6b9fde16c6a8da1cce7fbebf0e90182ae458fde53b9de162093a5f6196851592",
+    "primary_result": "8003ace813a6f7098cacc637fe8c5c600218240ede5f612c5babcf4f7b3320bf",
+    "benchmark": "a82386f2f5a106d917faa3dce3d4045cc54a803e03d9362f8ac1430679c723ce",
+    "benchmark_core": "a151436f0172f3ae1b8f448d8289d1f82f10f6bb04e1b33cfd4e6f20634ecff3",
+    "incumbent_comparison": "b47e57660c2e24727550a2353b6035152586949a02ac82e953db1d82f3050bf5",
+    "training_metrics": "9f0809cefe8494f4b10997f6ebf00f850669b9ebf1c8dab01fec5f1587963665",
+    "training_history": "978e69ed2c141acd6ce18253817175d97177eb284c245d4449e9ace6732a6529",
+    "training_provenance": "3309fba97e620efdc8a5448a483c4419a72ce81558382de31861e9d1d63799b3",
+    "training_environment": "b90c89077f2e9b84607780423566f35143fc3d6a633efdf02f48bc50beef8993",
+    "saved_effective_config": "b77cd518a7fabdb16ae6c72fbe58b0529efa935c624268b97f3e68b8c6ff2e8f",
+    "input_manifest": "979f8cbaed1c6b645700b8dac633dc9d60568b54d82eb52b488dda7c5463fe89",
+    "preflight": "904b96557890eb875c38b6251bb5f837d9f7fb503d1ea61b70b964b2c8280a98"
+  },
+  "raw_input_config_sha256": "9fb0fd038a81ebc3238c0d32759e3c3f50cd4bd9c5308fa6cf19d26bbd85f3b1",
+  "effective_config_sha256": "1c93f16da645426f9bf5432c0ec23a454fe2b1ca1ab5307610c1164c4b7fae18",
+  "selected_checkpoint": {
+    "recorded_sha256": "4ddc7791b7928d9cfa55c3875e598236cb878b04e07b6640b9d88cd0f70926e4",
+    "epoch": 295,
+    "weight_variant": "model",
+    "weight_description": "online model",
+    "selection_rule": "Best completed development epoch and online/EMA accuracy, with NLL tie-break."
+  },
+  "source_sha256": {
+    "train.py": "4b69ef97c9bfd0a3e780520afb49123397ce1841944b21828c615ad41f6c21be",
+    "model.py": "79b8af827af874385a7609ec9da7823df604144ae3896fd11fb956274531b848",
+    "data.py": "4bc8316c36bf4c229fc6b8d9327fcb37ebdbd5c5d414697b916633081f2fe50b",
+    "runtime.py": "75849c8d87868cd2cd4de9e4657e516d3e7848f9bafd023d5d83c4fd473182e4",
+    "research/train_resizemix.py": "6fc49c6b76af09a753cb784b367c39e1be4ddb47b918e5cee8c2d3dfff298ae8",
+    "research/resizemix.py": "042d909df03063abba4cf4e8cb9401b2f48c247734741780d97c9c0b30cbced1",
+    "research/train_shadow.py": "9fdf08ef341ca09202b452f488c092a6a239c2c46096a344f0540e5db6a9c061",
+    "research/augmentations.py": "718530d2c56c556eb65508915126e0f5f0964a9c03d4937df74d3e3798551873",
+    "research/benchmark_resizemix.py": "64508b91668b84627aecdce16f644c1512b94c9a6628470e5e4b2b8702590c40",
+    "research/benchmark.py": "d30acccd66a18f8de198824a57b565cb8e16cd7044fa1cec6608007c80d37f16",
+    "research/run_resizemix300_primary.py": "06cd2ef78a70526df1ce672b25b81a68ea522e3b0730b6dee968b929161303ba",
+    "research/resizemix300-primary-plan.md": "8d5b22a0c84080f6f6aafaa4ab5774f1bd0edef2adbfffefe2c803c310ef0a60",
+    "research/incumbent_compare.py": "277f7803d855a90a5bd92e582e2beda85cb18557402d9a4332428d2b70a49d0d",
+    "research/incumbent-promotion-plan.md": "10e59e56f8c2a3c1f9ae0ad2681c3db5b3129ffd2d33c6f4d3087710e2860ec7"
+  },
+  "config": {
+    "depth": 22,
+    "widen_factor": 4,
+    "dropout": 0.0,
+    "num_classes": 10,
+    "epochs": 300,
+    "batch_size": 128,
+    "lr": 0.1,
+    "min_lr": 0.0001,
+    "warmup_epochs": 5,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "label_smoothing": 0.0,
+    "cutout": 0,
+    "mixup_alpha": 0.0,
+    "mixup_probability": 0.0,
+    "ema_decay": 0.995,
+    "seed": 2026,
+    "split_seed": 2026,
+    "train_all": false,
+    "final_variant": "ema",
+    "fixed_flip_tta": false,
+    "resizemix_probability": 0.5,
+    "resizemix_tau_min": 0.1,
+    "resizemix_tau_max": 0.8
+  },
+  "parameter_count": 4298970,
+  "training": {
+    "official_training_examples": 40000,
+    "development_examples": 5000,
+    "epochs_completed": 300,
+    "updates_per_epoch": 313,
+    "successful_updates": 93900,
+    "skipped_updates": 0,
+    "attempted_updates": 93900,
+    "source_examples_seen": 12000000,
+    "source_examples_seen_derivation": "300 complete epochs multiplied by 40000 optimization-pool images.",
+    "resizemix_batches": 47211,
+    "all_epoch_update_counts_verified": true,
+    "all_epoch_grad_scaler_scales_equal_one": true,
+    "precision": "bf16",
+    "native_bf16": true,
+    "master_parameter_dtype": "torch.float32",
+    "ema_parameter_dtype": "torch.float32",
+    "grad_scaler_enabled": false,
+    "method": "Single-view ResizeMix: uniform side ratio 0.1-0.8, probability 0.5, bilinear whole-donor resize, full-fit boxes and actual-area label weights."
+  },
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+    "torch": "2.12.0+cu130",
+    "torchvision": "0.27.0+cu130",
+    "cuda_runtime": "13.0",
+    "cudnn": 92000,
+    "numpy": "2.3.4",
+    "Pillow": "12.0.0",
+    "evaluation_device_type": "cuda",
+    "evaluation_amp_dtype": "torch.bfloat16"
+  },
+  "timing": {
+    "started_at": "2026-11-02T20:28:57.363757+00:00",
+    "finished_at": "2026-11-02T21:55:15.120928+00:00",
+    "supervisor_elapsed_seconds": 5177.768402499998,
+    "training_elapsed_seconds": 5136.191856900001,
+    "benchmark_elapsed_seconds": 31.039036199999828,
+    "reserved_seconds": 10800,
+    "supervisor_reported_process_tree_cleanup_verified": true
+  },
+  "benchmark": {
+    "schema": "official_development_stress_v3",
+    "status": "complete",
+    "independent_development_images": 5000,
+    "training_examples": 40000,
+    "batch_size": 128,
+    "bn_recalibrated": false,
+    "policies": [
+      "plain",
+      "flip",
+      "center80_shift20"
+    ],
+    "cases": [
+      "clean",
+      "noise_004",
+      "boxblur3",
+      "contrast065",
+      "brightness080",
+      "resize24"
+    ],
+    "completed_policy_case_pairs": 18,
+    "examples_per_policy_case": 5000,
+    "recorded_pixel_hashes_match_incumbent_all18_cases": true,
+    "recorded_evaluation_context_matches_incumbent": true,
+    "fixed_primary_policy": "center80_shift20",
+    "weighted_clean_accuracy": 0.9692,
+    "weighted_clean_nll": 0.10846372060626745,
+    "weighted_mean_stress_accuracy": 0.7881199999999999,
+    "weighted_cases": {
+      "clean": {
+        "examples": 5000,
+        "accuracy": 0.9692,
+        "nll": 0.10846372060626745
+      },
+      "noise_004": {
+        "examples": 5000,
+        "accuracy": 0.6388,
+        "nll": 1.402559875679016
+      },
+      "boxblur3": {
+        "examples": 5000,
+        "accuracy": 0.5136,
+        "nll": 1.907937890815735
+      },
+      "contrast065": {
+        "examples": 5000,
+        "accuracy": 0.9604,
+        "nll": 0.13263094491809607
+      },
+      "brightness080": {
+        "examples": 5000,
+        "accuracy": 0.966,
+        "nll": 0.11654629741087556
+      },
+      "resize24": {
+        "examples": 5000,
+        "accuracy": 0.8618,
+        "nll": 0.4708367082595825
+      }
+    }
+  },
+  "original_baseline_screen": {
+    "candidate_policy": "center80_shift20",
+    "baseline_policy": "flip",
+    "passed": true,
+    "clean_accuracy_delta": 0.006399999999999961,
+    "mean_stress_accuracy_delta": 0.01183999999999985
+  },
+  "incumbent_screen": {
+    "policy": "center80_shift20",
+    "incumbent_checkpoint_sha256": "53d8d64df899ebab79ae77144ff36e912c45e65178c0b50bd9af381dc48187bc",
+    "incumbent_benchmark_sha256": "e3c586afc302d1422c80eb3831562f6b67f684d53c7b2b5390c9d4623001570b",
+    "incumbent_clean_accuracy": 0.9654,
+    "incumbent_clean_nll": 0.11753104768097401,
+    "incumbent_mean_stress_accuracy": 0.7971600000000001,
+    "clean_accuracy_delta": 0.0037999999999999146,
+    "clean_accuracy_delta_percentage_points": 0.38,
+    "clean_nll_delta": -0.00906732707470656,
+    "mean_stress_accuracy_delta": -0.009040000000000159,
+    "mean_stress_delta_percentage_points": -0.904,
+    "mean_gate_passed": false,
+    "individual_stress_floor": -0.01,
+    "individual_stress_gate_passed": false,
+    "individual_stress_floor_violations": [
+      "noise_004"
+    ],
+    "noise_accuracy_delta": -0.138,
+    "noise_delta_percentage_points": -13.8,
+    "case_accuracy_deltas": {
+      "noise_004": -0.138,
+      "boxblur3": 0.07419999999999993,
+      "contrast065": 0.0010000000000000009,
+      "brightness080": 0.0011999999999999789,
+      "resize24": 0.01639999999999997
+    },
+    "correct_count_deltas": {
+      "clean": 19,
+      "noise_004": -690,
+      "boxblur3": 371,
+      "contrast065": 5,
+      "brightness080": 6,
+      "resize24": 82
+    },
+    "stress_correct_count_delta": -226,
+    "passed": false
+  },
+  "decision": {
+    "outcome": "rejected_before_pairing",
+    "reason": "The original baseline gate passed, but both the fixed-incumbent mean criterion and the individual-noise floor failed.",
+    "paired": false,
+    "independent_repeat": false,
+    "hidden_prediction": false,
+    "kaggle_submission": false,
+    "submission_authorized": false,
+    "confirmation_evaluated": false,
+    "hidden_images_loaded": false,
+    "external_data_loaded": false
+  },
+  "official_scores": {
+    "this_run_public_score": null,
+    "this_run_private_score": null,
+    "best_observed_public_score": 0.878,
+    "best_observed_public_submission_ref": 57854294,
+    "historical_resizemix160_public_score": 0.875,
+    "historical_resizemix160_submission_ref": 57854107,
+    "historical_comparison_limitation": "The earlier ResizeMix160 submission used a different duration, platform and training precision. This comparison cannot isolate the effect of the longer schedule.",
+    "private_scores_unreleased": true
+  },
+  "audit_scope": {
+    "this_publication_audit": "Standard-library JSON consistency and file-hash review only.",
+    "independent_tensor_reload_performed": false,
+    "executed_typed_benchmark_loaded_tensors": true,
+    "tensor_audit_attribution": "Tensor loading and method integrity checks belong to the executed typed benchmark; this outside publication audit did not reload checkpoint tensors.",
+    "synthetic_stress_is_official_hidden_result": false,
+    "bootstrap_performed": false,
+    "interpretation": "Exploratory reused-development screening. Synthetic stresses are engineering proxies, not CIFAR-C, a competition score, a hidden-distribution diagnosis or an independent confirmation."
+  }
+}

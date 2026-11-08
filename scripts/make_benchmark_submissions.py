@@ -29,7 +29,7 @@ from predict import validate_submission
 from train import code_provenance, normalize, training_source
 
 
-ALLOWED_RUNS = ("baseline", "architecture", "regularized", "stability_seed2027")
+ALLOWED_RUNS = ("baseline", "architecture", "regularized")
 
 
 def read_json(path):

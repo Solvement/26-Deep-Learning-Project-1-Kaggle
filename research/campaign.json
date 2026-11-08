@@ -1,0 +1,49 @@
+{
+  "issue": 7,
+  "team": "Saber",
+  "status": "active_exploration",
+  "starts_at": "2026-10-31T00:00:00-04:00",
+  "stops_at": "2026-11-05T00:00:00-05:00",
+  "primary_study_frozen": true,
+  "confirmation_may_be_reused": false,
+  "official_training_only": true,
+  "parameter_limit": 5000000,
+  "concurrent_local_gpu_jobs": 1,
+  "concurrent_cloud_gpu_jobs": 1,
+  "local_gpu_seconds_per_utc_day": 21600,
+  "local_job_timeout_seconds": 10800,
+  "kaggle_additional_gpu_hours_cap": 25,
+  "cloud_preference": "existing_Colab_then_existing_Kaggle",
+  "colab_additional_purchases_authorized": false,
+  "other_paid_providers_authorized": false,
+  "new_paid_budget_usd": null,
+  "submission_limit_per_team_utc_day": 5,
+  "benchmark_schema": "official_development_stress_v3",
+  "baseline_benchmark": "results/research/baseline_v3_verified.json",
+  "benchmark_clean_improvement": 0.001,
+  "benchmark_stress_noninferiority": -0.002,
+  "benchmark_stress_improvement": 0.005,
+  "benchmark_clean_noninferiority": -0.002,
+  "first_experiments": [
+    {"id":"wrn22_wd1e4_s2026", "config":"research/configs/wrn22_wd1e4.json", "changes_from_regularized":["weight_decay"]},
+    {"id":"wrn34_3_s2026", "config":"research/configs/wrn34_3.json", "changes_from_regularized":["depth", "widen_factor"]},
+    {"id":"wrn22_cutmix_s2026_v3", "config":"research/configs/wrn22_cutmix.json", "preferred_backend":"existing_Colab_T4", "changes_from_regularized":["replace_Mixup_and_Cutout_with_CutMix_alpha1_probability0.5"]}
+  ],
+  "next_experiment": {
+    "id": "wrn22_sam_s2026",
+    "config": "research/configs/wrn22_sam.json",
+    "trainer": "sam",
+    "precision": "bf16",
+    "preflight_required": "synthetic native BF16 SAM speed and real parameter updates; current local lease must be released",
+    "changes_from_regularized": ["SAM_rho0.05_two_pass_optimizer"],
+    "priority": "after current results; repeat a qualifying promising recipe before speculative expansion when evidence favors it"
+  },
+  "next_cloud_experiment": {
+    "id": "wrn22_resizemix_s2026_v3",
+    "config": "research/configs/wrn22_resizemix.json",
+    "trainer": "resizemix",
+    "precision": "fp16",
+    "recipe": "uniform side ratio 0.1-0.8, bilinear full-donor resize, per-image shifted full-fit box, probability0.5; replaces Mixup/Cutout",
+    "preflight_required": "actual CUDA method geometry/FP16 parameter updates and measured runtime within three-hour deadline"
+  }
+}

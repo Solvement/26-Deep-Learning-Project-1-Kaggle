@@ -1,0 +1,2 @@
+# Install in Ubuntu WSL using uv tool install, separate from the ML environment.
+google-colab-cli==0.7.5

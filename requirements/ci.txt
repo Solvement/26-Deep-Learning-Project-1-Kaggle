@@ -4,3 +4,11 @@ numpy==2.3.5
 pandas==2.2.3
 scikit-learn==1.8.0
 matplotlib==3.10.8
+# Research supervisors bind process leases to PID creation time.
+psutil==7.2.2
+# Exercise the actual notebook structure, PNG display and PDF report boundaries.
+# These are CPU reporting dependencies; no notebook kernel is run in CI.
+nbformat==5.11.1
+reportlab==5.0.1
+pypdf==6.14.2
+ipython==9.17.1
